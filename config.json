@@ -1,0 +1,34 @@
+{
+  "name": "Bids",
+  "short_description": "Verify addresses for Bids",
+  "tile": "/bids/static/image/bids.png",
+  "min_lnbits_version": "1.0.0",
+  "contributors": [
+    {
+      "name": "leesalminen",
+      "uri": "https://github.com/leesalminen",
+      "role": "Contributor"
+    },
+    {
+      "name": "dni",
+      "uri": "https://github.com/dni",
+      "role": "Contributor"
+    },
+    {
+      "name": "Vlad STAN",
+      "uri": "https://github.com/motorina0",
+      "role": "Contributor"
+    }
+  ],
+  "images": [
+    {
+      "uri": "https://raw.githubusercontent.com/lnbits/bids/main/static/image/1.png"
+    },
+    {
+      "uri": "https://raw.githubusercontent.com/lnbits/bids/main/static/image/2.png"
+    }
+  ],
+  "description_md": "https://raw.githubusercontent.com/lnbits/bids/main/description.md",
+  "terms_and_conditions_md": "https://raw.githubusercontent.com/lnbits/bids/main/toc.md",
+  "license": "MIT"
+}
