@@ -3,7 +3,7 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      domain: domain,
+      auction_house: auction_house,
       domain_id: domain_id,
       address_id: address_id,
       formDialog: {
@@ -21,7 +21,7 @@ window.app = Vue.createApp({
 
       axios
         .put(
-          "/bids/api/v1/domain/" +
+          "/bids/api/v1/auction_house/" +
             this.domain_id +
             "/address/" +
             this.address_id +

@@ -12,7 +12,7 @@ async def m001_initial_invoices(db: Database):
            currency TEXT NOT NULL,
            amount INTEGER NOT NULL,
 
-           domain TEXT NOT NULL,
+           auction_house TEXT NOT NULL,
 
            time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
        );
@@ -80,7 +80,7 @@ async def m005_add_domain_rankings_table(db: Database):
 
 async def m006_make_amount_type_real(db: Database):
     """
-    Domain amount was INT which is not well suited for fiat currencies. Not it is REAL.
+    AuctionHouse amount was INT which is not well suited for fiat currencies. Not it is REAL.
     """
     await db.execute("ALTER TABLE bids.domains ADD COLUMN cost REAL NOT NULL DEFAULT 0")
 

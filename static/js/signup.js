@@ -4,7 +4,7 @@ window.app = Vue.createApp({
   data: function () {
     return {
       base_url: base_url,
-      domain: domain,
+      auction_house: auction_house,
       domain_id: domain_id,
       wallet: wallet,
       currency: currency,
@@ -55,7 +55,7 @@ window.app = Vue.createApp({
 
       axios
         .post(
-          "/bids/api/v1/public/domain/" + this.domain_id + "/address",
+          "/bids/api/v1/public/auction_house/" + this.domain_id + "/address",
           formDialog.data,
         )
         .then(function (response) {
@@ -70,7 +70,7 @@ window.app = Vue.createApp({
           qrCodeDialog.paymentChecker = setInterval(function () {
             axios
               .get(
-                "/bids/api/v1/domain/" +
+                "/bids/api/v1/auction_house/" +
                   self.domain_id +
                   "/payments/" +
                   response.data.payment_hash,

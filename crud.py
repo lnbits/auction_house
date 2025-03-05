@@ -9,60 +9,60 @@ from .models import (
     Address,
     AddressExtra,
     AddressFilters,
+    AuctionHouse,
+    AuctionHouseCostConfig,
     BidsSettings,
     CreateAddressData,
-    CreateDomainData,
-    Domain,
-    DomainCostConfig,
-    EditDomainData,
+    CreateAuctionHouseData,
+    EditAuctionHouseData,
     IdentifierRanking,
-    PublicDomain,
+    PublicAuctionHouse,
     UserSetting,
 )
 
 db = Database("ext_bids")
 
 
-async def get_domain(domain_id: str, wallet_id: str) -> Optional[Domain]:
+async def get_domain(domain_id: str, wallet_id: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
         "SELECT * FROM bids.domains WHERE id = :id AND wallet = :wallet",
         {"id": domain_id, "wallet": wallet_id},
-        Domain,
+        AuctionHouse,
     )
 
 
-async def get_domain_by_id(domain_id: str) -> Optional[Domain]:
+async def get_domain_by_id(domain_id: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
         "SELECT * FROM bids.domains WHERE id = :id",
         {"id": domain_id},
-        Domain,
+        AuctionHouse,
     )
 
 
-async def get_domain_public_data(domain_id: str) -> Optional[PublicDomain]:
+async def get_domain_public_data(domain_id: str) -> Optional[PublicAuctionHouse]:
     return await db.fetchone(
-        "SELECT id, currency, cost, domain FROM bids.domains WHERE id = :id",
+        "SELECT id, currency, cost, auction_house FROM bids.domains WHERE id = :id",
         {"id": domain_id},
-        PublicDomain,
+        PublicAuctionHouse,
     )
 
 
-async def get_domain_by_name(domain: str) -> Optional[Domain]:
+async def get_domain_by_name(auction_house: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
-        "SELECT * FROM bids.domains WHERE domain = :domain",
-        {"domain": domain.lower()},
-        Domain,
+        "SELECT * FROM bids.domains WHERE auction_house = :auction_house",
+        {"auction_house": auction_house.lower()},
+        AuctionHouse,
     )
 
 
-async def get_domains(wallet_ids: Union[str, list[str]]) -> list[Domain]:
+async def get_domains(wallet_ids: Union[str, list[str]]) -> list[AuctionHouse]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
     q = ",".join([f"'{w}'" for w in wallet_ids])
     return await db.fetchall(
         f"SELECT * FROM bids.domains WHERE wallet IN ({q})",
-        model=Domain,
+        model=AuctionHouse,
     )
 
 
@@ -161,8 +161,8 @@ async def update_address(address: Address) -> Address:
 
 
 async def delete_domain(domain_id: str, wallet_id: str) -> bool:
-    domain = await get_domain(domain_id, wallet_id)
-    if not domain:
+    auction_house = await get_domain(domain_id, wallet_id)
+    if not auction_house:
         return False
     await db.execute(
         """
@@ -220,30 +220,34 @@ async def create_address_internal(
     return address
 
 
-async def update_domain(wallet_id: str, data: EditDomainData) -> Optional[Domain]:
-    domain = await get_domain(data.id, wallet_id)
-    if not domain:
+async def update_domain(
+    wallet_id: str, data: EditAuctionHouseData
+) -> Optional[AuctionHouse]:
+    auction_house = await get_domain(data.id, wallet_id)
+    if not auction_house:
         return None
-    domain.currency = data.currency
-    domain.cost = data.cost
-    domain.cost_extra = data.cost_extra or domain.cost_extra
-    await db.update("bids.domains", domain)
+    auction_house.currency = data.currency
+    auction_house.cost = data.cost
+    auction_house.cost_extra = data.cost_extra or auction_house.cost_extra
+    await db.update("bids.domains", auction_house)
 
-    return domain
+    return auction_house
 
 
-async def create_domain_internal(wallet_id: str, data: CreateDomainData) -> Domain:
-    domain = Domain(
+async def create_domain_internal(
+    wallet_id: str, data: CreateAuctionHouseData
+) -> AuctionHouse:
+    auction_house = AuctionHouse(
         id=urlsafe_short_hash(),
         wallet=wallet_id,
         time=datetime.now(timezone.utc),
-        cost_extra=data.cost_extra or DomainCostConfig(),
+        cost_extra=data.cost_extra or AuctionHouseCostConfig(),
         currency=data.currency,
         cost=data.cost,
-        domain=data.domain.lower(),
+        auction_house=data.auction_house.lower(),
     )
-    await db.insert("bids.domains", domain)
-    return domain
+    await db.insert("bids.domains", auction_house)
+    return auction_house
 
 
 # todo: rename to identifier

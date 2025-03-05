@@ -125,7 +125,7 @@ class CreateAddressData(BaseModel):
             self.referer = self.referer.strip()
 
 
-class DomainCostConfig(BaseModel):
+class AuctionHouseCostConfig(BaseModel):
     max_years: int = 1
     char_count_cost: list[CustomCost] = []
     rank_cost: list[CustomCost] = []
@@ -201,27 +201,27 @@ class DomainCostConfig(BaseModel):
             promo_codes.append(promo.code)
 
 
-class CreateDomainData(BaseModel):
+class CreateAuctionHouseData(BaseModel):
     wallet: str
     currency: str
     cost: float
-    domain: str
-    cost_extra: Optional[DomainCostConfig] = None
+    auction_house: str
+    cost_extra: Optional[AuctionHouseCostConfig] = None
 
     def validate_data(self):
-        assert self.cost >= 0, "Domain cost must be positive."
+        assert self.cost >= 0, "AuctionHouse cost must be positive."
         if self.cost_extra:
             self.cost_extra.validate_data()
 
 
-class EditDomainData(BaseModel):
+class EditAuctionHouseData(BaseModel):
     id: str
     currency: str
     cost: float
-    cost_extra: Optional[DomainCostConfig] = None
+    cost_extra: Optional[AuctionHouseCostConfig] = None
 
     def validate_data(self):
-        assert self.cost >= 0, "Domain cost must be positive."
+        assert self.cost >= 0, "AuctionHouse cost must be positive."
         if self.cost_extra:
             self.cost_extra.validate_data()
 
@@ -231,16 +231,16 @@ class IdentifierRanking(BaseModel):
     rank: int
 
 
-class PublicDomain(BaseModel):
+class PublicAuctionHouse(BaseModel):
     id: str
     currency: str
     cost: float
-    domain: str
+    auction_house: str
 
 
-class Domain(PublicDomain):
+class AuctionHouse(PublicAuctionHouse):
     wallet: str
-    cost_extra: DomainCostConfig
+    cost_extra: AuctionHouseCostConfig
     time: datetime
 
     async def price_for_identifier(
@@ -282,7 +282,7 @@ class Domain(PublicDomain):
         )
 
     def public_data(self):
-        data = dict(PublicDomain(**dict(self)))
+        data = dict(PublicAuctionHouse(**dict(self)))
         data["max_years"] = self.cost_extra.max_years
         return data
 

@@ -1,6 +1,6 @@
-{% extends "public.html" %} {% block toolbar_title %} Edit domain "{{
-domain.domain }}" {% endblock %} {% from "macros.jinja" import window_vars with
-context %} {% block page %}
+{% extends "public.html" %} {% block toolbar_title %} Edit auction_house "{{
+auction_house.auction_house }}" {% endblock %} {% from "macros.jinja" import
+window_vars with context %} {% block page %}
 <link rel="stylesheet" href="/bids/static/css/signup.css" />
 <div class="row">
   <div class="col-md-2 col-sm-none">
@@ -12,10 +12,10 @@ context %} {% block page %}
       <q-btn
         unelevated
         color="primary"
-        @click="saveDomain"
+        @click="saveAuctionHouse"
         class="float-right"
         :disable="domainForm.data.wallet == null || domainForm.data.currency == null"
-        >Update Domain</q-btn
+        >Update AuctionHouse</q-btn
       >
     </div>
   </q-card>
@@ -54,8 +54,8 @@ context %} {% block page %}
           v-if="!domainForm.data.id"
           filled
           dense
-          v-model.trim="domainForm.data.domain"
-          label="Domain"
+          v-model.trim="domainForm.data.auction_house"
+          label="AuctionHouse"
           placeholder="nostr.com"
         ></q-input>
         <q-input
@@ -275,7 +275,7 @@ context %} {% block page %}
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  const domain = JSON.parse({{domain | tojson | safe}})
+  const auction_house = JSON.parse({{auction_house | tojson | safe}})
 </script>
-<script src="{{ static_url_for('bids/static', 'js/domain.js') }}"></script>
+<script src="{{ static_url_for('bids/static', 'js/auction_house.js') }}"></script>
 {% endblock %}

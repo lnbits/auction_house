@@ -24,14 +24,18 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@bids_generic_router.get("/domain/{domain_id}", response_class=HTMLResponse)
+@bids_generic_router.get("/auction_house/{domain_id}", response_class=HTMLResponse)
 async def domain_details(
     request: Request, domain_id: str, user: User = Depends(check_user_exists)
 ):
-    domain = await get_domain_by_id(domain_id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain does not exist.")
+    auction_house = await get_domain_by_id(domain_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse does not exist.")
     return bids_renderer().TemplateResponse(
-        "bids/domain.html",
-        {"request": request, "domain": domain.json(), "user": user.json()},
+        "bids/auction_house.html",
+        {
+            "request": request,
+            "auction_house": auction_house.json(),
+            "user": user.json(),
+        },
     )

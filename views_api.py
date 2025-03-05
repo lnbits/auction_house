@@ -45,14 +45,13 @@ from .models import (
     Address,
     AddressFilters,
     AddressStatus,
+    AuctionHouse,
     BidsSettings,
     CreateAddressData,
-    CreateDomainData,
-    Domain,
-    EditDomainData,
+    CreateAuctionHouseData,
+    EditAuctionHouseData,
     IdentifierRanking,
     LnAddressConfig,
-    RotateAddressData,
     UpdateAddressData,
     UserSetting,
 )
@@ -81,39 +80,41 @@ rotation_secret_prefix = "nostr_nip_5_rotation_secret_"
 async def api_domains(
     all_wallets: bool = Query(None),
     key_info: WalletTypeInfo = Depends(require_invoice_key),
-) -> list[Domain]:
+) -> list[AuctionHouse]:
     wallet = key_info.wallet
     domains = await get_user_domains(wallet.user, wallet.id, all_wallets)
     return domains
 
 
-@bids_api_router.get("/api/v1/domain/{domain_id}")
+@bids_api_router.get("/api/v1/auction_house/{domain_id}")
 async def api_get_domain(
     domain_id: str, key_info: WalletTypeInfo = Depends(require_invoice_key)
 ):
-    domain = await get_domain(domain_id, key_info.wallet.id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
-    return domain
+    auction_house = await get_domain(domain_id, key_info.wallet.id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
+    return auction_house
 
 
-@bids_api_router.post("/api/v1/domain", status_code=HTTPStatus.CREATED)
+@bids_api_router.post("/api/v1/auction_house", status_code=HTTPStatus.CREATED)
 async def api_create_domain(
-    data: CreateDomainData, key_info: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateAuctionHouseData, key_info: WalletTypeInfo = Depends(require_admin_key)
 ):
     data.validate_data()
     return await create_domain_internal(wallet_id=key_info.wallet.id, data=data)
 
 
-@bids_api_router.put("/api/v1/domain")
+@bids_api_router.put("/api/v1/auction_house")
 async def api_update_domain(
-    data: EditDomainData, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: EditAuctionHouseData, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     data.validate_data()
     return await update_domain(wallet_id=wallet.wallet.id, data=data)
 
 
-@bids_api_router.delete("/api/v1/domain/{domain_id}", status_code=HTTPStatus.CREATED)
+@bids_api_router.delete(
+    "/api/v1/auction_house/{domain_id}", status_code=HTTPStatus.CREATED
+)
 async def api_domain_delete(
     domain_id: str,
     key_info: WalletTypeInfo = Depends(require_admin_key),
@@ -123,7 +124,7 @@ async def api_domain_delete(
     return SimpleStatus(success=deleted, message="Deleted")
 
 
-@bids_api_router.get("/api/v1/domain/{domain_id}/nostr.json")
+@bids_api_router.get("/api/v1/auction_house/{domain_id}/nostr.json")
 async def api_get_nostr_json(
     response: Response, domain_id: str, name: str = Query(None)
 ):
@@ -152,7 +153,7 @@ async def api_get_nostr_json(
     return bids
 
 
-@bids_api_router.get("/api/v1/domain/{domain_id}/search")
+@bids_api_router.get("/api/v1/auction_house/{domain_id}/search")
 async def api_search_identifier(
     domain_id: str, q: Optional[str] = None, years: Optional[int] = None
 ) -> AddressStatus:
@@ -160,14 +161,14 @@ async def api_search_identifier(
     if not q:
         return AddressStatus(identifier="")
 
-    domain = await get_domain_by_id(domain_id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    auction_house = await get_domain_by_id(domain_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
 
-    return await get_identifier_status(domain, q, years or 1)
+    return await get_identifier_status(auction_house, q, years or 1)
 
 
-@bids_api_router.get("/api/v1/domain/{domain_id}/payments/{payment_hash}")
+@bids_api_router.get("/api/v1/auction_house/{domain_id}/payments/{payment_hash}")
 async def api_check_address_payment(domain_id: str, payment_hash: str):
     # todo: can it be replaced with websocket?
     paid = await check_address_payment(domain_id, payment_hash)
@@ -203,7 +204,7 @@ async def api_get_addresses_paginated(
     return page
 
 
-@bids_api_router.delete("/api/v1/domain/{domain_id}/address/{address_id}")
+@bids_api_router.delete("/api/v1/auction_house/{domain_id}/address/{address_id}")
 async def api_delete_address(
     domain_id: str,
     address_id: str,
@@ -211,35 +212,35 @@ async def api_delete_address(
 ):
 
     # make sure the address belongs to the user
-    domain = await get_domain(domain_id, key_info.wallet.id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    auction_house = await get_domain(domain_id, key_info.wallet.id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
     address = await get_address(domain_id, address_id)
     if not address:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
     if address.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch.")
     await delete_address_by_id(domain_id, address_id)
     cache.pop(f"{domain_id}/{address.local_part}")
 
 
-@bids_api_router.put("/api/v1/domain/{domain_id}/address/{address_id}/activate")
+@bids_api_router.put("/api/v1/auction_house/{domain_id}/address/{address_id}/activate")
 async def api_activate_address(
     domain_id: str,
     address_id: str,
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ) -> Address:
     # make sure the address belongs to the user
-    domain = await get_domain(domain_id, key_info.wallet.id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    auction_house = await get_domain(domain_id, key_info.wallet.id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
     active_address = await activate_address(domain_id, address_id)
     cache.pop(f"{domain_id}/{active_address.local_part}")
     return await update_ln_address(active_address)
 
 
 @bids_api_router.get(
-    "/api/v1/domain/{domain_id}/address/{address_id}/reimburse",
+    "/api/v1/auction_house/{domain_id}/address/{address_id}/reimburse",
     dependencies=[Depends(require_admin_key)],
     status_code=HTTPStatus.CREATED,
 )
@@ -249,22 +250,22 @@ async def api_address_reimburse(
 ):
 
     # make sure the address belongs to the user
-    domain = await get_domain_by_id(domain_id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    auction_house = await get_domain_by_id(domain_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
 
-    address = await get_address(domain.id, address_id)
+    address = await get_address(auction_house.id, address_id)
     if not address:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
     if address.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch.")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch.")
 
     wallet_id = await get_reimburse_wallet_id(address)
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=wallet_id,
         amount=address.reimburse_amount,
-        memo=f"Reimbursement for NIP-05 for {address.local_part}@{domain.domain}",
+        memo=f"Reimbursement for NIP-05 for {address.local_part}@{auction_house.auction_house}",
         extra={
             "tag": "bids",
             "domain_id": domain_id,
@@ -281,7 +282,7 @@ async def api_address_reimburse(
     }
 
 
-@bids_api_router.put("/api/v1/domain/{domain_id}/address/{address_id}")
+@bids_api_router.put("/api/v1/auction_house/{domain_id}/address/{address_id}")
 async def api_update_address(
     domain_id: str,
     address_id: str,
@@ -291,16 +292,16 @@ async def api_update_address(
 
     data.validate_relays_urls()
 
-    # make sure the domain belongs to the user
-    domain = await get_domain(domain_id, w.wallet.id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    # make sure the auction_house belongs to the user
+    auction_house = await get_domain(domain_id, w.wallet.id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
 
     address = await get_address(domain_id, address_id)
     if not address:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
     if address.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
 
     _pubkey = data.pubkey or address.pubkey
     if not _pubkey:
@@ -318,7 +319,7 @@ async def api_update_address(
 
 
 @bids_api_router.post(
-    "/api/v1/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
+    "/api/v1/auction_house/{domain_id}/address", status_code=HTTPStatus.CREATED
 )
 async def api_request_address(
     address_data: CreateAddressData,
@@ -327,16 +328,16 @@ async def api_request_address(
 ):
     address_data.normalize()
 
-    # make sure the domain belongs to the user
-    domain = await get_domain(domain_id, key_info.wallet.id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    # make sure the auction_house belongs to the user
+    auction_house = await get_domain(domain_id, key_info.wallet.id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
 
     if address_data.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
 
     address = await create_address(
-        domain, address_data, key_info.wallet.id, key_info.wallet.user
+        auction_house, address_data, key_info.wallet.id, key_info.wallet.user
     )
     if not address.extra.price_in_sats:
         raise HTTPException(
@@ -365,7 +366,7 @@ async def api_get_user_addresses(
     return await get_valid_addresses_for_owner(owner_id, local_part, active)
 
 
-@bids_api_router.delete("/api/v1/user/domain/{domain_id}/address/{address_id}")
+@bids_api_router.delete("/api/v1/user/auction_house/{domain_id}/address/{address_id}")
 async def api_delete_user_address(
     domain_id: str,
     address_id: str,
@@ -379,8 +380,7 @@ async def api_delete_user_address(
     return await delete_address(domain_id, address_id, owner_id)
 
 
-
-@bids_api_router.put("/api/v1/user/domain/{domain_id}/address/{address_id}")
+@bids_api_router.put("/api/v1/user/auction_house/{domain_id}/address/{address_id}")
 async def api_update_user_address(
     domain_id: str,
     address_id: str,
@@ -397,7 +397,7 @@ async def api_update_user_address(
     if not address:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
     if address.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
 
     owner_id = owner_id_from_user_id(user_id)
     if address.owner_id != owner_id:
@@ -418,7 +418,7 @@ async def api_update_user_address(
 
 
 @bids_api_router.post(
-    "/api/v1/user/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
+    "/api/v1/user/auction_house/{domain_id}/address", status_code=HTTPStatus.CREATED
 )
 async def api_request_user_address(
     address_data: CreateAddressData,
@@ -432,18 +432,18 @@ async def api_request_user_address(
     address_data.normalize()
 
     # make sure the address belongs to the user
-    domain = await get_domain_by_id(address_data.domain_id)
-    assert domain, "Domain does not exist."
+    auction_house = await get_domain_by_id(address_data.domain_id)
+    assert auction_house, "AuctionHouse does not exist."
 
-    assert address_data.domain_id == domain_id, "Domain ID missmatch"
+    assert address_data.domain_id == domain_id, "AuctionHouse ID missmatch"
 
     wallet_id = (await get_wallets(user_id))[0].id
 
-    return await request_user_address(domain, address_data, wallet_id, user_id)
+    return await request_user_address(auction_house, address_data, wallet_id, user_id)
 
 
 @bids_api_router.post(
-    "/api/v1/public/domain/{domain_id}/address", status_code=HTTPStatus.CREATED
+    "/api/v1/public/auction_house/{domain_id}/address", status_code=HTTPStatus.CREATED
 )
 async def api_request_public_user_address(
     address_data: CreateAddressData,
@@ -453,18 +453,18 @@ async def api_request_public_user_address(
 
     address_data.normalize()
     # make sure the address belongs to the user
-    domain = await get_domain_by_id(address_data.domain_id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    auction_house = await get_domain_by_id(address_data.domain_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
     if address_data.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
 
     wallet_id = (await get_wallets(user_id))[0].id if user_id else None
     # used when the user is not authenticated
     temp_user_id = rotation_secret_prefix + uuid4().hex
 
     resp = await request_user_address(
-        domain, address_data, wallet_id or "", user_id or temp_user_id
+        auction_house, address_data, wallet_id or "", user_id or temp_user_id
     )
     if not user_id:
         resp["rotation_secret"] = temp_user_id
@@ -472,8 +472,12 @@ async def api_request_public_user_address(
     return resp
 
 
-@bids_api_router.post("/api/v1/user/domain/{domain_id}/address/{address_id}/lnaddress")
-@bids_api_router.put("/api/v1/user/domain/{domain_id}/address/{address_id}/lnaddress")
+@bids_api_router.post(
+    "/api/v1/user/auction_house/{domain_id}/address/{address_id}/lnaddress"
+)
+@bids_api_router.put(
+    "/api/v1/user/auction_house/{domain_id}/address/{address_id}/lnaddress"
+)
 async def api_lnurl_create_or_update(
     domain_id: str,
     address_id: str,
@@ -484,15 +488,15 @@ async def api_lnurl_create_or_update(
         raise HTTPException(HTTPStatus.UNAUTHORIZED)
 
     # make sure the address belongs to the user
-    domain = await get_domain_by_id(domain_id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
+    auction_house = await get_domain_by_id(domain_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
 
-    address = await get_address(domain.id, address_id)
+    address = await get_address(auction_house.id, address_id)
     if not address:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
     if address.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch")
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
     if not address.active:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Address not active.")
     owner_id = owner_id_from_user_id(user_id)
@@ -507,12 +511,12 @@ async def api_lnurl_create_or_update(
 
     return SimpleStatus(
         success=True,
-        message=f"Lightning address '{address.local_part}@{domain.domain}' updated.",
+        message=f"Lightning address '{address.local_part}@{auction_house.auction_house}' updated.",
     )
 
 
 @bids_api_router.put(
-    "/api/v1/domain/ranking/{bucket}",
+    "/api/v1/auction_house/ranking/{bucket}",
 )
 async def api_refresh_identifier_ranking(
     bucket: int,
@@ -532,7 +536,7 @@ async def api_refresh_identifier_ranking(
 
 
 @bids_api_router.patch(
-    "/api/v1/domain/ranking/{bucket}",
+    "/api/v1/auction_house/ranking/{bucket}",
     dependencies=[Depends(check_admin)],
 )
 async def api_add_identifier_ranking(bucket: int, request: Request):

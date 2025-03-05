@@ -29,7 +29,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     if not domain_id or not address_id or not action:
         logger.info(
             f"Cannot {action} for payment '{payment.payment_hash}'."
-            f"Missing domain ID ({domain_id}) or address ID ({address_id})."
+            f"Missing auction_house ID ({domain_id}) or address ID ({address_id})."
         )
         return
 
@@ -38,7 +38,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         if not address:
             logger.info(
                 f"Cannot find address for payment '{payment.payment_hash}'."
-                f"Missing domain ID ({domain_id}) or address ID ({address_id})."
+                f"Missing auction_house ID ({domain_id}) or address ID ({address_id})."
             )
             return
 

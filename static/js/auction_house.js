@@ -10,7 +10,7 @@ window.app = Vue.createApp({
       currencyOptions: [],
       domainForm: {
         show: false,
-        data: domain,
+        data: auction_house,
       },
       domainTab: "charCount",
     };
@@ -20,18 +20,18 @@ window.app = Vue.createApp({
       this.domainForm.show = false;
       this.domainTab = "charCount";
     },
-    saveDomain: async function () {
+    saveAuctionHouse: async function () {
       try {
         await LNbits.api.request(
           "PUT",
-          "/bids/api/v1/domain",
+          "/bids/api/v1/auction_house",
           _.findWhere(this.g.user.wallets, { id: this.domainForm.data.wallet })
             .adminkey,
           this.domainForm.data,
         );
         this.$q.notify({
           type: "positive",
-          message: "Domain updated!",
+          message: "AuctionHouse updated!",
         });
       } catch (error) {
         this.$q.notify({

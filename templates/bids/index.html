@@ -9,7 +9,7 @@
           color="primary"
           @click="formDialog.show = true"
           class="q-mr-md"
-          >New Domain</q-btn
+          >New AuctionHouse</q-btn
         >
         <q-btn unelevated color="primary" @click="addressFormDialog.show = true"
           >New Address</q-btn
@@ -43,7 +43,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Domains</h5>
+            <h5 class="text-subtitle1 q-my-none">AuctionHouses</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
@@ -89,7 +89,7 @@
                   icon="link"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'api/v1/domain/' + props.row.id + '/nostr.json'"
+                  :href="'api/v1/auction_house/' + props.row.id + '/nostr.json'"
                   target="_blank"
                   class="q-mr-sm"
                 ></q-btn>
@@ -99,7 +99,7 @@
                   size="xs"
                   icon="delete"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="deleteDomain(props.row.id)"
+                  @click="deleteAuctionHouse(props.row.id)"
                   class="q-mr-sm"
                 ></q-btn>
                 <q-btn
@@ -109,7 +109,7 @@
                   icon="edit"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'domain/' + props.row.id"
+                  :href="'auction_house/' + props.row.id"
                   target="_blank"
                   class="q-mr-sm"
                 ></q-btn>
@@ -204,7 +204,7 @@
 
               <q-td>
                 <q-tooltip>
-                  <span>Domain ID:</span>
+                  <span>AuctionHouse ID:</span>
                   <span v-text="props.row.domain_id"></span
                 ></q-tooltip>
                 <span v-text="addressFullName(props.row)"></span>
@@ -242,7 +242,7 @@
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="saveDomain" class="q-gutter-md">
+      <q-form @submit="saveAuctionHouse" class="q-gutter-md">
         <q-select
           v-if="!formDialog.data.id"
           filled
@@ -264,8 +264,8 @@
           v-if="!formDialog.data.id"
           filled
           dense
-          v-model.trim="formDialog.data.domain"
-          label="Domain"
+          v-model.trim="formDialog.data.auction_house"
+          label="AuctionHouse"
           placeholder="nostr.com"
         ></q-input>
         <q-input
@@ -294,7 +294,7 @@
           color="primary"
           :disable="formDialog.data.wallet == null || formDialog.data.currency == null"
           type="submit"
-          >Create Domain</q-btn
+          >Create AuctionHouse</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto float-right"
           >Cancel</q-btn
@@ -317,7 +317,7 @@
           emit-value
           v-model="addressFormDialog.data.domain_id"
           :options="domainOptions"
-          label="Domain *"
+          label="AuctionHouse *"
         ></q-select>
         <q-input
           filled
@@ -376,7 +376,7 @@
 
   <q-dialog v-model="rankingFormDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="addDomainRanking" class="q-gutter-md">
+      <q-form @submit="addAuctionHouseRanking" class="q-gutter-md">
         <q-select
           filled
           dense
@@ -474,14 +474,14 @@
               dense
               v-model.trim="settingsFormDialog.data.cloudflare_access_token"
               label="Cloudflare Access Token"
-              hint="Domain ranking is fetched from CloudFlare. An access token must be provided."
+              hint="AuctionHouse ranking is fetched from CloudFlare. An access token must be provided."
               placeholder="Read-only access token"
             ></q-input>
           </div>
           <div class="col-4">
             <q-btn-dropdown
               v-if="g.user.admin"
-              @click="refreshDomainRanking(200)"
+              @click="refreshAuctionHouseRanking(200)"
               unelevated
               split
               color="primary"
@@ -495,7 +495,7 @@
                 <q-item
                   clickable
                   v-close-popup
-                  @click="refreshDomainRanking(bracket)"
+                  @click="refreshAuctionHouseRanking(bracket)"
                   ><q-item-section>
                     <q-item-label
                       v-text="'Refresh top '+ bracket + ' identifiers'"

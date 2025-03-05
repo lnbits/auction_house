@@ -34,15 +34,15 @@ from .models import (
     AddressExtra,
     AddressFilters,
     AddressStatus,
+    AuctionHouse,
     CreateAddressData,
-    Domain,
     PriceData,
 )
 
 
 async def get_user_domains(
     user_id: str, wallet_id: str, all_wallets: Optional[bool] = False
-) -> list[Domain]:
+) -> list[AuctionHouse]:
     wallet_ids = [wallet_id]
     if all_wallets:
         user = await get_user(user_id)  # type: ignore
@@ -83,14 +83,19 @@ async def get_user_addresses_paginated(
 
 
 async def get_identifier_status(
-    domain: Domain, identifier: str, years: int, promo_code: Optional[str] = None
+    auction_house: AuctionHouse,
+    identifier: str,
+    years: int,
+    promo_code: Optional[str] = None,
 ) -> AddressStatus:
     identifier = normalize_identifier(identifier)
-    address = await get_active_address_by_local_part(domain.id, identifier)
+    address = await get_active_address_by_local_part(auction_house.id, identifier)
     if address:
         return AddressStatus(identifier=identifier, available=False)
 
-    price_data = await get_identifier_price_data(domain, identifier, years, promo_code)
+    price_data = await get_identifier_price_data(
+        auction_house, identifier, years, promo_code
+    )
 
     if not price_data:
         return AddressStatus(identifier=identifier, available=False)
@@ -101,12 +106,15 @@ async def get_identifier_status(
         price=price_data.price,
         price_in_sats=await price_data.price_sats(),
         price_reason=price_data.reason,
-        currency=domain.currency,
+        currency=auction_house.currency,
     )
 
 
 async def get_identifier_price_data(
-    domain: Domain, identifier: str, years: int, promo_code: Optional[str] = None
+    auction_house: AuctionHouse,
+    identifier: str,
+    years: int,
+    promo_code: Optional[str] = None,
 ) -> Optional[PriceData]:
     identifier_ranking = await get_identifier_ranking(identifier)
     rank = identifier_ranking.rank if identifier_ranking else None
@@ -114,23 +122,23 @@ async def get_identifier_price_data(
     if rank == 0:
         return None
 
-    return await domain.price_for_identifier(identifier, years, rank, promo_code)
+    return await auction_house.price_for_identifier(identifier, years, rank, promo_code)
 
 
 async def request_user_address(
-    domain: Domain,
+    auction_house: AuctionHouse,
     address_data: CreateAddressData,
     wallet_id: str,
     user_id: str,
 ):
     address = await create_address(
-        domain, address_data, wallet_id, user_id, address_data.promo_code
+        auction_house, address_data, wallet_id, user_id, address_data.promo_code
     )
     assert (
         address.extra.price_in_sats
     ), f"Cannot compute price for '{address_data.local_part}'."
 
-    address.promo_code_status = domain.cost_extra.promo_code_status(
+    address.promo_code_status = auction_house.cost_extra.promo_code_status(
         address_data.promo_code
     )
 
@@ -141,7 +149,7 @@ async def request_user_address(
     }
 
     if address_data.create_invoice:
-        payment = await create_invoice_for_identifier(domain, address, wallet_id)
+        payment = await create_invoice_for_identifier(auction_house, address, wallet_id)
         resp["payment_hash"] = payment.payment_hash
         resp["payment_request"] = payment.bolt11
 
@@ -149,12 +157,12 @@ async def request_user_address(
 
 
 async def create_invoice_for_identifier(
-    domain: Domain,
+    auction_house: AuctionHouse,
     address: Address,
     reimburse_wallet_id: str,
 ) -> Payment:
     price_data = await get_identifier_price_data(
-        domain, address.local_part, address.extra.years, address.extra.promo_code
+        auction_house, address.local_part, address.extra.years, address.extra.promo_code
     )
     assert price_data, f"Cannot compute price for '{address.local_part}'."
     price_in_sats = await price_data.price_sats()
@@ -162,13 +170,13 @@ async def create_invoice_for_identifier(
     referer_bonus_sats = await price_data.referer_bonus_sats()
 
     payment = await create_invoice(
-        wallet_id=domain.wallet,
+        wallet_id=auction_house.wallet,
         amount=int(price_in_sats),
         memo=f"Payment of {address.extra.price} {address.extra.currency} "
-        f"for NIP-05 {address.local_part}@{domain.domain}",
+        f"for NIP-05 {address.local_part}@{auction_house.auction_house}",
         extra={
             "tag": "bids",
-            "domain_id": domain.id,
+            "domain_id": auction_house.id,
             "address_id": address.id,
             "action": "activate",
             "reimburse_wallet_id": reimburse_wallet_id,
@@ -181,7 +189,7 @@ async def create_invoice_for_identifier(
 
 
 async def create_address(
-    domain: Domain,
+    auction_house: AuctionHouse,
     data: CreateAddressData,
     wallet_id: Optional[str] = None,
     user_id: Optional[str] = None,
@@ -194,11 +202,11 @@ async def create_address(
         data.pubkey = validate_pub_key(data.pubkey)
 
     owner_id = owner_id_from_user_id(user_id)
-    address = await get_address_for_owner(owner_id, domain.id, identifier)
+    address = await get_address_for_owner(owner_id, auction_house.id, identifier)
 
     promo_code = promo_code or (address.extra.promo_code if address else None)
     identifier_status = await get_identifier_status(
-        domain, identifier, data.years, promo_code
+        auction_house, identifier, data.years, promo_code
     )
 
     assert identifier_status.available, f"Identifier '{identifier}' not available."
@@ -207,11 +215,13 @@ async def create_address(
     extra = address.extra if address else AddressExtra()
     extra.price = identifier_status.price
     extra.price_in_sats = identifier_status.price_in_sats
-    extra.currency = domain.currency
+    extra.currency = auction_house.currency
     extra.years = data.years
     extra.promo_code = data.promo_code
-    extra.referer = domain.cost_extra.promo_code_referer(promo_code, data.referer)
-    extra.max_years = domain.cost_extra.max_years
+    extra.referer = auction_house.cost_extra.promo_code_referer(
+        promo_code, data.referer
+    )
+    extra.max_years = auction_house.cost_extra.max_years
     extra.ln_address.wallet = wallet_id or ""
 
     if address:
@@ -260,11 +270,14 @@ async def get_valid_addresses_for_owner(
             continue
         if local_part and address.local_part != local_part:
             continue
-        domain = await get_domain_by_id(address.domain_id)
-        if not domain:
+        auction_house = await get_domain_by_id(address.domain_id)
+        if not auction_house:
             continue
         status = await get_identifier_status(
-            domain, address.local_part, address.extra.years, address.extra.promo_code
+            auction_house,
+            address.local_part,
+            address.extra.years,
+            address.extra.promo_code,
         )
 
         if status.available:
@@ -275,8 +288,8 @@ async def get_valid_addresses_for_owner(
             # do not return addresses which cannot be sold
             continue
 
-        address.extra.currency = domain.currency
-        address.promo_code_status = domain.cost_extra.promo_code_status(
+        address.extra.currency = auction_house.currency
+        address.promo_code_status = auction_house.cost_extra.promo_code_status(
             address.extra.promo_code
         )
         valid_addresses.append(address)
@@ -288,8 +301,8 @@ async def pay_referer_for_promo_code(address: Address, referer: str, bonus_sats:
     try:
         assert bonus_sats > 0, f"Bonus amount negative: '{bonus_sats}'."
 
-        domain = await get_domain_by_id(address.domain_id)
-        assert domain, f"Missing domain for '{address.local_part}'."
+        auction_house = await get_domain_by_id(address.domain_id)
+        assert auction_house, f"Missing auction_house for '{address.local_part}'."
 
         referer_address = await get_active_address_by_local_part(
             address.domain_id, referer
@@ -302,16 +315,18 @@ async def pay_referer_for_promo_code(address: Address, referer: str, bonus_sats:
             wallet_id=referer_wallet,
             amount=bonus_sats,
             memo=f"Referer bonus of {bonus_sats} sats to '{referer}' "
-            f"from NIP-05 {address.local_part}@{domain.domain}",
+            f"from NIP-05 {address.local_part}@{auction_house.auction_house}",
             extra={
                 "tag": "bids",
-                "domain_id": domain.id,
+                "domain_id": auction_house.id,
                 "address_id": address.id,
                 "action": "referer_bonus",
             },
         )
 
-        await pay_invoice(wallet_id=domain.wallet, payment_request=payment.bolt11)
+        await pay_invoice(
+            wallet_id=auction_house.wallet, payment_request=payment.bolt11
+        )
 
     except Exception as exc:
         logger.warning(f"Failed to pay referer for '{referer}'.")
@@ -329,7 +344,9 @@ async def check_address_payment(domain_id: str, payment_hash: str) -> bool:
     assert payment_address_id, "Payment does not exist for this address."
 
     payment_domain_id = payment.extra.get("domain_id")
-    assert payment_domain_id == domain_id, "Payment does not exist for this domain."
+    assert (
+        payment_domain_id == domain_id
+    ), "Payment does not exist for this auction_house."
 
     if payment.pending is False:
         return True
