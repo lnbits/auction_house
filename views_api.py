@@ -36,7 +36,6 @@ from .models import (
     UpdateAddressData,
 )
 from .services import (
-    check_address_payment,
     get_user_addresses,
     get_user_addresses_paginated,
     get_user_auction_houses,
@@ -91,13 +90,6 @@ async def api_auction_house_delete(
         user_id=user.id, auction_house_id=auction_house_id
     )
     return SimpleStatus(success=deleted, message="Deleted")
-
-
-@bids_api_router.get("/api/v1/auction_house/{auction_house_id}/payments/{payment_hash}")
-async def api_check_address_payment(auction_house_id: str, payment_hash: str):
-    # todo: can it be replaced with websocket?
-    paid = await check_address_payment(auction_house_id, payment_hash)
-    return {"paid": paid}
 
 
 @bids_api_router.get("/api/v1/addresses")
@@ -225,9 +217,6 @@ async def api_update_user_address(
         raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionItem not found.")
     if address.auction_house_id != auction_house_id:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
-
-    if data.relays:
-        address.extra.relays = data.relays
 
     for k, v in data.dict().items():
         setattr(address, k, v)

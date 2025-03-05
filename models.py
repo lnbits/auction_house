@@ -174,16 +174,6 @@ class AuctionHouse(PublicAuctionHouse):
 
 class AuctionExtra(BaseModel):
     currency: Optional[str] = None
-    price: Optional[float] = None
-    price_in_sats: Optional[float] = None
-    payment_hash: Optional[str] = None
-    reimburse_payment_hash: Optional[str] = None
-    promo_code: Optional[str] = None
-    referer: Optional[str] = None
-    activated_by_owner: bool = False
-    years: int = 1
-    max_years: int = 1
-    relays: list[str] = []
 
 
 class AuctionItem(BaseModel):
