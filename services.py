@@ -6,7 +6,6 @@ from lnbits.db import Filters, Page
 from loguru import logger
 
 from .crud import (
-    get_active_address_by_local_part,
     get_address,
     get_all_addresses,
     get_all_addresses_paginated,
@@ -18,9 +17,9 @@ from .helpers import (
     validate_pub_key,
 )
 from .models import (
-    Address,
     AddressFilters,
     AuctionHouse,
+    AuctionItem,
     CreateAddressData,
 )
 
@@ -32,7 +31,7 @@ async def get_user_auction_houses(user_id: str) -> list[AuctionHouse]:
 
 async def get_user_addresses(
     user_id: str, wallet_id: str, all_wallets: Optional[bool] = False
-) -> list[Address]:
+) -> list[AuctionItem]:
     wallet_ids = [wallet_id]
     if all_wallets:
         user = await get_user(user_id)  # type: ignore
@@ -48,7 +47,7 @@ async def get_user_addresses_paginated(
     wallet_id: str,
     all_wallets: Optional[bool] = False,
     filters: Optional[Filters[AddressFilters]] = None,
-) -> Page[Address]:
+) -> Page[AuctionItem]:
     wallet_ids = [wallet_id]
     if all_wallets:
         user = await get_user(user_id)  # type: ignore
@@ -75,15 +74,11 @@ async def create_address(
 
 async def activate_address(
     auction_house_id: str, address_id: str, payment_hash: Optional[str] = None
-) -> Address:
+) -> AuctionItem:
     logger.info(f"Activating NIP-05 '{address_id}' for {auction_house_id}")
 
     address = await get_address(auction_house_id, address_id)
     assert address, f"Cannot find address '{address_id}' for {auction_house_id}."
-    active_address = await get_active_address_by_local_part(
-        auction_house_id, address.local_part
-    )
-    assert not active_address, f"Address '{address.local_part}' already active."
 
     address.extra.activated_by_owner = payment_hash is None
     address.extra.payment_hash = payment_hash
@@ -92,7 +87,6 @@ async def activate_address(
         days=365 * address.extra.years
     )
     await update_address(address)
-    logger.info(f"Activated NIP-05 '{address.local_part}' ({address_id}).")
 
     return address
 
@@ -119,7 +113,7 @@ async def check_address_payment(auction_house_id: str, payment_hash: str) -> boo
     return status.success
 
 
-async def get_reimburse_wallet_id(address: Address) -> str:
+async def get_reimburse_wallet_id(address: AuctionItem) -> str:
     payment_hash = address.extra.reimburse_payment_hash
     assert payment_hash, f"No payment hash found to reimburse '{address.id}'."
 

@@ -332,7 +332,7 @@ window.app = Vue.createApp({
               if (response.data.success) {
                 self.$q.notify({
                   type: "positive",
-                  message: "Address activated",
+                  message: "AuctionItem activated",
                 });
               }
             })

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, Union
 
 from lnbits.db import Database, Filters, Page
@@ -6,11 +6,10 @@ from lnbits.helpers import urlsafe_short_hash
 
 from .helpers import normalize_identifier
 from .models import (
-    Address,
-    AddressExtra,
     AddressFilters,
     AuctionHouse,
     AuctionHouseConfig,
+    AuctionItem,
     CreateAddressData,
     CreateAuctionHouseData,
     EditAuctionHouseData,
@@ -42,8 +41,7 @@ async def get_auction_house_public_data(
     auction_house_id: str,
 ) -> Optional[PublicAuctionHouse]:
     return await db.fetchone(
-        "SELECT * "
-        "FROM bids.auction_houses WHERE id = :id",
+        "SELECT * " "FROM bids.auction_houses WHERE id = :id",
         {"id": auction_house_id},
         PublicAuctionHouse,
     )
@@ -57,20 +55,20 @@ async def get_auction_houses(user_id: str) -> list[AuctionHouse]:
     )
 
 
-async def get_address(auction_house_id: str, address_id: str) -> Optional[Address]:
+async def get_address(auction_house_id: str, address_id: str) -> Optional[AuctionItem]:
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses
         WHERE auction_house_id = :auction_house_id AND id = :address_id
         """,
         {"auction_house_id": auction_house_id, "address_id": address_id},
-        Address,
+        AuctionItem,
     )
 
 
 async def get_active_address_by_local_part(
     auction_house_id: str, local_part: str
-) -> Optional[Address]:
+) -> Optional[AuctionItem]:
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses
@@ -81,21 +79,21 @@ async def get_active_address_by_local_part(
             "auction_house_id": auction_house_id,
             "local_part": normalize_identifier(local_part),
         },
-        Address,
+        AuctionItem,
     )
 
 
-async def get_addresses(auction_house_id: str) -> list[Address]:
+async def get_addresses(auction_house_id: str) -> list[AuctionItem]:
     return await db.fetchall(
         "SELECT * FROM bids.addresses WHERE auction_house_id = :auction_house_id",
         {"auction_house_id": auction_house_id},
-        Address,
+        AuctionItem,
     )
 
 
 async def get_address_for_owner(
     owner_id: str, auction_house_id: str, local_part: str
-) -> Optional[Address]:
+) -> Optional[AuctionItem]:
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses WHERE owner_id = :owner_id
@@ -106,22 +104,22 @@ async def get_address_for_owner(
             "auction_house_id": auction_house_id,
             "local_part": local_part,
         },
-        Address,
+        AuctionItem,
     )
 
 
-async def get_addresses_for_owner(owner_id: str) -> list[Address]:
+async def get_addresses_for_owner(owner_id: str) -> list[AuctionItem]:
     return await db.fetchall(
         """
         SELECT * FROM bids.addresses WHERE owner_id = :owner_id
         ORDER BY time DESC
         """,
         {"owner_id": owner_id},
-        Address,
+        AuctionItem,
     )
 
 
-async def get_all_addresses(wallet_ids: Union[str, list[str]]) -> list[Address]:
+async def get_all_addresses(wallet_ids: Union[str, list[str]]) -> list[AuctionItem]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
@@ -132,14 +130,14 @@ async def get_all_addresses(wallet_ids: Union[str, list[str]]) -> list[Address]:
         JOIN bids.auction_houses d ON d.id = a.auction_house_id
         WHERE d.wallet IN ({q})
         """,
-        model=Address,
+        model=AuctionItem,
     )
 
 
 async def get_all_addresses_paginated(
     wallet_ids: Union[str, list[str]],
     filters: Optional[Filters[AddressFilters]] = None,
-) -> Page[Address]:
+) -> Page[AuctionItem]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
     q = ",".join([f"'{w}'" for w in wallet_ids])
@@ -150,11 +148,11 @@ async def get_all_addresses_paginated(
         WHERE d.wallet IN ({q})
         """,
         filters=filters,
-        model=Address,
+        model=AuctionItem,
     )
 
 
-async def update_address(address: Address) -> Address:
+async def update_address(address: AuctionItem) -> AuctionItem:
     await db.update("bids.addresses", address)
     return address
 
@@ -200,22 +198,12 @@ async def delete_address_by_id(auction_house_id, address_id):
     )
 
 
-async def create_address_internal(
-    data: CreateAddressData,
-    owner_id: Optional[str] = None,
-    extra: Optional[AddressExtra] = None,
-) -> Address:
-    expires_at = datetime.now(timezone.utc) + timedelta(days=365 * data.years)
-    address = Address(
+async def create_address_internal(data: CreateAddressData) -> AuctionItem:
+    # expires_at = datetime.now(timezone.utc) + timedelta(days=365 * data.years)
+    address = AuctionItem(
         id=urlsafe_short_hash(),
         auction_house_id=data.auction_house_id,
-        owner_id=owner_id,
-        local_part=normalize_identifier(data.local_part),
-        pubkey=data.pubkey,
-        active=False,
-        extra=extra or AddressExtra(),
-        expires_at=expires_at,
-        time=datetime.now(timezone.utc),
+        **data.dict(),
     )
     await db.insert("bids.addresses", address)
     return address

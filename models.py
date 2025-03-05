@@ -5,9 +5,9 @@ from typing import Optional
 
 from lnbits.db import FilterModel
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from .helpers import format_amount, is_ws_url, validate_pub_key
+from .helpers import is_ws_url, validate_pub_key
 
 
 class CustomCost(BaseModel):
@@ -172,14 +172,7 @@ class AuctionHouse(PublicAuctionHouse):
     extra: AuctionHouseConfig
 
 
-class LnAddressConfig(BaseModel):
-    wallet: str
-    min: int = 1
-    max: int = 10_000_000
-    pay_link_id: Optional[str] = ""
-
-
-class AddressExtra(BaseModel):
+class AuctionExtra(BaseModel):
     currency: Optional[str] = None
     price: Optional[float] = None
     price_in_sats: Optional[float] = None
@@ -191,39 +184,20 @@ class AddressExtra(BaseModel):
     years: int = 1
     max_years: int = 1
     relays: list[str] = []
-    ln_address: LnAddressConfig = LnAddressConfig(wallet="")
 
 
-class Address(BaseModel):
+class AuctionItem(BaseModel):
     id: str
-    owner_id: Optional[str] = None
     auction_house_id: str
-    local_part: str
+    name: str
+    description: Optional[str] = None
+    starting_price: float = 0
+    current_price: float = 0
     active: bool
-    time: datetime
+    created_at: datetime
     expires_at: datetime
-    pubkey: Optional[str] = None
-    reimburse_amount: int = 0
-    promo_code_status: PromoCodeStatus = Field(
-        default=PromoCodeStatus(), no_database=True
-    )
-    extra: AddressExtra = AddressExtra()
 
-
-class AddressStatus(BaseModel):
-    identifier: str
-    available: bool = False
-    price: Optional[float] = None
-    price_in_sats: Optional[float] = None
-    price_reason: Optional[str] = None
-    currency: Optional[str] = None
-
-    @property
-    def price_formatted(self) -> str:
-        if self.available and self.price and self.currency:
-            return format_amount(self.price, self.currency)
-
-        return ""
+    extra: AuctionExtra = AuctionExtra()
 
 
 class AddressFilters(FilterModel):
