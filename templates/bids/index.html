@@ -73,7 +73,7 @@
                   icon="list"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'bids/auctions/' + props.row.id"
+                  :href="'auctions/' + props.row.id"
                   target="_blank"
                   class="q-mr-sm"
                 ></q-btn>
@@ -81,95 +81,6 @@
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
-            </q-tr>
-          </template>
-          {% endraw %}
-        </q-table>
-      </q-card-section>
-    </q-card>
-
-    <q-card>
-      <q-card-section>
-        <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Addresses</h5>
-          </div>
-          <div class="col-auto">
-            <q-btn flat color="grey" @click="exportAddressesCSV"
-              >Export to CSV</q-btn
-            >
-          </div>
-        </div>
-        <q-table
-          dense
-          flat
-          :rows="addresses"
-          row-key="id"
-          :columns="addressesTable.columns"
-          v-model:pagination="addressesTable.pagination"
-          @request="getAddresses"
-        >
-          {% raw %}
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
-              <q-th auto-width></q-th>
-            </q-tr>
-          </template>
-
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="check"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  :disable="props.row.active == true"
-                  @click="activateAddress(props.row.auction_house_id, props.row.id)"
-                  class="q-mr-sm"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="edit"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="editAddress(props.row)"
-                  class="q-mr-sm"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="delete"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="deleteAddress(props.row.id)"
-                ></q-btn>
-              </q-td>
-
-              <q-td v-text="props.row.id"></q-td>
-              <q-td v-text="props.row.active"></q-td>
-
-              <q-td>
-                <q-tooltip>
-                  <span>Auction House ID:</span>
-                  <span v-text="props.row.auction_house_id"></span
-                ></q-tooltip>
-                <span v-text="addressFullName(props.row)"></span>
-              </q-td>
-              <q-td v-text="props.row.pubkey"></q-td>
-              <q-td
-                v-text="props.row.reimburse_amount"
-                @click="showReimburseInvoice(props.row)"
-                class="cursor-pointer"
-              >
-              </q-td>
-              <q-td v-text="props.row.time"></q-td>
             </q-tr>
           </template>
           {% endraw %}

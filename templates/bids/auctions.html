@@ -1,0 +1,111 @@
+{% extends "public.html" %} {% block toolbar_title %} Edit auction house {%
+endblock %} {% from "macros.jinja" import window_vars with context %} {% block
+page %}
+
+<div class="row">
+  <div class="col-md-2 col-sm-none">
+    <!-- empty space -->
+  </div>
+
+  <div class="col-md-6 col-sm-12">
+    <q-card>
+      <q-card-section>
+        <div class="row">
+          <div class="col-12">
+            <h5 class="q-mt-sm">Auctions</h5>
+          </div>
+
+          <div class="col-12">
+            <q-table
+              dense
+              flat
+              :rows="addresses"
+              row-key="id"
+              :columns="addressesTable.columns"
+              v-model:pagination="addressesTable.pagination"
+              @request="getAddresses"
+            >
+              {% raw %}
+              <template v-slot:header="props">
+                <q-tr :props="props">
+                  <q-th auto-width></q-th>
+                  <q-th
+                    v-for="col in props.cols"
+                    :key="col.name"
+                    :props="props"
+                  >
+                    {{ col.label }}
+                  </q-th>
+                  <q-th auto-width></q-th>
+                </q-tr>
+              </template>
+
+              <template v-slot:body="props">
+                <q-tr :props="props">
+                  <q-td>
+                    <q-btn
+                      unelevated
+                      dense
+                      size="xs"
+                      icon="check"
+                      :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                      :disable="props.row.active == true"
+                      class="q-mr-sm"
+                    ></q-btn>
+                    <!-- @click="activateAddress(props.row.auction_house_id, props.row.id)" -->
+                    <q-btn
+                      unelevated
+                      dense
+                      size="xs"
+                      icon="edit"
+                      :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                      class="q-mr-sm"
+                    ></q-btn>
+                    <!-- @click="editAddress(props.row)" -->
+                    <q-btn
+                      unelevated
+                      dense
+                      size="xs"
+                      icon="delete"
+                      :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                    ></q-btn>
+                    <!-- @click="deleteAddress(props.row.id)" -->
+                  </q-td>
+
+                  <q-td v-text="props.row.id"></q-td>
+                  <q-td v-text="props.row.active"></q-td>
+
+                  <q-td>
+                    <q-tooltip>
+                      <span>Auction House ID:</span>
+                      <span v-text="props.row.auction_house_id"></span
+                    ></q-tooltip>
+                  </q-td>
+                  <q-td v-text="props.row.pubkey"></q-td>
+                  <q-td
+                    v-text="props.row.reimburse_amount"
+                    class="cursor-pointer"
+                  >
+                  </q-td>
+                  <q-td v-text="props.row.time"></q-td>
+                </q-tr>
+              </template>
+              {% endraw %}
+            </q-table>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-md-2 col-sm-none">
+    <!-- empty space -->
+  </div>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  const auction_house = JSON.parse({{auction_house | tojson | safe}})
+</script>
+<script src="{{ static_url_for('bids/static', 'js/auctions.js') }}"></script>
+{% endblock %}
