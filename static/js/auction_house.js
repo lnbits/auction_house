@@ -25,8 +25,9 @@ window.app = Vue.createApp({
         await LNbits.api.request(
           "PUT",
           "/bids/api/v1/auction_house",
-          _.findWhere(this.g.user.wallets, { id: this.auction_houseForm.data.wallet })
-            .adminkey,
+          _.findWhere(this.g.user.wallets, {
+            id: this.auction_houseForm.data.wallet,
+          }).adminkey,
           this.auction_houseForm.data,
         );
         this.$q.notify({
@@ -48,7 +49,9 @@ window.app = Vue.createApp({
       });
     },
     removeCharCountCost: function (index) {
-      if (index < this.auction_houseForm.data.cost_extra.char_count_cost.length) {
+      if (
+        index < this.auction_houseForm.data.cost_extra.char_count_cost.length
+      ) {
         this.auction_houseForm.data.cost_extra.char_count_cost.splice(index, 1);
       }
     },

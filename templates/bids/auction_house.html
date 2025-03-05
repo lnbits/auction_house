@@ -1,7 +1,7 @@
-{% extends "public.html" %} {% block toolbar_title %} Edit auction_house "{{
-auction_house.auction_house }}" {% endblock %} {% from "macros.jinja" import
+{% extends "public.html" %} {% block toolbar_title %} Edit auction house "{{
+auction_house.auction_house}}" {% endblock %} {% from "macros.jinja" import
 window_vars with context %} {% block page %}
-<link rel="stylesheet" href="/bids/static/css/signup.css" />
+
 <div class="row">
   <div class="col-md-2 col-sm-none">
     <!-- empty space -->
@@ -15,7 +15,7 @@ window_vars with context %} {% block page %}
         @click="saveAuctionHouse"
         class="float-right"
         :disable="auction_houseForm.data.wallet == null || auction_houseForm.data.currency == null"
-        >Update AuctionHouse</q-btn
+        >Update Auction House</q-btn
       >
     </div>
   </q-card>
@@ -55,7 +55,7 @@ window_vars with context %} {% block page %}
           filled
           dense
           v-model.trim="auction_houseForm.data.auction_house"
-          label="AuctionHouse"
+          label="Auction House"
           placeholder="nostr.com"
         ></q-input>
         <q-input

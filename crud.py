@@ -23,7 +23,9 @@ from .models import (
 db = Database("ext_bids")
 
 
-async def get_auction_house(auction_house_id: str, wallet_id: str) -> Optional[AuctionHouse]:
+async def get_auction_house(
+    auction_house_id: str, wallet_id: str
+) -> Optional[AuctionHouse]:
     return await db.fetchone(
         "SELECT * FROM bids.auction_houses WHERE id = :id AND wallet = :wallet",
         {"id": auction_house_id, "wallet": wallet_id},
@@ -39,7 +41,9 @@ async def get_auction_house_by_id(auction_house_id: str) -> Optional[AuctionHous
     )
 
 
-async def get_auction_house_public_data(auction_house_id: str) -> Optional[PublicAuctionHouse]:
+async def get_auction_house_public_data(
+    auction_house_id: str,
+) -> Optional[PublicAuctionHouse]:
     return await db.fetchone(
         "SELECT id, currency, cost, auction_house FROM bids.auction_houses WHERE id = :id",
         {"id": auction_house_id},
@@ -85,7 +89,10 @@ async def get_active_address_by_local_part(
         SELECT * FROM bids.addresses
         WHERE active = true AND auction_house_id = :auction_house_id AND local_part = :local_part
         """,
-        {"auction_house_id": auction_house_id, "local_part": normalize_identifier(local_part)},
+        {
+            "auction_house_id": auction_house_id,
+            "local_part": normalize_identifier(local_part),
+        },
         Address,
     )
 
@@ -106,7 +113,11 @@ async def get_address_for_owner(
         SELECT * FROM bids.addresses WHERE owner_id = :owner_id
         AND auction_house_id = :auction_house_id AND local_part = :local_part
         """,
-        {"owner_id": owner_id, "auction_house_id": auction_house_id, "local_part": local_part},
+        {
+            "owner_id": owner_id,
+            "auction_house_id": auction_house_id,
+            "local_part": local_part,
+        },
         Address,
     )
 

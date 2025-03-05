@@ -22,11 +22,13 @@
     group="api"
     dense
     expand-separator
-    label="List AuctionHouses"
+    label="List Auction Houses"
   >
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span> /bids/api/v1/auction_houses</code>
+        <code
+          ><span class="text-blue">GET</span> /bids/api/v1/auction_houses</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -36,8 +38,8 @@
         <code>[&lt;auction_house_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}bids/api/v1/auction_houses -H "X-Api-Key:
-          &lt;invoice_key&gt;"
+          >curl -X GET {{ request.base_url }}bids/api/v1/auction_houses -H
+          "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -67,7 +69,7 @@
     group="api"
     dense
     expand-separator
-    label="Fetch AuctionHouse"
+    label="Fetch Auction House"
   >
     <q-card>
       <q-card-section>
@@ -96,7 +98,7 @@
     group="api"
     dense
     expand-separator
-    label="Create AuctionHouse"
+    label="Create Auction House"
   >
     <q-card>
       <q-card-section>
@@ -191,8 +193,8 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}bids/api/v1/auction_house/{auction_house_id}/payments/{payment_hash} -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          }}bids/api/v1/auction_house/{auction_house_id}/payments/{payment_hash}
+          -H "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>

@@ -9,33 +9,8 @@
           color="primary"
           @click="formDialog.show = true"
           class="q-mr-md"
-          >New AuctionHouse</q-btn
+          >New Auction House</q-btn
         >
-        <q-btn unelevated color="primary" @click="addressFormDialog.show = true"
-          >New Address</q-btn
-        >
-        <q-btn-dropdown
-          v-if="g.user.admin"
-          @click="settingsFormDialog.show=true"
-          unelevated
-          split
-          color="primary"
-          class="float-right"
-          icon="settings"
-        >
-          <q-list>
-            <q-item clickable v-close-popup
-              ><q-item-section @click="rankingFormDialog.show = true">
-                <q-item-label v-text="'Add Identifiers'"></q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item clickable v-close-popup
-              ><q-item-section @click="identifierFormDialog.show = true">
-                <q-item-label v-text="'Manage Identifiers'"></q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-btn-dropdown>
       </q-card-section>
     </q-card>
 
@@ -43,7 +18,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">AuctionHouses</h5>
+            <h5 class="text-subtitle1 q-my-none">Auction Houses</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
@@ -75,30 +50,8 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="launch"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="'signup/' + props.row.id"
-                  target="_blank"
-                  class="q-mr-sm"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="link"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="'api/v1/auction_house/' + props.row.id + '/nostr.json'"
-                  target="_blank"
-                  class="q-mr-sm"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
                   icon="delete"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  color="red"
                   @click="deleteAuctionHouse(props.row.id)"
                   class="q-mr-sm"
                 ></q-btn>
@@ -110,6 +63,17 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
                   :href="'auction_house/' + props.row.id"
+                  target="_blank"
+                  class="q-mr-sm"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="list"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'bids/auctions/' + props.row.id"
                   target="_blank"
                   class="q-mr-sm"
                 ></q-btn>
@@ -158,18 +122,7 @@
 
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="link"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  target="_blank"
-                  :href="'rotate/' + props.row.auction_house_id + '/' + props.row.id"
-                  class="q-mr-sm"
-                ></q-btn>
+              <q-td>
                 <q-btn
                   unelevated
                   dense
@@ -204,7 +157,7 @@
 
               <q-td>
                 <q-tooltip>
-                  <span>AuctionHouse ID:</span>
+                  <span>Auction House ID:</span>
                   <span v-text="props.row.auction_house_id"></span
                 ></q-tooltip>
                 <span v-text="addressFullName(props.row)"></span>
@@ -265,7 +218,7 @@
           filled
           dense
           v-model.trim="formDialog.data.auction_house"
-          label="AuctionHouse"
+          label="Auction House"
           placeholder="nostr.com"
         ></q-input>
         <q-input
@@ -294,7 +247,7 @@
           color="primary"
           :disable="formDialog.data.wallet == null || formDialog.data.currency == null"
           type="submit"
-          >Create AuctionHouse</q-btn
+          >Create Auction House</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto float-right"
           >Cancel</q-btn
@@ -317,7 +270,7 @@
           emit-value
           v-model="addressFormDialog.data.auction_house_id"
           :options="auction_houseOptions"
-          label="AuctionHouse *"
+          label="Auction House *"
         ></q-select>
         <q-input
           filled
@@ -474,7 +427,7 @@
               dense
               v-model.trim="settingsFormDialog.data.cloudflare_access_token"
               label="Cloudflare Access Token"
-              hint="AuctionHouse ranking is fetched from CloudFlare. An access token must be provided."
+              hint="Auction House ranking is fetched from CloudFlare. An access token must be provided."
               placeholder="Read-only access token"
             ></q-input>
           </div>

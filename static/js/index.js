@@ -25,7 +25,7 @@ window.app = Vue.createApp({
           {
             name: "auction_house",
             align: "left",
-            label: "AuctionHouse",
+            label: "Name",
             field: "auction_house",
           },
           {
@@ -234,7 +234,9 @@ window.app = Vue.createApp({
           data,
         )
         .then(function (response) {
-          self.auction_houses = self.auction_houses.filter((d) => d.id !== response.data.id);
+          self.auction_houses = self.auction_houses.filter(
+            (d) => d.id !== response.data.id,
+          );
           self.auction_houses.push(mapAuctionHouse(response.data));
           self.resetFormDialog();
         })
@@ -245,10 +247,12 @@ window.app = Vue.createApp({
 
     deleteAuctionHouse: function (auction_house_id) {
       var self = this;
-      var auction_house = _.findWhere(this.auction_houses, { id: auction_house_id });
+      var auction_house = _.findWhere(this.auction_houses, {
+        id: auction_house_id,
+      });
 
       LNbits.utils
-        .confirmDialog("Are you sure you want to delete this auction_house?")
+        .confirmDialog("Are you sure you want to delete this auction house?")
         .onOk(function () {
           LNbits.api
             .request(
@@ -258,7 +262,9 @@ window.app = Vue.createApp({
                 .adminkey,
             )
             .then(function (response) {
-              self.auction_houses = self.auction_houses.filter((d) => d.id !== auction_house_id);
+              self.auction_houses = self.auction_houses.filter(
+                (d) => d.id !== auction_house_id,
+              );
             })
             .catch(function (error) {
               LNbits.utils.notifyApiError(error);
@@ -299,7 +305,9 @@ window.app = Vue.createApp({
     updateAddress: function () {
       var self = this;
       var data = this.addressFormDialog.data;
-      var auction_house = _.findWhere(this.auction_houses, { id: data.auction_house_id });
+      var auction_house = _.findWhere(this.auction_houses, {
+        id: data.auction_house_id,
+      });
       return LNbits.api
         .request(
           "PUT",
@@ -325,7 +333,9 @@ window.app = Vue.createApp({
     deleteAddress: function (address_id) {
       var self = this;
       var address = _.findWhere(this.addresses, { id: address_id });
-      var auction_house = _.findWhere(this.auction_houses, { id: address.auction_house_id });
+      var auction_house = _.findWhere(this.auction_houses, {
+        id: address.auction_house_id,
+      });
 
       LNbits.utils
         .confirmDialog("Are you sure you want to delete this address?")
@@ -350,7 +360,9 @@ window.app = Vue.createApp({
     activateAddress: function (auction_house_id, address_id) {
       var self = this;
       var address = _.findWhere(this.addresses, { id: address_id });
-      var auction_house = _.findWhere(this.auction_houses, { id: address.auction_house_id });
+      var auction_house = _.findWhere(this.auction_houses, {
+        id: address.auction_house_id,
+      });
       LNbits.utils
         .confirmDialog(
           "Are you sure you want to manually activate this address?",
@@ -525,18 +537,24 @@ window.app = Vue.createApp({
     },
 
     auction_houseNameFromId: function (auction_houseId) {
-      const auction_house = this.auction_houses.find((d) => d.id === auction_houseId) || {};
+      const auction_house =
+        this.auction_houses.find((d) => d.id === auction_houseId) || {};
       return auction_house.auction_house || "";
     },
     addressFullName: function (address) {
       if (!address) {
         return "";
       }
-      const auction_house = this.auction_houseNameFromId(address.auction_house_id);
+      const auction_house = this.auction_houseNameFromId(
+        address.auction_house_id,
+      );
       return `${address.local_part}@${auction_house}`;
     },
     exportCSV: function () {
-      LNbits.utils.exportCSV(this.auction_housesTable.columns, this.auction_houses);
+      LNbits.utils.exportCSV(
+        this.auction_housesTable.columns,
+        this.auction_houses,
+      );
     },
     exportAddressesCSV: function () {
       LNbits.utils.exportCSV(this.addressesTable.columns, this.addresses);

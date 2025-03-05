@@ -224,7 +224,9 @@ async def api_delete_address(
     cache.pop(f"{auction_house_id}/{address.local_part}")
 
 
-@bids_api_router.put("/api/v1/auction_house/{auction_house_id}/address/{address_id}/activate")
+@bids_api_router.put(
+    "/api/v1/auction_house/{auction_house_id}/address/{address_id}/activate"
+)
 async def api_activate_address(
     auction_house_id: str,
     address_id: str,
@@ -366,7 +368,9 @@ async def api_get_user_addresses(
     return await get_valid_addresses_for_owner(owner_id, local_part, active)
 
 
-@bids_api_router.delete("/api/v1/user/auction_house/{auction_house_id}/address/{address_id}")
+@bids_api_router.delete(
+    "/api/v1/user/auction_house/{auction_house_id}/address/{address_id}"
+)
 async def api_delete_user_address(
     auction_house_id: str,
     address_id: str,
@@ -380,7 +384,9 @@ async def api_delete_user_address(
     return await delete_address(auction_house_id, address_id, owner_id)
 
 
-@bids_api_router.put("/api/v1/user/auction_house/{auction_house_id}/address/{address_id}")
+@bids_api_router.put(
+    "/api/v1/user/auction_house/{auction_house_id}/address/{address_id}"
+)
 async def api_update_user_address(
     auction_house_id: str,
     address_id: str,
@@ -418,7 +424,8 @@ async def api_update_user_address(
 
 
 @bids_api_router.post(
-    "/api/v1/user/auction_house/{auction_house_id}/address", status_code=HTTPStatus.CREATED
+    "/api/v1/user/auction_house/{auction_house_id}/address",
+    status_code=HTTPStatus.CREATED,
 )
 async def api_request_user_address(
     address_data: CreateAddressData,
@@ -435,7 +442,9 @@ async def api_request_user_address(
     auction_house = await get_auction_house_by_id(address_data.auction_house_id)
     assert auction_house, "AuctionHouse does not exist."
 
-    assert address_data.auction_house_id == auction_house_id, "AuctionHouse ID missmatch"
+    assert (
+        address_data.auction_house_id == auction_house_id
+    ), "AuctionHouse ID missmatch"
 
     wallet_id = (await get_wallets(user_id))[0].id
 
@@ -443,7 +452,8 @@ async def api_request_user_address(
 
 
 @bids_api_router.post(
-    "/api/v1/public/auction_house/{auction_house_id}/address", status_code=HTTPStatus.CREATED
+    "/api/v1/public/auction_house/{auction_house_id}/address",
+    status_code=HTTPStatus.CREATED,
 )
 async def api_request_public_user_address(
     address_data: CreateAddressData,

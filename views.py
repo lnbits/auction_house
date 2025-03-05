@@ -24,7 +24,9 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@bids_generic_router.get("/auction_house/{auction_house_id}", response_class=HTMLResponse)
+@bids_generic_router.get(
+    "/auction_house/{auction_house_id}", response_class=HTMLResponse
+)
 async def auction_house_details(
     request: Request, auction_house_id: str, user: User = Depends(check_user_exists)
 ):
