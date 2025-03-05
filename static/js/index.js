@@ -142,7 +142,7 @@ window.app = Vue.createApp({
       LNbits.api
         .request(
           "GET",
-          "/bids/api/v1/auction_houses?all_wallets=true",
+          "/bids/api/v1/auction_houses",
           this.g.user.wallets[0].inkey,
         )
         .then(function (response) {

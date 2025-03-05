@@ -20,12 +20,10 @@ from .models import (
 db = Database("ext_bids")
 
 
-async def get_auction_house(
-    auction_house_id: str, wallet_id: str
-) -> Optional[AuctionHouse]:
+async def get_auction_house(auction_house_id: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
-        "SELECT * FROM bids.auction_houses WHERE id = :id AND wallet = :wallet",
-        {"id": auction_house_id, "wallet": wallet_id},
+        "SELECT * FROM bids.auction_houses WHERE id = :id",
+        {"id": auction_house_id},
         AuctionHouse,
     )
 
@@ -57,13 +55,10 @@ async def get_auction_house_by_name(auction_house: str) -> Optional[AuctionHouse
     )
 
 
-async def get_auction_houses(wallet_ids: Union[str, list[str]]) -> list[AuctionHouse]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
-
-    q = ",".join([f"'{w}'" for w in wallet_ids])
+async def get_auction_houses(user_id: str) -> list[AuctionHouse]:
     return await db.fetchall(
-        f"SELECT * FROM bids.auction_houses WHERE wallet IN ({q})",
+        f"SELECT * FROM bids.auction_houses WHERE user_id = :user_id",
+        {"user_id": user_id},
         model=AuctionHouse,
     )
 
@@ -170,9 +165,9 @@ async def update_address(address: Address) -> Address:
     return address
 
 
-async def delete_auction_house(auction_house_id: str, wallet_id: str) -> bool:
-    auction_house = await get_auction_house(auction_house_id, wallet_id)
-    if not auction_house:
+async def delete_auction_house(user_id: str, auction_house_id: str) -> bool:
+    auction_house = await get_auction_house(auction_house_id)
+    if not auction_house or auction_house.user_id != user_id:
         return False
     await db.execute(
         """
@@ -231,10 +226,11 @@ async def create_address_internal(
 
 
 async def create_auction_house_internal(
-    wallet_id: str, data: CreateAuctionHouseData
+    user_id: str, data: CreateAuctionHouseData
 ) -> AuctionHouse:
     auction_house = AuctionHouse(
         id=urlsafe_short_hash(),
+        user_id=user_id,
         created_at=datetime.now(timezone.utc),
         extra=AuctionHouseConfig(),
         **data.dict(),
@@ -244,10 +240,10 @@ async def create_auction_house_internal(
 
 
 async def update_auction_house(
-    wallet_id: str, data: EditAuctionHouseData
+    user_id: str, data: EditAuctionHouseData
 ) -> Optional[AuctionHouse]:
-    auction_house = await get_auction_house(data.id, wallet_id)
-    if not auction_house:
+    auction_house = await get_auction_house(data.id)
+    if not auction_house or auction_house.user_id != user_id:
         return None
     if auction_house.type != data.type:
         raise ValueError("Cannot change auction house type.")

@@ -7,6 +7,7 @@ async def m001_initial_invoices(db: Database):
         f"""
        CREATE TABLE bids.auction_houses (
             id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
             wallet TEXT NOT NULL,
             type TEXT NOT NULL,
             name TEXT NOT NULL,

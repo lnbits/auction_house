@@ -165,6 +165,7 @@ class PublicAuctionHouse(BaseModel):
 
 
 class AuctionHouse(PublicAuctionHouse):
+    user_id: str
     created_at: datetime
     wallet: str
 

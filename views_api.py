@@ -3,10 +3,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import HTTPException
-from lnbits.core.models import SimpleStatus, WalletTypeInfo
+from lnbits.core.models import SimpleStatus, User, WalletTypeInfo
 from lnbits.core.services import create_invoice
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
+    check_user_exists,
     optional_user_id,
     parse_filters,
     require_admin_key,
@@ -18,7 +19,6 @@ from lnbits.utils.cache import cache
 from .crud import (
     create_auction_house_internal,
     delete_address,
-    delete_address_by_id,
     delete_auction_house,
     get_address,
     get_auction_house,
@@ -28,12 +28,10 @@ from .crud import (
 )
 from .helpers import (
     owner_id_from_user_id,
-    validate_pub_key,
 )
 from .models import (
     Address,
     AddressFilters,
-    AddressStatus,
     AuctionHouse,
     CreateAddressData,
     CreateAuctionHouseData,
@@ -42,15 +40,11 @@ from .models import (
     UpdateAddressData,
 )
 from .services import (
-    activate_address,
     check_address_payment,
-    create_address,
-    get_identifier_status,
     get_reimburse_wallet_id,
     get_user_addresses,
     get_user_addresses_paginated,
     get_user_auction_houses,
-    get_valid_addresses_for_owner,
 )
 
 bids_api_router: APIRouter = APIRouter()
@@ -59,65 +53,47 @@ address_filters = parse_filters(AddressFilters)
 
 @bids_api_router.get("/api/v1/auction_houses")
 async def api_auction_houses(
-    all_wallets: bool = Query(None),
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
+    user: User = Depends(check_user_exists),
 ) -> list[AuctionHouse]:
-    wallet = key_info.wallet
-    auction_houses = await get_user_auction_houses(wallet.user, wallet.id, all_wallets)
-    return auction_houses
+    return await get_user_auction_houses(user.id)
 
 
 @bids_api_router.get("/api/v1/auction_house/{auction_house_id}")
 async def api_get_auction_house(
-    auction_house_id: str, key_info: WalletTypeInfo = Depends(require_invoice_key)
+    auction_house_id: str, user: User = Depends(check_user_exists)
 ):
-    auction_house = await get_auction_house(auction_house_id, key_info.wallet.id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
+    auction_house = await get_auction_house(auction_house_id)
+    if not auction_house or auction_house.user_id != user.id:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction House not found.")
     return auction_house
 
 
 @bids_api_router.post("/api/v1/auction_house", status_code=HTTPStatus.CREATED)
 async def api_create_auction_house(
-    data: CreateAuctionHouseData, key_info: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateAuctionHouseData, user: User = Depends(check_user_exists)
 ):
     data.validate_data()
-    return await create_auction_house_internal(wallet_id=key_info.wallet.id, data=data)
+    return await create_auction_house_internal(user_id=user.id, data=data)
 
 
 @bids_api_router.put("/api/v1/auction_house")
 async def api_update_auction_house(
-    data: EditAuctionHouseData, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: EditAuctionHouseData, user: User = Depends(check_user_exists)
 ):
     data.validate_data()
-    return await update_auction_house(wallet_id=wallet.wallet.id, data=data)
+    return await update_auction_house(user_id=user.id, data=data)
 
 
 @bids_api_router.delete(
     "/api/v1/auction_house/{auction_house_id}", status_code=HTTPStatus.CREATED
 )
 async def api_auction_house_delete(
-    auction_house_id: str,
-    key_info: WalletTypeInfo = Depends(require_admin_key),
+    auction_house_id: str, user: User = Depends(check_user_exists)
 ):
-    # make sure the address belongs to the user
-    deleted = await delete_auction_house(auction_house_id, key_info.wallet.id)
+    deleted = await delete_auction_house(
+        user_id=user.id, auction_house_id=auction_house_id
+    )
     return SimpleStatus(success=deleted, message="Deleted")
-
-
-@bids_api_router.get("/api/v1/auction_house/{auction_house_id}/search")
-async def api_search_identifier(
-    auction_house_id: str, q: Optional[str] = None, years: Optional[int] = None
-) -> AddressStatus:
-
-    if not q:
-        return AddressStatus(identifier="")
-
-    auction_house = await get_auction_house_by_id(auction_house_id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
-
-    return await get_identifier_status(auction_house, q, years or 1)
 
 
 @bids_api_router.get("/api/v1/auction_house/{auction_house_id}/payments/{payment_hash}")
@@ -164,16 +140,7 @@ async def api_delete_address(
 ):
 
     # make sure the address belongs to the user
-    auction_house = await get_auction_house(auction_house_id, key_info.wallet.id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
-    address = await get_address(auction_house_id, address_id)
-    if not address:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
-    if address.auction_house_id != auction_house_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch.")
-    await delete_address_by_id(auction_house_id, address_id)
-    cache.pop(f"{auction_house_id}/{address.local_part}")
+    pass
 
 
 @bids_api_router.put(
@@ -183,14 +150,9 @@ async def api_activate_address(
     auction_house_id: str,
     address_id: str,
     key_info: WalletTypeInfo = Depends(require_admin_key),
-) -> Address:
+):
     # make sure the address belongs to the user
-    auction_house = await get_auction_house(auction_house_id, key_info.wallet.id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
-    active_address = await activate_address(auction_house_id, address_id)
-    cache.pop(f"{auction_house_id}/{active_address.local_part}")
-    return active_address
+    pass
 
 
 @bids_api_router.get(
@@ -242,34 +204,9 @@ async def api_update_address(
     address_id: str,
     data: UpdateAddressData,
     w: WalletTypeInfo = Depends(require_admin_key),
-) -> Address:
+):
 
     data.validate_relays_urls()
-
-    # make sure the auction_house belongs to the user
-    auction_house = await get_auction_house(auction_house_id, w.wallet.id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
-
-    address = await get_address(auction_house_id, address_id)
-    if not address:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
-    if address.auction_house_id != auction_house_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
-
-    _pubkey = data.pubkey or address.pubkey
-    if not _pubkey:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Pubkey is required.")
-
-    pubkey = validate_pub_key(_pubkey)
-    address.pubkey = pubkey
-
-    if data.relays:
-        address.extra.relays = data.relays
-
-    await update_address(address)
-    cache.pop(f"{auction_house_id}/{address.local_part}")
-    return address
 
 
 @bids_api_router.post(
@@ -281,28 +218,6 @@ async def api_request_address(
     key_info: WalletTypeInfo = Depends(require_admin_key),
 ):
     address_data.normalize()
-
-    # make sure the auction_house belongs to the user
-    auction_house = await get_auction_house(auction_house_id, key_info.wallet.id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
-
-    if address_data.auction_house_id != auction_house_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
-
-    address = await create_address(
-        auction_house, address_data, key_info.wallet.id, key_info.wallet.user
-    )
-    if not address.extra.price_in_sats:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            f"Cannot compute price. for {address_data.local_part}",
-        )
-    return {
-        "payment_hash": None,
-        "payment_request": None,
-        **address.dict(),
-    }
 
 
 @bids_api_router.get("/api/v1/user/addresses")
@@ -317,7 +232,7 @@ async def api_get_user_addresses(
     owner_id = owner_id_from_user_id(user_id)
     if not owner_id:
         raise HTTPException(HTTPStatus.UNAUTHORIZED)
-    return await get_valid_addresses_for_owner(owner_id, local_part, active)
+    return []
 
 
 @bids_api_router.delete(
