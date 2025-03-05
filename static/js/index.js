@@ -25,12 +25,19 @@ window.app = Vue.createApp({
       currencyOptions: [],
       auction_housesTable: {
         columns: [
-          { name: "id", align: "left", label: "ID", field: "id" },
           {
-            name: "auction_house",
+            name: "created_at",
+            align: "left",
+            label: "Created At",
+            field: "created_at",
+            format: (val) => LNbits.utils.formatDateString(val),
+          },
+
+          {
+            name: "name",
             align: "left",
             label: "Name",
-            field: "auction_house",
+            field: "name",
           },
           {
             name: "currency",
@@ -38,8 +45,21 @@ window.app = Vue.createApp({
             label: "Currency",
             field: "currency",
           },
-          { name: "cost", align: "left", label: "Amount", field: "cost" },
-          { name: "time", align: "left", label: "Created At", field: "time" },
+          { name: "type", align: "left", label: "Type", field: "type" },
+          { name: "days", align: "left", label: "Days", field: "days" },
+          {
+            name: "house_percentage",
+            align: "left",
+            label: "House %",
+            field: "house_percentage",
+          },
+          {
+            name: "min_bid_up_percentage",
+            align: "left",
+            label: "Min Bid %",
+            field: "min_bid_up_percentage",
+          },
+          { name: "id", align: "left", label: "House Id", field: "id" },
         ],
         pagination: {
           rowsPerPage: 10,
@@ -94,7 +114,7 @@ window.app = Vue.createApp({
         show: false,
         data: {},
       },
-      auction_houseTab: null,
+      auctionHouseTab: null,
       addressFormDialog: {
         show: false,
         data: {},
@@ -120,7 +140,7 @@ window.app = Vue.createApp({
   methods: {
     resetFormDialog: function () {
       this.formDialog.show = false;
-      this.auction_houseTab = "charCount";
+      this.auctionHouseTab = "webhooks";
       this.formDialog.data = {
         cost_extra: {
           max_years: 1,
@@ -542,7 +562,7 @@ window.app = Vue.createApp({
       .catch(LNbits.utils.notifyApiError);
   },
   computed: {
-    auction_houseOptions: function () {
+    auctionHouseOptions: function () {
       return this.auction_houses.map((el) => {
         return {
           label: el.auction_house,

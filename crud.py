@@ -249,8 +249,11 @@ async def update_auction_house(
     auction_house = await get_auction_house(data.id, wallet_id)
     if not auction_house:
         return None
-    auction_house.currency = data.currency
-    # todo: add more fields
-    await db.update("bids.auction_houses", auction_house)
+    if auction_house.type != data.type:
+        raise ValueError("Cannot change auction house type.")
+
+    await db.update(
+        "bids.auction_houses", AuctionHouse(**{**auction_house.dict(), **data.dict()})
+    )
 
     return auction_house

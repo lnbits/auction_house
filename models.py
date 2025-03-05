@@ -143,6 +143,10 @@ class CreateAuctionHouseData(BaseModel):
         assert self.days > 0, "Auction House days must be positive."
         assert self.house_percentage > 0, "Auction House percentage must be positive."
         assert self.min_bid_up_percentage > 0, "Auction House bid up must be positive."
+        assert self.type in [
+            "auction",
+            "fixed_price",
+        ], "Auction House type must be 'auction' or 'fixed_price'."
 
 
 class EditAuctionHouseData(CreateAuctionHouseData):

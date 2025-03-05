@@ -1,6 +1,6 @@
-{% extends "public.html" %} {% block toolbar_title %} Edit auction house "{{
-auction_house.auction_house}}" {% endblock %} {% from "macros.jinja" import
-window_vars with context %} {% block page %}
+{% extends "public.html" %} {% block toolbar_title %} Edit auction house {%
+endblock %} {% from "macros.jinja" import window_vars with context %} {% block
+page %}
 
 <div class="row">
   <div class="col-md-2 col-sm-none">
@@ -31,260 +31,85 @@ window_vars with context %} {% block page %}
 
   {% raw %}
   <div class="col-md-6 col-sm-12">
-    <q-card class="q-pa-lg">
-      <div class="q-gutter-md">
-        <q-select
-          v-if="!auctionHouseForm.data.id"
-          filled
-          dense
-          emit-value
-          v-model="auctionHouseForm.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-        ></q-select>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="auctionHouseForm.data.currency"
-          :options="currencyOptions"
-          label="Currency *"
-        ></q-select>
-        <q-input
-          filled
-          dense
-          v-model.trim="auctionHouseForm.data.name"
-          label="Name"
-          placeholder="Name of the auction house"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          type="textarea"
-          rows="3"
-          v-model.trim="auctionHouseForm.data.description"
-          label="Description"
-          placeholder="Description of the auction house"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model="auctionHouseForm.data.days"
-          type="number"
-          min="0"
-          step="1"
-          label="Days"
-          placeholder="Number of days"
-          hint="Number of days the auction house will be active."
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model="auctionHouseForm.data.house_percentage"
-          type="number"
-          min="1"
-          step="1"
-          label="House Fee"
-          placeholder="House fee percentage"
-          hint="Percentage that the house gets when the auction is done."
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model="auctionHouseForm.data.min_bid_up_percentage"
-          type="number"
-          min="1"
-          step="1"
-          label="Min Bid Up"
-          placeholder="Minimum bid up percentage"
-          hint="Minimum percentage that the bid must be increased by."
-        ></q-input>
-      </div>
-    </q-card>
     <q-card class="q-pa-lg q-mt-md">
-      <q-tabs v-model="auction_houseTab" active-color="primary" align="justify">
-        <q-tab name="charCount" label="Char Count"></q-tab>
-        <q-tab name="ranking" label="Ranking"></q-tab>
-        <q-tab name="promotions" label="Promotions"></q-tab>
+      <q-tabs v-model="auctionHouseTab" active-color="primary" align="justify">
+        <q-tab name="overview" label="Overview"></q-tab>
+        <q-tab name="webhooks" label="Web Hooks"></q-tab>
       </q-tabs>
 
-      <q-tab-panels class="bg-transparent" v-model="auction_houseTab">
-        <q-tab-panel name="charCount">
-          <div
-            v-for="(item, index) in auctionHouseForm.data.cost_extra.char_count_cost"
-            class="row q-mb-sm q-ml-md"
-          >
-            <div class="col-5">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.bracket"
-                type="number"
-                min="0"
-                step="1"
-                label="Character Count"
-              ></q-input>
-            </div>
-            <div class="col-5">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.amount"
-                label="Amount"
-                type="number"
-                class="q-pl-sm"
-              ></q-input>
-            </div>
-            <div class="col-2">
-              <q-btn
-                @click="removeCharCountCost(index)"
-                icon="clear"
-                size="sm"
-                unelevated
-                color="primary"
-                class="float-right q-mt-sm"
-              ></q-btn>
-            </div>
+      <q-tab-panels class="bg-transparent" v-model="auctionHouseTab">
+        <q-tab-panel name="overview">
+          <!-- <q-card class="q-pa-lg"> -->
+          <div class="q-gutter-md">
+            <q-select
+              filled
+              dense
+              emit-value
+              v-model="auctionHouseForm.data.wallet"
+              :options="g.user.walletOptions"
+              label="Wallet *"
+            ></q-select>
+            <q-select
+              filled
+              dense
+              emit-value
+              v-model="auctionHouseForm.data.currency"
+              :options="currencyOptions"
+              label="Currency *"
+            ></q-select>
+            <q-input
+              filled
+              dense
+              v-model.trim="auctionHouseForm.data.name"
+              label="Name"
+              placeholder="Name of the auction house"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              type="textarea"
+              rows="3"
+              v-model.trim="auctionHouseForm.data.description"
+              label="Description"
+              placeholder="Description of the auction house"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              v-model="auctionHouseForm.data.days"
+              type="number"
+              min="0"
+              step="1"
+              label="Days"
+              placeholder="Number of days"
+              hint="Number of days the auction house will be active."
+            ></q-input>
+            <q-input
+              filled
+              dense
+              v-model="auctionHouseForm.data.house_percentage"
+              type="number"
+              min="1"
+              step="1"
+              label="House Fee"
+              placeholder="House fee percentage"
+              hint="Percentage that the house gets when the auction is done."
+            ></q-input>
+            <q-input
+              filled
+              dense
+              v-model="auctionHouseForm.data.min_bid_up_percentage"
+              type="number"
+              min="1"
+              step="1"
+              label="Min Bid Up"
+              placeholder="Minimum bid up percentage"
+              hint="Minimum percentage that the bid must be increased by."
+            ></q-input>
           </div>
-          <div class="row q-ml-md q-mb-sm q-mt-sm">
-            <div class="col float-right q-mt-lg">
-              <div>
-                <q-btn
-                  icon="add"
-                  label="Add"
-                  @click="addCharCountCost"
-                  size="sm"
-                  unelevated
-                  color="secondary"
-                  class="float-right"
-                ></q-btn>
-              </div>
-            </div>
-          </div>
+          <!-- </q-card> -->
         </q-tab-panel>
-        <q-tab-panel name="ranking">
-          <div
-            v-for="(item, index) in auctionHouseForm.data.cost_extra.rank_cost"
-            class="row q-mb-sm q-ml-md"
-          >
-            <div class="col-5">
-              <q-select
-                filled
-                dense
-                emit-value
-                v-model="item.bracket"
-                :options="auction_houseRankingBraketOptions"
-                label="Up to Rank"
-              ></q-select>
-            </div>
-            <div class="col-5">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.amount"
-                label="Amount"
-                type="number"
-                class="q-pl-sm"
-              ></q-input>
-            </div>
-            <div class="col-2">
-              <q-btn
-                @click="removeRankCost(index)"
-                icon="clear"
-                size="sm"
-                unelevated
-                color="primary"
-                class="float-right q-mt-sm"
-              ></q-btn>
-            </div>
-          </div>
-          <div class="row q-ml-md q-mb-sm q-mt-sm">
-            <div class="col float-right q-mt-lg">
-              <div>
-                <q-btn
-                  icon="add"
-                  label="Add"
-                  @click="addRankCost"
-                  size="sm"
-                  unelevated
-                  color="secondary"
-                  class="float-right"
-                ></q-btn>
-              </div>
-            </div>
-          </div>
-        </q-tab-panel>
-        <q-tab-panel name="promotions">
-          <div
-            v-for="(item, index) in auctionHouseForm.data.cost_extra.promotions"
-            class="row q-mb-sm q-ml-md"
-          >
-            <div class="col-2">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.code"
-                label="Promo Code"
-                class="q-pl-sm"
-              ></q-input>
-            </div>
-            <div class="col-2">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.buyer_discount_percent"
-                label="Discount for buyer (%)"
-                type="number"
-                class="q-pl-sm"
-              ></q-input>
-            </div>
-            <div class="col-2">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.referer_bonus_percent"
-                label="Bonus for referer (%)"
-                type="number"
-                class="q-pl-sm"
-              ></q-input>
-            </div>
-            <div class="col-4">
-              <q-input
-                filled
-                dense
-                v-model.trim="item.selected_referer"
-                label="Only for this identifier."
-                class="q-pl-sm"
-              >
-              </q-input>
-            </div>
-            <div class="col-2">
-              <q-btn
-                @click="removePromotion(index)"
-                icon="clear"
-                size="sm"
-                unelevated
-                color="primary"
-                class="float-right q-mt-sm"
-              ></q-btn>
-            </div>
-          </div>
-          <div class="row q-ml-md q-mb-sm q-mt-sm">
-            <div class="col float-right q-mt-lg">
-              <div>
-                <q-btn
-                  icon="add"
-                  label="Add"
-                  @click="addPromotion"
-                  size="sm"
-                  unelevated
-                  color="secondary"
-                  class="float-right"
-                ></q-btn>
-              </div>
-            </div>
-          </div>
-        </q-tab-panel>
+        <q-tab-panel name="webhooks"> </q-tab-panel>
       </q-tab-panels>
     </q-card>
   </div>

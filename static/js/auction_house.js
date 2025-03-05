@@ -12,14 +12,10 @@ window.app = Vue.createApp({
         show: false,
         data: auction_house,
       },
-      auction_houseTab: "charCount",
+      auctionHouseTab: "overview",
     };
   },
   methods: {
-    resetFormDialog: function () {
-      this.auctionHouseForm.show = false;
-      this.auction_houseTab = "charCount";
-    },
     saveAuctionHouse: async function () {
       try {
         await LNbits.api.request(
@@ -32,7 +28,7 @@ window.app = Vue.createApp({
         );
         this.$q.notify({
           type: "positive",
-          message: "AuctionHouse updated!",
+          message: "Auction House updated!",
         });
       } catch (error) {
         this.$q.notify({
@@ -80,6 +76,11 @@ window.app = Vue.createApp({
     },
   },
   created() {
-    this.resetFormDialog();
+    LNbits.api
+      .request("GET", "/api/v1/currencies")
+      .then((response) => {
+        this.currencyOptions = ["sats", ...response.data];
+      })
+      .catch(LNbits.utils.notifyApiError);
   },
 });
