@@ -214,38 +214,59 @@
           label="Currency *"
         ></q-select>
         <q-input
-          v-if="!formDialog.data.id"
           filled
           dense
-          v-model.trim="formDialog.data.auction_house"
-          label="Auction House"
-          placeholder="nostr.com"
+          v-model.trim="formDialog.data.name"
+          label="Name"
+          placeholder="Name of the auction house"
         ></q-input>
         <q-input
           filled
           dense
-          v-model="formDialog.data.cost"
+          type="textarea"
+          rows="3"
+          v-model.trim="formDialog.data.description"
+          label="Description"
+          placeholder="Description of the auction house"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="formDialog.data.days"
           type="number"
           min="0"
-          step="any"
-          label="Price per Year"
-          placeholder="How much do you want to charge per address?"
+          step="1"
+          label="Days"
+          placeholder="Number of days"
+          hint="Number of days the auction house will be active."
         ></q-input>
         <q-input
           filled
           dense
-          v-model="formDialog.data.cost_extra.max_years"
+          v-model="formDialog.data.house_percentage"
           type="number"
           min="1"
           step="1"
-          label="Max Years"
-          hint="Maximum number of years a user can have an address before renewing."
+          label="House Fee"
+          placeholder="House fee percentage"
+          hint="Percentage that the house gets when the auction is done."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="formDialog.data.min_bid_up_percentage"
+          type="number"
+          min="1"
+          step="1"
+          label="Min Bid Up"
+          placeholder="Minimum bid up percentage"
+          hint="Minimum percentage that the bid must be increased by."
         ></q-input>
 
         <q-btn
           unelevated
           color="primary"
-          :disable="formDialog.data.wallet == null || formDialog.data.currency == null"
+          :disable="formDialog.data.wallet == null || formDialog.data.currency == null || formDialog.data.days == null|| formDialog.data.house_percentage == null|| formDialog.data.min_bid_up_percentage == null"
           type="submit"
           >Create Auction House</q-btn
         >
