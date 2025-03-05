@@ -1,17 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import httpx
 from lnbits.core.crud import get_standalone_payment, get_user
 from lnbits.core.models import Payment
-from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services import create_invoice
 from lnbits.db import Filters, Page
 from loguru import logger
 
 from .crud import (
     create_address_internal,
-    create_identifier_ranking,
-    delete_inferior_ranking,
     get_active_address_by_local_part,
     get_address,
     get_address_for_owner,
@@ -20,8 +17,6 @@ from .crud import (
     get_all_addresses_paginated,
     get_auction_house_by_id,
     get_auction_houses,
-    get_identifier_ranking,
-    get_settings,
     update_address,
 )
 from .helpers import (
@@ -116,41 +111,8 @@ async def get_identifier_price_data(
     years: int,
     promo_code: Optional[str] = None,
 ) -> Optional[PriceData]:
-    identifier_ranking = await get_identifier_ranking(identifier)
-    rank = identifier_ranking.rank if identifier_ranking else None
 
     return None
-
-
-async def request_user_address(
-    auction_house: AuctionHouse,
-    address_data: CreateAddressData,
-    wallet_id: str,
-    user_id: str,
-):
-    address = await create_address(
-        auction_house, address_data, wallet_id, user_id, address_data.promo_code
-    )
-    assert (
-        address.extra.price_in_sats
-    ), f"Cannot compute price for '{address_data.local_part}'."
-
-    address.promo_code_status = auction_house.cost_extra.promo_code_status(
-        address_data.promo_code
-    )
-
-    resp = {
-        **dict(address),
-        "payment_hash": None,
-        "payment_request": None,
-    }
-
-    if address_data.create_invoice:
-        payment = await create_invoice_for_identifier(auction_house, address, wallet_id)
-        resp["payment_hash"] = payment.payment_hash
-        resp["payment_request"] = payment.bolt11
-
-    return resp
 
 
 async def create_invoice_for_identifier(
@@ -169,8 +131,7 @@ async def create_invoice_for_identifier(
     payment = await create_invoice(
         wallet_id=auction_house.wallet,
         amount=int(price_in_sats),
-        memo=f"Payment of {address.extra.price} {address.extra.currency} "
-        f"for NIP-05 {address.local_part}@{auction_house.auction_house}",
+        memo=f"Payment  " f"for NIP-05 {address.local_part}",
         extra={
             "tag": "bids",
             "auction_house_id": auction_house.id,
@@ -215,11 +176,6 @@ async def create_address(
     extra.currency = auction_house.currency
     extra.years = data.years
     extra.promo_code = data.promo_code
-    extra.referer = auction_house.cost_extra.promo_code_referer(
-        promo_code, data.referer
-    )
-    extra.max_years = auction_house.cost_extra.max_years
-    extra.ln_address.wallet = wallet_id or ""
 
     if address:
         assert not address.active, f"Identifier '{data.local_part}' already activated."
@@ -286,48 +242,10 @@ async def get_valid_addresses_for_owner(
             continue
 
         address.extra.currency = auction_house.currency
-        address.promo_code_status = auction_house.cost_extra.promo_code_status(
-            address.extra.promo_code
-        )
+
         valid_addresses.append(address)
 
     return valid_addresses
-
-
-async def pay_referer_for_promo_code(address: Address, referer: str, bonus_sats: int):
-    try:
-        assert bonus_sats > 0, f"Bonus amount negative: '{bonus_sats}'."
-
-        auction_house = await get_auction_house_by_id(address.auction_house_id)
-        assert auction_house, f"Missing auction_house for '{address.local_part}'."
-
-        referer_address = await get_active_address_by_local_part(
-            address.auction_house_id, referer
-        )
-        assert referer_address, f"Missing address for referer '{referer}'."
-        referer_wallet = referer_address.extra.ln_address.wallet
-        assert referer_wallet, f"Missing wallet for referer '{referer}'."
-
-        payment = await create_invoice(
-            wallet_id=referer_wallet,
-            amount=bonus_sats,
-            memo=f"Referer bonus of {bonus_sats} sats to '{referer}' "
-            f"from NIP-05 {address.local_part}@{auction_house.auction_house}",
-            extra={
-                "tag": "bids",
-                "auction_house_id": auction_house.id,
-                "address_id": address.id,
-                "action": "referer_bonus",
-            },
-        )
-
-        await pay_invoice(
-            wallet_id=auction_house.wallet, payment_request=payment.bolt11
-        )
-
-    except Exception as exc:
-        logger.warning(f"Failed to pay referer for '{referer}'.")
-        logger.warning(exc)
 
 
 async def check_address_payment(auction_house_id: str, payment_hash: str) -> bool:
@@ -364,106 +282,3 @@ async def get_reimburse_wallet_id(address: Address) -> str:
     wallet_id = payment.extra.get("reimburse_wallet_id")
     assert wallet_id, f"No wallet found to reimburse payment {payment_hash}."
     return wallet_id
-
-
-async def update_identifiers(identifiers: list[str], bucket: int):
-    for identifier in identifiers:
-        try:
-            await update_identifier(identifier, bucket)
-        except Exception as exc:
-            logger.warning(exc)
-
-
-async def update_identifier(identifier, bucket):
-    await delete_inferior_ranking(identifier, bucket)
-    await create_identifier_ranking(identifier, bucket)
-
-
-async def update_ln_address(address: Address) -> Address:
-    bids_settings = await get_settings(owner_id_from_user_id("admin"))
-    assert bids_settings, "No NIP-05 settings found."
-    assert bids_settings.lnaddress_api_endpoint, "No endpoint found for LN Address."
-    assert bids_settings.lnaddress_api_admin_key, "No api key found for LN Address."
-
-    ln_address = address.extra.ln_address
-
-    async with httpx.AsyncClient(verify=False) as client:
-        method = "PUT" if ln_address.pay_link_id else "POST"
-        url = f"{bids_settings.lnaddress_api_endpoint}/lnurlp/api/v1/links"
-        url = f"{url}/{ln_address.pay_link_id}" if ln_address.pay_link_id else url
-        headers = {
-            "Content-Type": "application/json; charset=utf-8",
-            "X-API-KEY": bids_settings.lnaddress_api_admin_key,
-        }
-        payload = {
-            "description": f"Lightning Address for NIP05 {address.local_part}",
-            "wallet": ln_address.wallet,
-            "min": ln_address.min,
-            "max": ln_address.max,
-            "comment_chars": "255",
-            "username": address.local_part,
-            "zaps": True,
-        }
-
-        resp = await client.request(
-            method,
-            url,
-            headers=headers,
-            json=payload,
-        )
-
-        resp.raise_for_status()
-
-        pay_link_data = resp.json()
-        ln_address.pay_link_id = pay_link_data["id"]
-
-        logger.success(
-            f"Updated Lightning Address for '{address.local_part}' ({address.id})."
-        )
-
-        address = await update_address(address)
-        logger.info(f"Updated address for '{address.local_part}' ({address.id}).")
-        return address
-
-
-async def refresh_buckets(
-    client: httpx.AsyncClient, ranking_url: str, dataset_url: str, bucket: int
-):
-    logger.info(f"Refresh requested for top {bucket} identifiers.")
-
-    resp = await client.get(url=ranking_url)
-    resp.raise_for_status()
-    data = resp.json()
-
-    datasets = data["result"]["datasets"]
-    datasets.sort(key=lambda b: b["meta"]["top"])
-
-    logger.info("Bucket info received.")
-
-    for dataset in datasets:
-        top = dataset["meta"]["top"]
-        if top > bucket:
-            continue
-        logger.info(f"Refreshing bucket {top}.")
-        url = f"""{dataset_url}/{dataset["alias"]}"""
-        await refresh_bucket(client, url, top)
-        logger.info(f"Refreshed bucket {top}.")
-
-    logger.info(f"Top {bucket} identifiers ranking refreshed.")
-
-
-async def refresh_bucket(
-    client: httpx.AsyncClient,
-    url: str,
-    bucket: int,
-):
-    resp = await client.get(url)
-    resp.raise_for_status()
-
-    for identifier in resp.text.split("\n"):
-        try:
-            identifier_name = identifier.split(".")[0]
-            await update_identifier(identifier_name, bucket)
-            await update_identifier(identifier, bucket)
-        except Exception as exc:
-            logger.warning(exc)

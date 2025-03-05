@@ -504,42 +504,6 @@ window.app = Vue.createApp({
         });
     },
 
-    fetchSettings: function () {
-      var self = this;
-      return LNbits.api
-        .request(
-          "GET",
-          "/bids/api/v1/settings",
-          self.g.user.wallets[0].adminkey,
-        )
-        .then(function (response) {
-          self.settingsFormDialog.data = response.data;
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error);
-        });
-    },
-    updateSettings: function () {
-      var self = this;
-      return LNbits.api
-        .request(
-          "PUT",
-          "/bids/api/v1/settings",
-          self.g.user.wallets[0].adminkey,
-          self.settingsFormDialog.data,
-        )
-        .then(function (response) {
-          self.resetFormDialog();
-          self.$q.notify({
-            type: "positive",
-            message: "Updated settings",
-          });
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error);
-        });
-    },
-
     auction_houseNameFromId: function (auction_houseId) {
       const auction_house =
         this.auction_houses.find((d) => d.id === auction_houseId) || {};
@@ -569,7 +533,6 @@ window.app = Vue.createApp({
     if (this.g.user.wallets.length) {
       this.getAuctionHouses();
       this.getAddresses();
-      this.fetchSettings();
     }
     LNbits.api
       .request("GET", "/api/v1/currencies")

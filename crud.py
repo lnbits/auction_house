@@ -10,14 +10,11 @@ from .models import (
     AddressExtra,
     AddressFilters,
     AuctionHouse,
-    AuctionHouseCostConfig,
-    BidsSettings,
+    AuctionHouseConfig,
     CreateAddressData,
     CreateAuctionHouseData,
     EditAuctionHouseData,
-    IdentifierRanking,
     PublicAuctionHouse,
-    UserSetting,
 )
 
 db = Database("ext_bids")
@@ -45,7 +42,8 @@ async def get_auction_house_public_data(
     auction_house_id: str,
 ) -> Optional[PublicAuctionHouse]:
     return await db.fetchone(
-        "SELECT id, currency, cost, auction_house FROM bids.auction_houses WHERE id = :id",
+        "SELECT id, currency, cost, auction_house"
+        " FROM bids.auction_houses WHERE id = :id",
         {"id": auction_house_id},
         PublicAuctionHouse,
     )
@@ -87,7 +85,8 @@ async def get_active_address_by_local_part(
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses
-        WHERE active = true AND auction_house_id = :auction_house_id AND local_part = :local_part
+        WHERE active = true AND auction_house_id = :auction_house_id
+              AND local_part = :local_part
         """,
         {
             "auction_house_id": auction_house_id,
@@ -231,6 +230,19 @@ async def create_address_internal(
     return address
 
 
+async def create_auction_house_internal(
+    wallet_id: str, data: CreateAuctionHouseData
+) -> AuctionHouse:
+    auction_house = AuctionHouse(
+        id=urlsafe_short_hash(),
+        created_at=datetime.now(timezone.utc),
+        extra=AuctionHouseConfig(),
+        **data.dict(),
+    )
+    await db.insert("bids.auction_houses", auction_house)
+    return auction_house
+
+
 async def update_auction_house(
     wallet_id: str, data: EditAuctionHouseData
 ) -> Optional[AuctionHouse]:
@@ -238,83 +250,7 @@ async def update_auction_house(
     if not auction_house:
         return None
     auction_house.currency = data.currency
-    auction_house.cost = data.cost
-    auction_house.cost_extra = data.cost_extra or auction_house.cost_extra
+    # todo: add more fields
     await db.update("bids.auction_houses", auction_house)
 
     return auction_house
-
-
-async def create_auction_house_internal(
-    wallet_id: str, data: CreateAuctionHouseData
-) -> AuctionHouse:
-    auction_house = AuctionHouse(
-        id=urlsafe_short_hash(),
-        wallet=wallet_id,
-        time=datetime.now(timezone.utc),
-        cost_extra=data.cost_extra or AuctionHouseCostConfig(),
-        currency=data.currency,
-        cost=data.cost,
-        auction_house=data.auction_house.lower(),
-    )
-    await db.insert("bids.auction_houses", auction_house)
-    return auction_house
-
-
-# todo: rename to identifier
-async def create_identifier_ranking(name: str, rank: int):
-    await db.execute(
-        """
-        INSERT INTO bids.identifiers_rankings(name, rank)
-        VALUES (:name, :rank) ON CONFLICT (name) DO NOTHING
-        """,
-        {"name": normalize_identifier(name), "rank": rank},
-    )
-
-
-async def update_identifier_ranking(name: str, rank: int):
-    await db.execute(
-        """
-        UPDATE bids.identifiers_rankings
-        SET rank = :rank WHERE name = :name
-        """,
-        {"name": normalize_identifier(name), "rank": rank},
-    )
-
-
-async def get_identifier_ranking(name: str) -> Optional[IdentifierRanking]:
-    return await db.fetchone(
-        "SELECT * FROM bids.identifiers_rankings WHERE name = :name",
-        {"name": normalize_identifier(name)},
-        IdentifierRanking,
-    )
-
-
-async def delete_inferior_ranking(name: str, rank: int):
-    await db.execute(
-        """
-        DELETE from bids.identifiers_rankings
-        WHERE name = :name and rank > :rank
-        """,
-        {"name": normalize_identifier(name), "rank": rank},
-    )
-
-
-async def create_settings(settings: UserSetting) -> UserSetting:
-    user_settings = await get_settings(settings.owner_id)
-    if not user_settings:
-        await db.insert("bids.settings", settings)
-    else:
-        await db.update("bids.settings", settings, "WHERE owner_id = :owner_id")
-    return settings
-
-
-async def get_settings(owner_id: str) -> Optional[BidsSettings]:
-    user_settings = await db.fetchone(
-        "SELECT * FROM bids.settings WHERE owner_id = :owner_id",
-        {"owner_id": owner_id},
-        UserSetting,
-    )
-    if user_settings:
-        return user_settings.settings
-    return None

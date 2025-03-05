@@ -6,7 +6,7 @@ from loguru import logger
 
 from .crud import get_address, update_address
 from .models import Address
-from .services import activate_address, pay_referer_for_promo_code, update_ln_address
+from .services import activate_address
 
 
 async def wait_for_paid_invoices():
@@ -29,7 +29,8 @@ async def on_invoice_paid(payment: Payment) -> None:
     if not auction_house_id or not address_id or not action:
         logger.info(
             f"Cannot {action} for payment '{payment.payment_hash}'."
-            f"Missing auction_house ID ({auction_house_id}) or address ID ({address_id})."
+            f"Missing auction_house ID ({auction_house_id})"
+            f" or address ID ({address_id})."
         )
         return
 
@@ -38,7 +39,8 @@ async def on_invoice_paid(payment: Payment) -> None:
         if not address:
             logger.info(
                 f"Cannot find address for payment '{payment.payment_hash}'."
-                f"Missing auction_house ID ({auction_house_id}) or address ID ({address_id})."
+                f"Missing auction_house ID ({auction_house_id})"
+                f" or address ID ({address_id})."
             )
             return
 
@@ -57,41 +59,4 @@ async def _handle_action(action: str, payment: Payment, address: Address):
 
 
 async def _activate_address(payment: Payment, address: Address):
-    activated_address = await activate_address(
-        address.auction_house_id, address.id, payment.payment_hash
-    )
-    if activated_address:
-        await _create_ln_address(payment, activated_address)
-        await _pay_promo_code(payment, activated_address)
-    else:
-        address.extra.reimburse_payment_hash = payment.payment_hash
-        address.reimburse_amount = payment.amount
-        await update_address(address)
-
-
-async def _create_ln_address(payment: Payment, address: Address):
-    assert payment.extra, "No extra data on payment."
-    wallet = payment.extra.get("reimburse_wallet_id")
-    if not wallet:
-        logger.warning(
-            "No wallet found for Lightning Address"
-            f" '{address.local_part} ({address.id}')."
-        )
-        return
-    address.extra.ln_address.wallet = wallet
-    await update_ln_address(address)
-
-
-async def _pay_promo_code(payment: Payment, address: Address):
-    assert payment.extra, "No extra data on payment."
-    referer = payment.extra.get("referer")
-    if not referer:
-        return
-    referer_bonus_sats = payment.extra.get("referer_bonus_sats")
-    if not referer_bonus_sats or not isinstance(referer_bonus_sats, int):
-        logger.warning(
-            f"Found referer but no bonus specified for '{address.local_part}'."
-        )
-        return
-
-    await pay_referer_for_promo_code(address, referer, int(referer_bonus_sats))
+    await activate_address(address.auction_house_id, address.id, payment.payment_hash)

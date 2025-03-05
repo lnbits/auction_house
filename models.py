@@ -125,110 +125,28 @@ class CreateAddressData(BaseModel):
             self.referer = self.referer.strip()
 
 
-class AuctionHouseCostConfig(BaseModel):
-    max_years: int = 1
-    char_count_cost: list[CustomCost] = []
-    rank_cost: list[CustomCost] = []
-    promotions: list[Promotion] = []
-
-    def apply_promo_code(
-        self, amount: float, promo_code: Optional[str] = None
-    ) -> tuple[float, float]:
-        if promo_code is None:
-            return 0, 0
-        promotion = next((p for p in self.promotions if p.code == promo_code), None)
-        if not promotion:
-            return 0, 0
-
-        discount = amount * (promotion.buyer_discount_percent / 100)
-        referer_bonus = amount * (promotion.referer_bonus_percent / 100)
-        return round(discount, 2), round(referer_bonus, 2)
-
-    def get_promotion(self, promo_code: Optional[str] = None) -> Optional[Promotion]:
-        if promo_code is None:
-            return None
-        return next((p for p in self.promotions if p.code == promo_code), None)
-
-    def promo_code_buyer_discount(self, promo_code: Optional[str] = None) -> float:
-        promotion = self.get_promotion(promo_code)
-        if not promotion:
-            return 0
-        return promotion.buyer_discount_percent
-
-    def promo_code_referer(
-        self, promo_code: Optional[str] = None, default_referer: Optional[str] = None
-    ) -> Optional[str]:
-        promotion = self.get_promotion(promo_code)
-        if not promotion:
-            return None
-        if promotion.referer_bonus_percent == 0:
-            return None
-        if promotion.selected_referer:
-            return promotion.selected_referer
-
-        return default_referer
-
-    def promo_code_allows_referer(self, promo_code: Optional[str] = None) -> bool:
-        promotion = self.get_promotion(promo_code)
-        if not promotion:
-            return False
-
-        return promotion.referer_bonus_percent > 0 and not promotion.selected_referer
-
-    def promo_code_status(self, promo_code: Optional[str] = None) -> PromoCodeStatus:
-        return PromoCodeStatus(
-            buyer_discount=self.promo_code_buyer_discount(promo_code),
-            allow_referer=self.promo_code_allows_referer(promo_code),
-            referer=self.promo_code_referer(promo_code),
-        )
-
-    def validate_data(self):
-        for cost in self.char_count_cost:
-            cost.validate_data()
-
-        for cost in self.rank_cost:
-            cost.validate_data()
-
-        assert (
-            1 <= self.max_years <= 100
-        ), "Maximum allowed years must be between 1 and 100."
-        promo_codes = []
-        for promo in self.promotions:
-            promo.validate_data()
-            assert (
-                promo.code not in promo_codes
-            ), f"Duplicate promo code: '{promo.code}'."
-            promo_codes.append(promo.code)
+class AuctionHouseConfig(BaseModel):
+    bla: int = 1
 
 
 class CreateAuctionHouseData(BaseModel):
     wallet: str
     currency: str
-    cost: float
-    auction_house: str
-    cost_extra: Optional[AuctionHouseCostConfig] = None
-
-    def validate_data(self):
-        assert self.cost >= 0, "AuctionHouse cost must be positive."
-        if self.cost_extra:
-            self.cost_extra.validate_data()
-
-
-class EditAuctionHouseData(BaseModel):
-    id: str
-    currency: str
-    cost: float
-    cost_extra: Optional[AuctionHouseCostConfig] = None
-
-    def validate_data(self):
-        assert self.cost >= 0, "AuctionHouse cost must be positive."
-        if self.cost_extra:
-            self.cost_extra.validate_data()
-
-
-class IdentifierRanking(BaseModel):
     name: str
-    rank: int
+    description: str
+    type: str = "auction"  # [auction, fixed_price]
+    days: int = 7
+    house_percentage: float = 10
+    min_bid_up_percentage: float = 5
+
+    def validate_data(self):
+        assert self.days > 0, "Auction House days must be positive."
+        assert self.house_percentage > 0, "Auction House percentage must be positive."
+        assert self.min_bid_up_percentage > 0, "Auction House bid up must be positive."
+
+
+class EditAuctionHouseData(CreateAuctionHouseData):
+    id: str
 
 
 class PublicAuctionHouse(BaseModel):
@@ -246,13 +164,7 @@ class AuctionHouse(PublicAuctionHouse):
     created_at: datetime
     wallet: str
 
-    cost_extra: AuctionHouseCostConfig  # rename to extra
-    time: datetime  # todo: remove this field
-
-    def public_data(self):
-        data = dict(PublicAuctionHouse(**dict(self)))
-        data["max_years"] = self.cost_extra.max_years
-        return data
+    extra: AuctionHouseConfig
 
 
 class LnAddressConfig(BaseModel):
