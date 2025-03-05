@@ -232,14 +232,3 @@ class AddressFilters(FilterModel):
     pubkey: str
     active: bool
     time: datetime
-
-
-class BidsSettings(BaseModel):
-    cloudflare_access_token: Optional[str] = None
-    lnaddress_api_admin_key: Optional[str] = ""
-    lnaddress_api_endpoint: Optional[str] = "https://nostr.com"
-
-
-class UserSetting(BaseModel):
-    owner_id: str
-    settings: BidsSettings

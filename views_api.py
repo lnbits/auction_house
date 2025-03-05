@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import HTTPException
 from lnbits.core.models import SimpleStatus, WalletTypeInfo
 from lnbits.core.services import create_invoice
@@ -20,7 +20,6 @@ from .crud import (
     delete_address,
     delete_address_by_id,
     delete_auction_house,
-    get_active_address_by_local_part,
     get_address,
     get_auction_house,
     get_auction_house_by_id,
@@ -56,7 +55,6 @@ from .services import (
 
 bids_api_router: APIRouter = APIRouter()
 address_filters = parse_filters(AddressFilters)
-rotation_secret_prefix = "nostr_nip_5_rotation_secret_"
 
 
 @bids_api_router.get("/api/v1/auction_houses")
@@ -105,35 +103,6 @@ async def api_auction_house_delete(
     # make sure the address belongs to the user
     deleted = await delete_auction_house(auction_house_id, key_info.wallet.id)
     return SimpleStatus(success=deleted, message="Deleted")
-
-
-@bids_api_router.get("/api/v1/auction_house/{auction_house_id}/nostr.json")
-async def api_get_nostr_json(
-    response: Response, auction_house_id: str, name: str = Query(None)
-):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
-
-    if not name:
-        return {"names": {}, "relays": {}}
-
-    cached_bids = cache.get(f"{auction_house_id}/{name}")
-    if cached_bids:
-        return cached_bids
-
-    address = await get_active_address_by_local_part(auction_house_id, name)
-
-    if not address:
-        return {"names": {}, "relays": {}}
-
-    bids = {
-        "names": {address.local_part: address.pubkey},
-        "relays": {address.pubkey: address.extra.relays},
-    }
-
-    cache.set(f"{auction_house_id}/{name}", bids, 600)
-
-    return bids
 
 
 @bids_api_router.get("/api/v1/auction_house/{auction_house_id}/search")

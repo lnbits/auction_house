@@ -3,7 +3,6 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-
       currencyOptions: [],
       auctionHouseForm: {
         show: false,
