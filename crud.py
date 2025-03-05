@@ -20,10 +20,12 @@ from .models import (
 db = Database("ext_bids")
 
 
-async def get_auction_house(auction_house_id: str) -> Optional[AuctionHouse]:
+async def get_auction_house(
+    user_id: str, auction_house_id: str
+) -> Optional[AuctionHouse]:
     return await db.fetchone(
-        "SELECT * FROM bids.auction_houses WHERE id = :id",
-        {"id": auction_house_id},
+        "SELECT * FROM bids.auction_houses WHERE id = :id AND user_id = :user_id",
+        {"id": auction_house_id, "user_id": user_id},
         AuctionHouse,
     )
 
@@ -40,24 +42,16 @@ async def get_auction_house_public_data(
     auction_house_id: str,
 ) -> Optional[PublicAuctionHouse]:
     return await db.fetchone(
-        "SELECT id, currency, cost, auction_house"
-        " FROM bids.auction_houses WHERE id = :id",
+        "SELECT * "
+        "FROM bids.auction_houses WHERE id = :id",
         {"id": auction_house_id},
         PublicAuctionHouse,
     )
 
 
-async def get_auction_house_by_name(auction_house: str) -> Optional[AuctionHouse]:
-    return await db.fetchone(
-        "SELECT * FROM bids.auction_houses WHERE auction_house = :auction_house",
-        {"auction_house": auction_house.lower()},
-        AuctionHouse,
-    )
-
-
 async def get_auction_houses(user_id: str) -> list[AuctionHouse]:
     return await db.fetchall(
-        f"SELECT * FROM bids.auction_houses WHERE user_id = :user_id",
+        "SELECT * FROM bids.auction_houses WHERE user_id = :user_id",
         {"user_id": user_id},
         model=AuctionHouse,
     )
@@ -166,8 +160,10 @@ async def update_address(address: Address) -> Address:
 
 
 async def delete_auction_house(user_id: str, auction_house_id: str) -> bool:
-    auction_house = await get_auction_house(auction_house_id)
-    if not auction_house or auction_house.user_id != user_id:
+    auction_house = await get_auction_house(
+        user_id=user_id, auction_house_id=auction_house_id
+    )
+    if not auction_house:
         return False
     await db.execute(
         """
@@ -242,7 +238,7 @@ async def create_auction_house_internal(
 async def update_auction_house(
     user_id: str, data: EditAuctionHouseData
 ) -> Optional[AuctionHouse]:
-    auction_house = await get_auction_house(data.id)
+    auction_house = await get_auction_house(user_id=user_id, auction_house_id=data.id)
     if not auction_house or auction_house.user_id != user_id:
         return None
     if auction_house.type != data.type:

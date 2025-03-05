@@ -103,7 +103,7 @@ page %}
   </div>
 </div>
 
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
+{% endblock %} {% block scripts %}
 <script>
   const auction_house = JSON.parse({{auction_house | tojson | safe}})
 </script>

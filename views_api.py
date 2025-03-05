@@ -4,7 +4,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import HTTPException
 from lnbits.core.models import SimpleStatus, User, WalletTypeInfo
-from lnbits.core.services import create_invoice
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
@@ -22,7 +21,6 @@ from .crud import (
     delete_auction_house,
     get_address,
     get_auction_house,
-    get_auction_house_by_id,
     update_address,
     update_auction_house,
 )
@@ -41,7 +39,6 @@ from .models import (
 )
 from .services import (
     check_address_payment,
-    get_reimburse_wallet_id,
     get_user_addresses,
     get_user_addresses_paginated,
     get_user_auction_houses,
@@ -62,8 +59,10 @@ async def api_auction_houses(
 async def api_get_auction_house(
     auction_house_id: str, user: User = Depends(check_user_exists)
 ):
-    auction_house = await get_auction_house(auction_house_id)
-    if not auction_house or auction_house.user_id != user.id:
+    auction_house = await get_auction_house(
+        user_id=user.id, auction_house_id=auction_house_id
+    )
+    if not auction_house:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction House not found.")
     return auction_house
 
@@ -153,49 +152,6 @@ async def api_activate_address(
 ):
     # make sure the address belongs to the user
     pass
-
-
-@bids_api_router.get(
-    "/api/v1/auction_house/{auction_house_id}/address/{address_id}/reimburse",
-    dependencies=[Depends(require_admin_key)],
-    status_code=HTTPStatus.CREATED,
-)
-async def api_address_reimburse(
-    auction_house_id: str,
-    address_id: str,
-):
-
-    # make sure the address belongs to the user
-    auction_house = await get_auction_house_by_id(auction_house_id)
-    if not auction_house:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
-
-    address = await get_address(auction_house.id, address_id)
-    if not address:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
-    if address.auction_house_id != auction_house_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch.")
-
-    wallet_id = await get_reimburse_wallet_id(address)
-
-    payment_hash, payment_request = await create_invoice(
-        wallet_id=wallet_id,
-        amount=address.reimburse_amount,
-        memo="Reimbursement for NIP-05 for",
-        extra={
-            "tag": "bids",
-            "auction_house_id": auction_house_id,
-            "address_id": address.id,
-            "local_part": address.local_part,
-            "action": "reimburse",
-        },
-    )
-
-    return {
-        "payment_hash": payment_hash,
-        "payment_request": payment_request,
-        "address_id": address.id,
-    }
 
 
 @bids_api_router.put("/api/v1/auction_house/{auction_house_id}/address/{address_id}")
@@ -297,16 +253,15 @@ async def api_update_user_address(
 async def api_request_user_address(
     address_data: CreateAddressData,
     auction_house_id: str,
-    user_id: Optional[str] = Depends(optional_user_id),
+    user: User = Depends(check_user_exists),
 ):
-
-    if not user_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED)
 
     address_data.normalize()
 
     # make sure the address belongs to the user
-    auction_house = await get_auction_house_by_id(address_data.auction_house_id)
+    auction_house = await get_auction_house(
+        user_id=user.id, auction_house_id=address_data.auction_house_id
+    )
     assert auction_house, "AuctionHouse does not exist."
 
     assert (
@@ -326,13 +281,13 @@ async def api_lnurl_create_or_update(
     auction_house_id: str,
     address_id: str,
     data: LnAddressConfig,
-    user_id: Optional[str] = Depends(optional_user_id),
+    user: User = Depends(check_user_exists),
 ):
-    if not user_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED)
 
     # make sure the address belongs to the user
-    auction_house = await get_auction_house_by_id(auction_house_id)
+    auction_house = await get_auction_house(
+        user_id=user.id, auction_house_id=auction_house_id
+    )
     if not auction_house:
         raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse not found.")
 
@@ -343,7 +298,7 @@ async def api_lnurl_create_or_update(
         raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
     if not address.active:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Address not active.")
-    owner_id = owner_id_from_user_id(user_id)
+    owner_id = owner_id_from_user_id(user.id)
     if address.owner_id != owner_id:
         raise HTTPException(
             HTTPStatus.UNAUTHORIZED, "Address does not belong to this user."
