@@ -7,7 +7,6 @@
   <q-card>
     <p>
       <q-card-section></q-card-section>
- 
     </p>
   </q-card>
 </q-expansion-item>
@@ -22,9 +21,7 @@
   <q-expansion-item group="api" dense expand-separator label="List Domains">
     <q-card>
       <q-card-section>
-        <code
-          ><span class="text-blue">GET</span> /bids/api/v1/domains</code
-        >
+        <code><span class="text-blue">GET</span> /bids/api/v1/domains</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -34,8 +31,8 @@
         <code>[&lt;domain_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}bids/api/v1/domains -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X GET {{ request.base_url }}bids/api/v1/domains -H "X-Api-Key:
+          &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -44,9 +41,7 @@
   <q-expansion-item group="api" dense expand-separator label="List Addresses">
     <q-card>
       <q-card-section>
-        <code
-          ><span class="text-blue">GET</span> /bids/api/v1/addresses</code
-        >
+        <code><span class="text-blue">GET</span> /bids/api/v1/addresses</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -79,8 +74,8 @@
         <code>{domain_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}bids/api/v1/domain/{domain_id}
-          -H "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X GET {{ request.base_url }}bids/api/v1/domain/{domain_id} -H
+          "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -89,9 +84,7 @@
   <q-expansion-item group="api" dense expand-separator label="Create Domain">
     <q-card>
       <q-card-section>
-        <code
-          ><span class="text-blue">POST</span> /bids/api/v1/domain</code
-        >
+        <code><span class="text-blue">POST</span> /bids/api/v1/domain</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -101,8 +94,8 @@
         <code>{domain_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}bids/api/v1/domain -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X POST {{ request.base_url }}bids/api/v1/domain -H "X-Api-Key:
+          &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>

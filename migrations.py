@@ -82,9 +82,7 @@ async def m006_make_amount_type_real(db: Database):
     """
     Domain amount was INT which is not well suited for fiat currencies. Not it is REAL.
     """
-    await db.execute(
-        "ALTER TABLE bids.domains ADD COLUMN cost REAL NOT NULL DEFAULT 0"
-    )
+    await db.execute("ALTER TABLE bids.domains ADD COLUMN cost REAL NOT NULL DEFAULT 0")
 
     await db.execute("UPDATE bids.domains SET cost = amount")
     await db.execute("ALTER TABLE bids.domains DROP COLUMN amount")

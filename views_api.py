@@ -45,13 +45,13 @@ from .models import (
     Address,
     AddressFilters,
     AddressStatus,
+    BidsSettings,
     CreateAddressData,
     CreateDomainData,
     Domain,
     EditDomainData,
     IdentifierRanking,
     LnAddressConfig,
-    BidsSettings,
     RotateAddressData,
     UpdateAddressData,
     UserSetting,
@@ -113,9 +113,7 @@ async def api_update_domain(
     return await update_domain(wallet_id=wallet.wallet.id, data=data)
 
 
-@bids_api_router.delete(
-    "/api/v1/domain/{domain_id}", status_code=HTTPStatus.CREATED
-)
+@bids_api_router.delete("/api/v1/domain/{domain_id}", status_code=HTTPStatus.CREATED)
 async def api_domain_delete(
     domain_id: str,
     key_info: WalletTypeInfo = Depends(require_admin_key),
@@ -381,37 +379,6 @@ async def api_delete_user_address(
     return await delete_address(domain_id, address_id, owner_id)
 
 
-@bids_api_router.put("/api/v1/domain/{domain_id}/address/{address_id}/rotate")
-async def api_rotate_user_address(
-    domain_id: str,
-    address_id: str,
-    data: RotateAddressData,
-):
-    pubkey = validate_pub_key(data.pubkey)
-    if not data.secret.startswith(rotation_secret_prefix):
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            f"Rotation secret must start with '{rotation_secret_prefix}'",
-        )
-
-    # make sure the domain belongs to the user
-    domain = await get_domain_by_id(domain_id)
-    if not domain:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Domain not found.")
-    address = await get_address(domain_id, address_id)
-    if not address:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "Address not found.")
-    if address.domain_id != domain_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "Domain ID missmatch")
-    owner_id = owner_id_from_user_id(data.secret)
-    if address.owner_id != owner_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED, "Address secret is incorrect.")
-
-    address.pubkey = pubkey
-    await update_address(address)
-    cache.pop(f"{domain_id}/{address.local_part}")
-    return True
-
 
 @bids_api_router.put("/api/v1/user/domain/{domain_id}/address/{address_id}")
 async def api_update_user_address(
@@ -505,12 +472,8 @@ async def api_request_public_user_address(
     return resp
 
 
-@bids_api_router.post(
-    "/api/v1/user/domain/{domain_id}/address/{address_id}/lnaddress"
-)
-@bids_api_router.put(
-    "/api/v1/user/domain/{domain_id}/address/{address_id}/lnaddress"
-)
+@bids_api_router.post("/api/v1/user/domain/{domain_id}/address/{address_id}/lnaddress")
+@bids_api_router.put("/api/v1/user/domain/{domain_id}/address/{address_id}/lnaddress")
 async def api_lnurl_create_or_update(
     domain_id: str,
     address_id: str,

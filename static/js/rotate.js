@@ -1,5 +1,5 @@
 window.app = Vue.createApp({
-  el: '#vue',
+  el: "#vue",
   mixins: [window.windowMixin],
   data: function () {
     return {
@@ -9,34 +9,34 @@ window.app = Vue.createApp({
       formDialog: {
         data: {
           pubkey: null,
-          secret: secret
-        }
-      }
-    }
+          secret: secret,
+        },
+      },
+    };
   },
   methods: {
     updateAddress: function () {
-      const formDialog = this.formDialog
-      const newPubKey = this.formDialog.data.pubkey
+      const formDialog = this.formDialog;
+      const newPubKey = this.formDialog.data.pubkey;
 
       axios
         .put(
-          '/bids/api/v1/domain/' +
+          "/bids/api/v1/domain/" +
             this.domain_id +
-            '/address/' +
+            "/address/" +
             this.address_id +
-            '/rotate',
-          formDialog.data
+            "/rotate",
+          formDialog.data,
         )
         .then(() => {
-          formDialog.data = {}
+          formDialog.data = {};
           Quasar.Notify.create({
-            type: 'positive',
+            type: "positive",
             message:
-              'Success! Your pubkey has been updated. Please allow clients time to refresh the data.'
-          })
+              "Success! Your pubkey has been updated. Please allow clients time to refresh the data.",
+          });
         })
-        .catch(LNbits.utils.notifyApiError)
-    }
-  }
-})
+        .catch(LNbits.utils.notifyApiError);
+    },
+  },
+});
