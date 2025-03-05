@@ -119,10 +119,7 @@ async def get_identifier_price_data(
     identifier_ranking = await get_identifier_ranking(identifier)
     rank = identifier_ranking.rank if identifier_ranking else None
 
-    if rank == 0:
-        return None
-
-    return await auction_house.price_for_identifier(identifier, years, rank, promo_code)
+    return None
 
 
 async def request_user_address(

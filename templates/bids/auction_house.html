@@ -14,7 +14,7 @@ window_vars with context %} {% block page %}
         color="primary"
         @click="saveAuctionHouse"
         class="float-right"
-        :disable="auction_houseForm.data.wallet == null || auction_houseForm.data.currency == null"
+        :disable="auctionHouseForm.data.wallet == null || auctionHouseForm.data.currency == null"
         >Update Auction House</q-btn
       >
     </div>
@@ -34,11 +34,11 @@ window_vars with context %} {% block page %}
     <q-card class="q-pa-lg">
       <div class="q-gutter-md">
         <q-select
-          v-if="!auction_houseForm.data.id"
+          v-if="!auctionHouseForm.data.id"
           filled
           dense
           emit-value
-          v-model="auction_houseForm.data.wallet"
+          v-model="auctionHouseForm.data.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
         ></q-select>
@@ -46,37 +46,58 @@ window_vars with context %} {% block page %}
           filled
           dense
           emit-value
-          v-model="auction_houseForm.data.currency"
+          v-model="auctionHouseForm.data.currency"
           :options="currencyOptions"
           label="Currency *"
         ></q-select>
         <q-input
-          v-if="!auction_houseForm.data.id"
           filled
           dense
-          v-model.trim="auction_houseForm.data.auction_house"
-          label="Auction House"
-          placeholder="nostr.com"
+          v-model.trim="auctionHouseForm.data.auction_house"
+          label="Name"
+          placeholder="Name of the auction house"
         ></q-input>
         <q-input
           filled
           dense
-          v-model="auction_houseForm.data.cost"
+          type="textarea"
+          rows="3"
+          v-model.trim="auctionHouseForm.data.description"
+          label="Description"
+          placeholder="Description of the auction house"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="auctionHouseForm.data.days"
           type="number"
           min="0"
-          step="any"
-          label="Price per Year"
-          placeholder="How much do you want to charge per address?"
+          step="1"
+          label="Days"
+          placeholder="Number of days"
+          hint="Number of days the auction house will be active."
         ></q-input>
         <q-input
           filled
           dense
-          v-model="auction_houseForm.data.cost_extra.max_years"
+          v-model="auctionHouseForm.data.house_percentage"
           type="number"
           min="1"
           step="1"
-          label="Max Years"
-          hint="Maximum number of years a user can have an address before renewing."
+          label="House Fee"
+          placeholder="House fee percentage"
+          hint="Percentage that the house gets when the auction is done."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="auctionHouseForm.data.min_bid_up_percentage"
+          type="number"
+          min="1"
+          step="1"
+          label="Min Bid Up"
+          placeholder="Minimum bid up percentage"
+          hint="Minimum percentage that the bid must be increased by."
         ></q-input>
       </div>
     </q-card>
@@ -90,7 +111,7 @@ window_vars with context %} {% block page %}
       <q-tab-panels class="bg-transparent" v-model="auction_houseTab">
         <q-tab-panel name="charCount">
           <div
-            v-for="(item, index) in auction_houseForm.data.cost_extra.char_count_cost"
+            v-for="(item, index) in auctionHouseForm.data.cost_extra.char_count_cost"
             class="row q-mb-sm q-ml-md"
           >
             <div class="col-5">
@@ -143,7 +164,7 @@ window_vars with context %} {% block page %}
         </q-tab-panel>
         <q-tab-panel name="ranking">
           <div
-            v-for="(item, index) in auction_houseForm.data.cost_extra.rank_cost"
+            v-for="(item, index) in auctionHouseForm.data.cost_extra.rank_cost"
             class="row q-mb-sm q-ml-md"
           >
             <div class="col-5">
@@ -195,7 +216,7 @@ window_vars with context %} {% block page %}
         </q-tab-panel>
         <q-tab-panel name="promotions">
           <div
-            v-for="(item, index) in auction_houseForm.data.cost_extra.promotions"
+            v-for="(item, index) in auctionHouseForm.data.cost_extra.promotions"
             class="row q-mb-sm q-ml-md"
           >
             <div class="col-2">

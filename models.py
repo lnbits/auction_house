@@ -7,7 +7,7 @@ from lnbits.db import FilterModel
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from pydantic import BaseModel, Field
 
-from .helpers import format_amount, is_ws_url, normalize_identifier, validate_pub_key
+from .helpers import format_amount, is_ws_url, validate_pub_key
 
 
 class CustomCost(BaseModel):
@@ -233,53 +233,21 @@ class IdentifierRanking(BaseModel):
 
 class PublicAuctionHouse(BaseModel):
     id: str
+    name: str
+    description: str
     currency: str
-    cost: float
-    auction_house: str
+    type: str = "auction"  # [auction, fixed_price]
+    days: int = 7
+    house_percentage: float = 10
+    min_bid_up_percentage: float = 5
 
 
 class AuctionHouse(PublicAuctionHouse):
+    created_at: datetime
     wallet: str
-    cost_extra: AuctionHouseCostConfig
-    time: datetime
 
-    async def price_for_identifier(
-        self,
-        identifier: str,
-        years: int,
-        rank: Optional[int] = None,
-        promo_code: Optional[str] = None,
-    ) -> PriceData:
-        assert (
-            1 <= years <= self.cost_extra.max_years
-        ), f"Number of years must be between '1' and '{self.cost_extra.max_years}'."
-
-        identifier = normalize_identifier(identifier)
-        max_amount, reason = self.cost, ""
-
-        for char_cost in self.cost_extra.char_count_cost:
-            if len(identifier) <= char_cost.bracket and max_amount < char_cost.amount:
-                max_amount = char_cost.amount
-                reason = f"{len(identifier)} characters"
-
-        if rank:
-            for rank_cost in self.cost_extra.rank_cost:
-                if rank <= rank_cost.bracket and max_amount < rank_cost.amount:
-                    max_amount = rank_cost.amount
-                    reason = f"Top {rank_cost.bracket} identifier"
-
-        full_price = max_amount * years
-        discount, referer_bonus = self.cost_extra.apply_promo_code(
-            full_price, promo_code
-        )
-
-        return PriceData(
-            currency=self.currency,
-            price=full_price - discount,
-            discount=discount,
-            referer_bonus=referer_bonus,
-            reason=reason,
-        )
+    cost_extra: AuctionHouseCostConfig  # rename to extra
+    time: datetime  # todo: remove this field
 
     def public_data(self):
         data = dict(PublicAuctionHouse(**dict(self)))
