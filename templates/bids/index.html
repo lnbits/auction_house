@@ -196,23 +196,6 @@
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="saveAuctionHouse" class="q-gutter-md">
-        <q-select
-          v-if="!formDialog.data.id"
-          filled
-          dense
-          emit-value
-          v-model="formDialog.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-        ></q-select>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialog.data.currency"
-          :options="currencyOptions"
-          label="Currency *"
-        ></q-select>
         <q-input
           filled
           dense
@@ -224,12 +207,40 @@
           filled
           dense
           type="textarea"
-          rows="3"
+          rows="2"
           v-model.trim="formDialog.data.description"
           label="Description"
           placeholder="Description of the auction house"
         ></q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          map-options
+          v-model="formDialog.data.type"
+          :options="biddingType"
+          label="Bidding Type"
+        ></q-select>
+        <q-select
+          v-if="formDialog.data.type"
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
+        <q-select
+          v-if="formDialog.data.type"
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.currency"
+          :options="currencyOptions"
+          label="Currency *"
+        ></q-select>
         <q-input
+          v-if="formDialog.data.type === 'auction'"
           filled
           dense
           v-model="formDialog.data.days"
@@ -241,6 +252,7 @@
           hint="Number of days the auction house will be active."
         ></q-input>
         <q-input
+          v-if="formDialog.data.type === 'auction'"
           filled
           dense
           v-model="formDialog.data.house_percentage"
@@ -252,6 +264,7 @@
           hint="Percentage that the house gets when the auction is done."
         ></q-input>
         <q-input
+          v-if="formDialog.data.type === 'auction'"
           filled
           dense
           v-model="formDialog.data.min_bid_up_percentage"
