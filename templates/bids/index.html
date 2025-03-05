@@ -52,10 +52,10 @@
         <q-table
           dense
           flat
-          :rows="domains"
+          :rows="auction_houses"
           row-key="id"
-          :columns="domainsTable.columns"
-          v-model:pagination="domainsTable.pagination"
+          :columns="auction_housesTable.columns"
+          v-model:pagination="auction_housesTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
@@ -167,7 +167,7 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
                   target="_blank"
-                  :href="'rotate/' + props.row.domain_id + '/' + props.row.id"
+                  :href="'rotate/' + props.row.auction_house_id + '/' + props.row.id"
                   class="q-mr-sm"
                 ></q-btn>
                 <q-btn
@@ -177,7 +177,7 @@
                   icon="check"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   :disable="props.row.active == true"
-                  @click="activateAddress(props.row.domain_id, props.row.id)"
+                  @click="activateAddress(props.row.auction_house_id, props.row.id)"
                   class="q-mr-sm"
                 ></q-btn>
                 <q-btn
@@ -205,7 +205,7 @@
               <q-td>
                 <q-tooltip>
                   <span>AuctionHouse ID:</span>
-                  <span v-text="props.row.domain_id"></span
+                  <span v-text="props.row.auction_house_id"></span
                 ></q-tooltip>
                 <span v-text="addressFullName(props.row)"></span>
               </q-td>
@@ -315,8 +315,8 @@
           filled
           dense
           emit-value
-          v-model="addressFormDialog.data.domain_id"
-          :options="domainOptions"
+          v-model="addressFormDialog.data.auction_house_id"
+          :options="auction_houseOptions"
           label="AuctionHouse *"
         ></q-select>
         <q-input
@@ -360,7 +360,7 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="addressFormDialog.data.domain_id == null || addressFormDialog.data.pubkey == null || addressFormDialog.data.local_part == null"
+            :disable="addressFormDialog.data.auction_house_id == null || addressFormDialog.data.pubkey == null || addressFormDialog.data.local_part == null"
             type="submit"
           >
             <span v-if="!addressFormDialog.data.id"> Create Address</span>
@@ -383,7 +383,7 @@
           emit-value
           map-options
           v-model="rankingFormDialog.data.bucket"
-          :options="domainRankingAllOptions"
+          :options="auction_houseRankingAllOptions"
           label="Bucket"
         ></q-select>
         <q-input
@@ -439,7 +439,7 @@
               emit-value
               map-options
               v-model="identifierFormDialog.data.identifier.rank"
-              :options="domainRankingAllOptions"
+              :options="auction_houseRankingAllOptions"
               label="Bucket"
             ></q-select>
           </div>
@@ -489,7 +489,7 @@
               label="Refresh"
             >
               <q-list
-                v-for="bracket in domainRankingBraketOptions"
+                v-for="bracket in auction_houseRankingBraketOptions"
                 :key="bracket"
               >
                 <q-item

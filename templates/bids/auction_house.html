@@ -14,7 +14,7 @@ window_vars with context %} {% block page %}
         color="primary"
         @click="saveAuctionHouse"
         class="float-right"
-        :disable="domainForm.data.wallet == null || domainForm.data.currency == null"
+        :disable="auction_houseForm.data.wallet == null || auction_houseForm.data.currency == null"
         >Update AuctionHouse</q-btn
       >
     </div>
@@ -34,11 +34,11 @@ window_vars with context %} {% block page %}
     <q-card class="q-pa-lg">
       <div class="q-gutter-md">
         <q-select
-          v-if="!domainForm.data.id"
+          v-if="!auction_houseForm.data.id"
           filled
           dense
           emit-value
-          v-model="domainForm.data.wallet"
+          v-model="auction_houseForm.data.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
         ></q-select>
@@ -46,22 +46,22 @@ window_vars with context %} {% block page %}
           filled
           dense
           emit-value
-          v-model="domainForm.data.currency"
+          v-model="auction_houseForm.data.currency"
           :options="currencyOptions"
           label="Currency *"
         ></q-select>
         <q-input
-          v-if="!domainForm.data.id"
+          v-if="!auction_houseForm.data.id"
           filled
           dense
-          v-model.trim="domainForm.data.auction_house"
+          v-model.trim="auction_houseForm.data.auction_house"
           label="AuctionHouse"
           placeholder="nostr.com"
         ></q-input>
         <q-input
           filled
           dense
-          v-model="domainForm.data.cost"
+          v-model="auction_houseForm.data.cost"
           type="number"
           min="0"
           step="any"
@@ -71,7 +71,7 @@ window_vars with context %} {% block page %}
         <q-input
           filled
           dense
-          v-model="domainForm.data.cost_extra.max_years"
+          v-model="auction_houseForm.data.cost_extra.max_years"
           type="number"
           min="1"
           step="1"
@@ -81,16 +81,16 @@ window_vars with context %} {% block page %}
       </div>
     </q-card>
     <q-card class="q-pa-lg q-mt-md">
-      <q-tabs v-model="domainTab" active-color="primary" align="justify">
+      <q-tabs v-model="auction_houseTab" active-color="primary" align="justify">
         <q-tab name="charCount" label="Char Count"></q-tab>
         <q-tab name="ranking" label="Ranking"></q-tab>
         <q-tab name="promotions" label="Promotions"></q-tab>
       </q-tabs>
 
-      <q-tab-panels class="bg-transparent" v-model="domainTab">
+      <q-tab-panels class="bg-transparent" v-model="auction_houseTab">
         <q-tab-panel name="charCount">
           <div
-            v-for="(item, index) in domainForm.data.cost_extra.char_count_cost"
+            v-for="(item, index) in auction_houseForm.data.cost_extra.char_count_cost"
             class="row q-mb-sm q-ml-md"
           >
             <div class="col-5">
@@ -143,7 +143,7 @@ window_vars with context %} {% block page %}
         </q-tab-panel>
         <q-tab-panel name="ranking">
           <div
-            v-for="(item, index) in domainForm.data.cost_extra.rank_cost"
+            v-for="(item, index) in auction_houseForm.data.cost_extra.rank_cost"
             class="row q-mb-sm q-ml-md"
           >
             <div class="col-5">
@@ -152,7 +152,7 @@ window_vars with context %} {% block page %}
                 dense
                 emit-value
                 v-model="item.bracket"
-                :options="domainRankingBraketOptions"
+                :options="auction_houseRankingBraketOptions"
                 label="Up to Rank"
               ></q-select>
             </div>
@@ -195,7 +195,7 @@ window_vars with context %} {% block page %}
         </q-tab-panel>
         <q-tab-panel name="promotions">
           <div
-            v-for="(item, index) in domainForm.data.cost_extra.promotions"
+            v-for="(item, index) in auction_houseForm.data.cost_extra.promotions"
             class="row q-mb-sm q-ml-md"
           >
             <div class="col-2">

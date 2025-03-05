@@ -7,7 +7,7 @@ from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer
 
 from .crud import (
-    get_domain_by_id,
+    get_auction_house_by_id,
 )
 
 bids_generic_router: APIRouter = APIRouter()
@@ -24,11 +24,11 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@bids_generic_router.get("/auction_house/{domain_id}", response_class=HTMLResponse)
-async def domain_details(
-    request: Request, domain_id: str, user: User = Depends(check_user_exists)
+@bids_generic_router.get("/auction_house/{auction_house_id}", response_class=HTMLResponse)
+async def auction_house_details(
+    request: Request, auction_house_id: str, user: User = Depends(check_user_exists)
 ):
-    auction_house = await get_domain_by_id(domain_id)
+    auction_house = await get_auction_house_by_id(auction_house_id)
     if not auction_house:
         raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionHouse does not exist.")
     return bids_renderer().TemplateResponse(

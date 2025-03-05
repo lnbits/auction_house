@@ -4,7 +4,7 @@ window.app = Vue.createApp({
   data: function () {
     return {
       auction_house: auction_house,
-      domain_id: domain_id,
+      auction_house_id: auction_house_id,
       address_id: address_id,
       formDialog: {
         data: {
@@ -22,7 +22,7 @@ window.app = Vue.createApp({
       axios
         .put(
           "/bids/api/v1/auction_house/" +
-            this.domain_id +
+            this.auction_house_id +
             "/address/" +
             this.address_id +
             "/rotate",

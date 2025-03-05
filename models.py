@@ -99,7 +99,7 @@ class UpdateAddressData(BaseModel):
 
 
 class CreateAddressData(BaseModel):
-    domain_id: str
+    auction_house_id: str
     local_part: str
     pubkey: str = ""
     years: int = 1
@@ -312,7 +312,7 @@ class AddressExtra(BaseModel):
 class Address(BaseModel):
     id: str
     owner_id: Optional[str] = None
-    domain_id: str
+    auction_house_id: str
     local_part: str
     active: bool
     time: datetime
@@ -342,7 +342,7 @@ class AddressStatus(BaseModel):
 
 
 class AddressFilters(FilterModel):
-    domain_id: str
+    auction_house_id: str
     local_part: str
     reimburse_amount: str
     pubkey: str

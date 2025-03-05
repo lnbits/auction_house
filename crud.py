@@ -23,90 +23,90 @@ from .models import (
 db = Database("ext_bids")
 
 
-async def get_domain(domain_id: str, wallet_id: str) -> Optional[AuctionHouse]:
+async def get_auction_house(auction_house_id: str, wallet_id: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
-        "SELECT * FROM bids.domains WHERE id = :id AND wallet = :wallet",
-        {"id": domain_id, "wallet": wallet_id},
+        "SELECT * FROM bids.auction_houses WHERE id = :id AND wallet = :wallet",
+        {"id": auction_house_id, "wallet": wallet_id},
         AuctionHouse,
     )
 
 
-async def get_domain_by_id(domain_id: str) -> Optional[AuctionHouse]:
+async def get_auction_house_by_id(auction_house_id: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
-        "SELECT * FROM bids.domains WHERE id = :id",
-        {"id": domain_id},
+        "SELECT * FROM bids.auction_houses WHERE id = :id",
+        {"id": auction_house_id},
         AuctionHouse,
     )
 
 
-async def get_domain_public_data(domain_id: str) -> Optional[PublicAuctionHouse]:
+async def get_auction_house_public_data(auction_house_id: str) -> Optional[PublicAuctionHouse]:
     return await db.fetchone(
-        "SELECT id, currency, cost, auction_house FROM bids.domains WHERE id = :id",
-        {"id": domain_id},
+        "SELECT id, currency, cost, auction_house FROM bids.auction_houses WHERE id = :id",
+        {"id": auction_house_id},
         PublicAuctionHouse,
     )
 
 
-async def get_domain_by_name(auction_house: str) -> Optional[AuctionHouse]:
+async def get_auction_house_by_name(auction_house: str) -> Optional[AuctionHouse]:
     return await db.fetchone(
-        "SELECT * FROM bids.domains WHERE auction_house = :auction_house",
+        "SELECT * FROM bids.auction_houses WHERE auction_house = :auction_house",
         {"auction_house": auction_house.lower()},
         AuctionHouse,
     )
 
 
-async def get_domains(wallet_ids: Union[str, list[str]]) -> list[AuctionHouse]:
+async def get_auction_houses(wallet_ids: Union[str, list[str]]) -> list[AuctionHouse]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
     q = ",".join([f"'{w}'" for w in wallet_ids])
     return await db.fetchall(
-        f"SELECT * FROM bids.domains WHERE wallet IN ({q})",
+        f"SELECT * FROM bids.auction_houses WHERE wallet IN ({q})",
         model=AuctionHouse,
     )
 
 
-async def get_address(domain_id: str, address_id: str) -> Optional[Address]:
+async def get_address(auction_house_id: str, address_id: str) -> Optional[Address]:
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses
-        WHERE domain_id = :domain_id AND id = :address_id
+        WHERE auction_house_id = :auction_house_id AND id = :address_id
         """,
-        {"domain_id": domain_id, "address_id": address_id},
+        {"auction_house_id": auction_house_id, "address_id": address_id},
         Address,
     )
 
 
 async def get_active_address_by_local_part(
-    domain_id: str, local_part: str
+    auction_house_id: str, local_part: str
 ) -> Optional[Address]:
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses
-        WHERE active = true AND domain_id = :domain_id AND local_part = :local_part
+        WHERE active = true AND auction_house_id = :auction_house_id AND local_part = :local_part
         """,
-        {"domain_id": domain_id, "local_part": normalize_identifier(local_part)},
+        {"auction_house_id": auction_house_id, "local_part": normalize_identifier(local_part)},
         Address,
     )
 
 
-async def get_addresses(domain_id: str) -> list[Address]:
+async def get_addresses(auction_house_id: str) -> list[Address]:
     return await db.fetchall(
-        "SELECT * FROM bids.addresses WHERE domain_id = :domain_id",
-        {"domain_id": domain_id},
+        "SELECT * FROM bids.addresses WHERE auction_house_id = :auction_house_id",
+        {"auction_house_id": auction_house_id},
         Address,
     )
 
 
 async def get_address_for_owner(
-    owner_id: str, domain_id: str, local_part: str
+    owner_id: str, auction_house_id: str, local_part: str
 ) -> Optional[Address]:
     return await db.fetchone(
         """
         SELECT * FROM bids.addresses WHERE owner_id = :owner_id
-        AND domain_id = :domain_id AND local_part = :local_part
+        AND auction_house_id = :auction_house_id AND local_part = :local_part
         """,
-        {"owner_id": owner_id, "domain_id": domain_id, "local_part": local_part},
+        {"owner_id": owner_id, "auction_house_id": auction_house_id, "local_part": local_part},
         Address,
     )
 
@@ -130,7 +130,7 @@ async def get_all_addresses(wallet_ids: Union[str, list[str]]) -> list[Address]:
     return await db.fetchall(
         f"""
         SELECT a.* FROM bids.addresses a
-        JOIN bids.domains d ON d.id = a.domain_id
+        JOIN bids.auction_houses d ON d.id = a.auction_house_id
         WHERE d.wallet IN ({q})
         """,
         model=Address,
@@ -147,7 +147,7 @@ async def get_all_addresses_paginated(
     return await db.fetch_page(
         f"""
         SELECT a.* FROM bids.addresses a
-        JOIN bids.domains d ON d.id = a.domain_id
+        JOIN bids.auction_houses d ON d.id = a.auction_house_id
         WHERE d.wallet IN ({q})
         """,
         filters=filters,
@@ -160,42 +160,42 @@ async def update_address(address: Address) -> Address:
     return address
 
 
-async def delete_domain(domain_id: str, wallet_id: str) -> bool:
-    auction_house = await get_domain(domain_id, wallet_id)
+async def delete_auction_house(auction_house_id: str, wallet_id: str) -> bool:
+    auction_house = await get_auction_house(auction_house_id, wallet_id)
     if not auction_house:
         return False
     await db.execute(
         """
-        DELETE FROM bids.addresses WHERE domain_id = :domain_id
+        DELETE FROM bids.addresses WHERE auction_house_id = :auction_house_id
         """,
-        {"domain_id": domain_id},
+        {"auction_house_id": auction_house_id},
     )
 
     await db.execute(
-        "DELETE FROM bids.domains WHERE id = :id",
-        {"id": domain_id},
+        "DELETE FROM bids.auction_houses WHERE id = :id",
+        {"id": auction_house_id},
     )
 
     return True
 
 
-async def delete_address(domain_id, address_id, owner_id):
+async def delete_address(auction_house_id, address_id, owner_id):
     await db.execute(
         """
         DELETE FROM bids.addresses
-        WHERE domain_id = :domain_id AND id = :id AND owner_id = :owner_id
+        WHERE auction_house_id = :auction_house_id AND id = :id AND owner_id = :owner_id
         """,
-        {"domain_id": domain_id, "id": address_id, "owner_id": owner_id},
+        {"auction_house_id": auction_house_id, "id": address_id, "owner_id": owner_id},
     )
 
 
-async def delete_address_by_id(domain_id, address_id):
+async def delete_address_by_id(auction_house_id, address_id):
     await db.execute(
         """
         DELETE FROM bids.addresses
-        WHERE domain_id = :domain_id AND id = :id
+        WHERE auction_house_id = :auction_house_id AND id = :id
         """,
-        {"domain_id": domain_id, "id": address_id},
+        {"auction_house_id": auction_house_id, "id": address_id},
     )
 
 
@@ -207,7 +207,7 @@ async def create_address_internal(
     expires_at = datetime.now(timezone.utc) + timedelta(days=365 * data.years)
     address = Address(
         id=urlsafe_short_hash(),
-        domain_id=data.domain_id,
+        auction_house_id=data.auction_house_id,
         owner_id=owner_id,
         local_part=normalize_identifier(data.local_part),
         pubkey=data.pubkey,
@@ -220,21 +220,21 @@ async def create_address_internal(
     return address
 
 
-async def update_domain(
+async def update_auction_house(
     wallet_id: str, data: EditAuctionHouseData
 ) -> Optional[AuctionHouse]:
-    auction_house = await get_domain(data.id, wallet_id)
+    auction_house = await get_auction_house(data.id, wallet_id)
     if not auction_house:
         return None
     auction_house.currency = data.currency
     auction_house.cost = data.cost
     auction_house.cost_extra = data.cost_extra or auction_house.cost_extra
-    await db.update("bids.domains", auction_house)
+    await db.update("bids.auction_houses", auction_house)
 
     return auction_house
 
 
-async def create_domain_internal(
+async def create_auction_house_internal(
     wallet_id: str, data: CreateAuctionHouseData
 ) -> AuctionHouse:
     auction_house = AuctionHouse(
@@ -246,7 +246,7 @@ async def create_domain_internal(
         cost=data.cost,
         auction_house=data.auction_house.lower(),
     )
-    await db.insert("bids.domains", auction_house)
+    await db.insert("bids.auction_houses", auction_house)
     return auction_house
 
 

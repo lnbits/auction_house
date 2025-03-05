@@ -12,14 +12,14 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      domains: [],
+      auction_houses: [],
       addresses: [],
-      domainRankingBraketOptions: [
+      auction_houseRankingBraketOptions: [
         200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000,
         1000000,
       ],
       currencyOptions: [],
-      domainsTable: {
+      auction_housesTable: {
         columns: [
           { name: "id", align: "left", label: "ID", field: "id" },
           {
@@ -90,7 +90,7 @@ window.app = Vue.createApp({
         show: false,
         data: {},
       },
-      domainTab: null,
+      auction_houseTab: null,
       addressFormDialog: {
         show: false,
         data: {},
@@ -116,7 +116,7 @@ window.app = Vue.createApp({
   methods: {
     resetFormDialog: function () {
       this.formDialog.show = false;
-      this.domainTab = "charCount";
+      this.auction_houseTab = "charCount";
       this.formDialog.data = {
         cost_extra: {
           max_years: 1,
@@ -162,11 +162,11 @@ window.app = Vue.createApp({
       LNbits.api
         .request(
           "GET",
-          "/bids/api/v1/domains?all_wallets=true",
+          "/bids/api/v1/auction_houses?all_wallets=true",
           this.g.user.wallets[0].inkey,
         )
         .then(function (response) {
-          self.domains = response.data.map(function (obj) {
+          self.auction_houses = response.data.map(function (obj) {
             return mapAuctionHouse(obj);
           });
         });
@@ -234,8 +234,8 @@ window.app = Vue.createApp({
           data,
         )
         .then(function (response) {
-          self.domains = self.domains.filter((d) => d.id !== response.data.id);
-          self.domains.push(mapAuctionHouse(response.data));
+          self.auction_houses = self.auction_houses.filter((d) => d.id !== response.data.id);
+          self.auction_houses.push(mapAuctionHouse(response.data));
           self.resetFormDialog();
         })
         .catch(function (error) {
@@ -243,9 +243,9 @@ window.app = Vue.createApp({
         });
     },
 
-    deleteAuctionHouse: function (domain_id) {
+    deleteAuctionHouse: function (auction_house_id) {
       var self = this;
-      var auction_house = _.findWhere(this.domains, { id: domain_id });
+      var auction_house = _.findWhere(this.auction_houses, { id: auction_house_id });
 
       LNbits.utils
         .confirmDialog("Are you sure you want to delete this auction_house?")
@@ -253,12 +253,12 @@ window.app = Vue.createApp({
           LNbits.api
             .request(
               "DELETE",
-              "/bids/api/v1/auction_house/" + domain_id,
+              "/bids/api/v1/auction_house/" + auction_house_id,
               _.findWhere(self.g.user.wallets, { id: auction_house.wallet })
                 .adminkey,
             )
             .then(function (response) {
-              self.domains = self.domains.filter((d) => d.id !== domain_id);
+              self.auction_houses = self.auction_houses.filter((d) => d.id !== auction_house_id);
             })
             .catch(function (error) {
               LNbits.utils.notifyApiError(error);
@@ -272,8 +272,8 @@ window.app = Vue.createApp({
         this.updateAddress();
         return;
       }
-      var auction_house = _.findWhere(this.domains, {
-        id: formDialog.data.domain_id,
+      var auction_house = _.findWhere(this.auction_houses, {
+        id: formDialog.data.auction_house_id,
       });
       var adminkey = _.findWhere(self.g.user.wallets, {
         id: auction_house.wallet,
@@ -283,7 +283,7 @@ window.app = Vue.createApp({
         .request(
           "POST",
           "/bids/api/v1/auction_house/" +
-            formDialog.data.domain_id +
+            formDialog.data.auction_house_id +
             "/address",
           adminkey,
           formDialog.data,
@@ -299,12 +299,12 @@ window.app = Vue.createApp({
     updateAddress: function () {
       var self = this;
       var data = this.addressFormDialog.data;
-      var auction_house = _.findWhere(this.domains, { id: data.domain_id });
+      var auction_house = _.findWhere(this.auction_houses, { id: data.auction_house_id });
       return LNbits.api
         .request(
           "PUT",
           "/bids/api/v1/auction_house/" +
-            data.domain_id +
+            data.auction_house_id +
             "/address/" +
             data.id,
           _.findWhere(self.g.user.wallets, { id: auction_house.wallet })
@@ -325,7 +325,7 @@ window.app = Vue.createApp({
     deleteAddress: function (address_id) {
       var self = this;
       var address = _.findWhere(this.addresses, { id: address_id });
-      var auction_house = _.findWhere(this.domains, { id: address.domain_id });
+      var auction_house = _.findWhere(this.auction_houses, { id: address.auction_house_id });
 
       LNbits.utils
         .confirmDialog("Are you sure you want to delete this address?")
@@ -347,10 +347,10 @@ window.app = Vue.createApp({
             });
         });
     },
-    activateAddress: function (domain_id, address_id) {
+    activateAddress: function (auction_house_id, address_id) {
       var self = this;
       var address = _.findWhere(this.addresses, { id: address_id });
-      var auction_house = _.findWhere(this.domains, { id: address.domain_id });
+      var auction_house = _.findWhere(this.auction_houses, { id: address.auction_house_id });
       LNbits.utils
         .confirmDialog(
           "Are you sure you want to manually activate this address?",
@@ -360,7 +360,7 @@ window.app = Vue.createApp({
             .request(
               "PUT",
               "/bids/api/v1/auction_house/" +
-                domain_id +
+                auction_house_id +
                 "/address/" +
                 address_id +
                 "/activate",
@@ -397,7 +397,7 @@ window.app = Vue.createApp({
       return LNbits.api
         .request(
           "GET",
-          `/bids/api/v1/auction_house/${address.domain_id}` +
+          `/bids/api/v1/auction_house/${address.auction_house_id}` +
             `/address/${address.id}/reimburse`,
           self.g.user.wallets[0].adminkey,
         )
@@ -524,19 +524,19 @@ window.app = Vue.createApp({
         });
     },
 
-    domainNameFromId: function (domainId) {
-      const auction_house = this.domains.find((d) => d.id === domainId) || {};
+    auction_houseNameFromId: function (auction_houseId) {
+      const auction_house = this.auction_houses.find((d) => d.id === auction_houseId) || {};
       return auction_house.auction_house || "";
     },
     addressFullName: function (address) {
       if (!address) {
         return "";
       }
-      const auction_house = this.domainNameFromId(address.domain_id);
+      const auction_house = this.auction_houseNameFromId(address.auction_house_id);
       return `${address.local_part}@${auction_house}`;
     },
     exportCSV: function () {
-      LNbits.utils.exportCSV(this.domainsTable.columns, this.domains);
+      LNbits.utils.exportCSV(this.auction_housesTable.columns, this.auction_houses);
     },
     exportAddressesCSV: function () {
       LNbits.utils.exportCSV(this.addressesTable.columns, this.addresses);
@@ -557,16 +557,16 @@ window.app = Vue.createApp({
       .catch(LNbits.utils.notifyApiError);
   },
   computed: {
-    domainOptions: function () {
-      return this.domains.map((el) => {
+    auction_houseOptions: function () {
+      return this.auction_houses.map((el) => {
         return {
           label: el.auction_house,
           value: el.id,
         };
       });
     },
-    domainRankingAllOptions: function () {
-      const rankings = this.domainRankingBraketOptions.map((r) => ({
+    auction_houseRankingAllOptions: function () {
+      const rankings = this.auction_houseRankingBraketOptions.map((r) => ({
         value: r,
         label: `Top ${r} identifiers`,
       }));

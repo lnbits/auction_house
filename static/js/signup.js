@@ -5,7 +5,7 @@ window.app = Vue.createApp({
     return {
       base_url: base_url,
       auction_house: auction_house,
-      domain_id: domain_id,
+      auction_house_id: auction_house_id,
       wallet: wallet,
       currency: currency,
       maxYears: maxYears,
@@ -49,13 +49,13 @@ window.app = Vue.createApp({
       var self = this;
       var qrCodeDialog = this.qrCodeDialog;
       var formDialog = this.formDialog;
-      formDialog.data.domain_id = this.domain_id;
+      formDialog.data.auction_house_id = this.auction_house_id;
       formDialog.data.create_invoice = true;
       var localPart = formDialog.data.local_part;
 
       axios
         .post(
-          "/bids/api/v1/public/auction_house/" + this.domain_id + "/address",
+          "/bids/api/v1/public/auction_house/" + this.auction_house_id + "/address",
           formDialog.data,
         )
         .then(function (response) {
@@ -71,7 +71,7 @@ window.app = Vue.createApp({
             axios
               .get(
                 "/bids/api/v1/auction_house/" +
-                  self.domain_id +
+                  self.auction_house_id +
                   "/payments/" +
                   response.data.payment_hash,
               )
