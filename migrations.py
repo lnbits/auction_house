@@ -31,9 +31,10 @@ async def m001_initial_invoices(db: Database):
             user_id TEXT NOT NULL,
             auction_room_id TEXT NOT NULL,
             active BOOLEAN NOT NULL DEFAULT true,
+            transfer_code TEXT NOT NULL,
 
             name TEXT NOT NULL,
-            description TEXT NOT NULL,
+            description TEXT,
 
             starting_price REAL NOT NULL,
             current_price REAL NOT NULL,

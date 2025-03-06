@@ -62,6 +62,7 @@ class CreateAuctionItem(BaseModel):
     name: str
     description: Optional[str] = None
     starting_price: float = 0
+    transfer_code: str
 
 
 class PublicAuctionItem(BaseModel):
@@ -80,6 +81,8 @@ class PublicAuctionItem(BaseModel):
 
 class AuctionItem(PublicAuctionItem):
     user_id: str
+    # code required to check that the user is the owner of the item
+    transfer_code: str
     extra: AuctionExtra = AuctionExtra()
 
 

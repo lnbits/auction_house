@@ -115,6 +115,13 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           hit="Starting price for bidding for this item"
         >
         </q-input>
+        <q-input
+        filled
+        dense
+        v-model.trim="itemFormDialog.data.transfer_code"
+        label="Transfer Code"
+        hint="Code required to prove the ownership of the item"
+      ></q-input>
 
         <div class="row q-mt-lg">
           <q-btn unelevated color="primary" type="submit">

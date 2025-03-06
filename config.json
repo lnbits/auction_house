@@ -1,19 +1,11 @@
 {
   "name": "Auction House",
-  "short_description": "Verify addresses for Auction House",
+  "short_description": "Auction digital goods and services for Bitcoin.",
+  "description": "Auction digital goods and services for Bitcoin. Create auctions, set a reserve price, and let the market decide the price.",
+  "version": "1.0.0",
   "tile": "/auction_house/static/image/auction_house.png",
   "min_lnbits_version": "1.0.0",
   "contributors": [
-    {
-      "name": "leesalminen",
-      "uri": "https://github.com/leesalminen",
-      "role": "Contributor"
-    },
-    {
-      "name": "dni",
-      "uri": "https://github.com/dni",
-      "role": "Contributor"
-    },
     {
       "name": "Vlad STAN",
       "uri": "https://github.com/motorina0",
