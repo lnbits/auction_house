@@ -1,12 +1,3 @@
-const mapAuctionRoom = function (obj) {
-  obj.time = Quasar.date.formatDate(
-    new Date(obj.time * 1000),
-    "YYYY-MM-DD HH:mm",
-  );
-
-  return obj;
-};
-
 window.app = Vue.createApp({
   el: "#vue",
   mixins: [window.windowMixin],
@@ -69,18 +60,6 @@ window.app = Vue.createApp({
       },
       auctionRoomTab: null,
 
-      rankingFormDialog: {
-        show: false,
-        data: {},
-      },
-      identifierFormDialog: {
-        show: false,
-        data: {},
-      },
-      settingsFormDialog: {
-        show: false,
-        data: {},
-      },
       qrCodeDialog: {
         show: false,
         data: {},
@@ -156,18 +135,14 @@ window.app = Vue.createApp({
         });
     },
     exportCSV: function () {
-      LNbits.utils.exportCSV(
-        this.auctionRoomsTable.columns,
-        this.auctionRooms,
-      );
+      LNbits.utils.exportCSV(this.auctionRoomsTable.columns, this.auctionRooms);
     },
-
   },
   created() {
     this.resetFormDialog();
-   
+
     this.getAuctionRooms();
-    
+
     LNbits.api
       .request("GET", "/api/v1/currencies")
       .then((response) => {
