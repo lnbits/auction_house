@@ -27,10 +27,10 @@
         <q-table
           dense
           flat
-          :rows="auction_rooms"
+          :rows="auctionRooms"
           row-key="id"
-          :columns="auction_roomsTable.columns"
-          v-model:pagination="auction_roomsTable.pagination"
+          :columns="auctionRoomsTable.columns"
+          v-model:pagination="auctionRoomsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">

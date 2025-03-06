@@ -12,7 +12,7 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      auction_rooms: [],
+      auctionRooms: [],
       addresses: [],
       biddingType: [
         { value: "auction", label: "Auction" },
@@ -20,7 +20,7 @@ window.app = Vue.createApp({
       ],
 
       currencyOptions: [],
-      auction_roomsTable: {
+      auctionRoomsTable: {
         columns: [
           {
             name: "created_at",
@@ -107,7 +107,7 @@ window.app = Vue.createApp({
           "/auction_house/api/v1/auction_rooms",
         );
 
-        this.auction_rooms = data;
+        this.auctionRooms = data;
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }
@@ -122,7 +122,7 @@ window.app = Vue.createApp({
           this.formDialog.data,
         );
 
-        this.auction_rooms.push(data);
+        this.auctionRooms.push(data);
         this.resetFormDialog();
       } catch (error) {
         LNbits.utils.notifyApiError(error);
@@ -131,7 +131,7 @@ window.app = Vue.createApp({
 
     deleteAuctionRoom: function (auction_room_id) {
       var self = this;
-      var auction_room = _.findWhere(this.auction_rooms, {
+      var auction_room = _.findWhere(this.auctionRooms, {
         id: auction_room_id,
       });
 
@@ -146,7 +146,7 @@ window.app = Vue.createApp({
                 .adminkey,
             )
             .then(function (response) {
-              self.auction_rooms = self.auction_rooms.filter(
+              self.auctionRooms = self.auctionRooms.filter(
                 (d) => d.id !== auction_room_id,
               );
             })
@@ -157,13 +157,11 @@ window.app = Vue.createApp({
     },
     exportCSV: function () {
       LNbits.utils.exportCSV(
-        this.auction_roomsTable.columns,
-        this.auction_rooms,
+        this.auctionRoomsTable.columns,
+        this.auctionRooms,
       );
     },
-    exportAddressesCSV: function () {
-      LNbits.utils.exportCSV(this.addressesTable.columns, this.addresses);
-    },
+
   },
   created() {
     this.resetFormDialog();
@@ -179,7 +177,7 @@ window.app = Vue.createApp({
   },
   computed: {
     auctionRoomOptions: function () {
-      return this.auction_rooms.map((el) => {
+      return this.auctionRooms.map((el) => {
         return {
           label: el.auction_room,
           value: el.id,
