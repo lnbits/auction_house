@@ -4,7 +4,6 @@ window.app = Vue.createApp({
   data: function () {
     return {
       auctionRooms: [],
-      addresses: [],
       biddingType: [
         { value: "auction", label: "Auction" },
         { value: "fixed_price", label: "Fixed Price" },

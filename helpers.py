@@ -1,9 +1,6 @@
-from hashlib import sha256
 from http import HTTPStatus
-from typing import Annotated, Optional
-from urllib.parse import urlparse
+from typing import Annotated
 
-from bech32 import bech32_decode, convertbits
 from fastapi import Depends, HTTPException
 from lnbits.decorators import optional_user_id
 
@@ -12,41 +9,3 @@ async def check_user_id(user_id: Annotated[str, Depends(optional_user_id)]) -> s
     if not user_id:
         raise HTTPException(HTTPStatus.UNAUTHORIZED)
     return user_id
-
-
-def normalize_identifier(identifier: str):
-    identifier = identifier.lower().split("@")[0]
-
-    return identifier
-
-
-def validate_pub_key(pubkey: str) -> str:
-    if pubkey.startswith("npub"):
-        _, data = bech32_decode(pubkey)
-        if data:
-            decoded_data = convertbits(data, 5, 8, False)
-            if decoded_data:
-                pubkey = bytes(decoded_data).hex()
-    try:
-        _hex = bytes.fromhex(pubkey)
-    except Exception as exc:
-        raise ValueError("Pubkey must be in npub or hex format.") from exc
-
-    if len(_hex) != 32:
-        raise ValueError("Pubkey length incorrect.")
-
-    return pubkey
-
-
-def is_ws_url(url):
-    try:
-        result = urlparse(url)
-        if not all([result.scheme, result.netloc]):
-            return False
-        return result.scheme in ["ws", "wss"]
-    except ValueError:
-        return False
-
-
-def owner_id_from_user_id(user_id: Optional[str] = None) -> str:
-    return sha256((user_id or "").encode("utf-8")).hexdigest()

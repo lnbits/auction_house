@@ -1,7 +1,7 @@
 {
   "name": "auction_house",
   "version": "1.0.0",
-  "description": "Verify addresses for Auction House",
+  "description": "Auction digital goods for sats",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

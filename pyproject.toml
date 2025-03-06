@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "auction_house"
 version = "0.0.0"
-description = "Verify addresses for Auction House"
-authors = ["leesalminen", "dni <dni@lnbits.com>"]
+description = "Auction digital goods for sats."
+authors = ["motorina0"]
 
 [tool.poetry.dependencies]
 python = "^3.10 | ^3.9"

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, Union
+from typing import Optional
 
 from lnbits.db import Database, Filters, Page
 from lnbits.helpers import urlsafe_short_hash
@@ -60,17 +60,6 @@ async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
     return PublicAuctionItem(**data.dict())
 
 
-async def get_address(auction_room_id: str, address_id: str) -> Optional[AuctionItem]:
-    return await db.fetchone(
-        """
-        SELECT * FROM auction_house.addresses
-        WHERE auction_room_id = :auction_room_id AND id = :address_id
-        """,
-        {"auction_room_id": auction_room_id, "address_id": address_id},
-        AuctionItem,
-    )
-
-
 async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
     return await db.fetchall(
         """
@@ -93,21 +82,6 @@ async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
     )
 
 
-async def get_all_addresses(wallet_ids: Union[str, list[str]]) -> list[AuctionItem]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
-
-    q = ",".join([f"'{w}'" for w in wallet_ids])
-    return await db.fetchall(
-        f"""
-        SELECT a.* FROM auction_house.addresses a
-        JOIN auction_house.auction_rooms d ON d.id = a.auction_room_id
-        WHERE d.wallet IN ({q})
-        """,
-        model=AuctionItem,
-    )
-
-
 async def get_auction_items_paginated(
     auction_room_id: str,
     filters: Optional[Filters[AuctionItemFilters]] = None,
@@ -123,11 +97,6 @@ async def get_auction_items_paginated(
     )
 
 
-async def update_address(address: AuctionItem) -> AuctionItem:
-    await db.update("auction_house.addresses", address)
-    return address
-
-
 async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
     auction_room = await get_auction_room(
         user_id=user_id, auction_room_id=auction_room_id
@@ -136,7 +105,7 @@ async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
         return False
     await db.execute(
         """
-        DELETE FROM auction_house.addresses WHERE auction_room_id = :auction_room_id
+        DELETE FROM auction_house.auction_items WHERE auction_room_id = :auction_room_id
         """,
         {"auction_room_id": auction_room_id},
     )
@@ -149,29 +118,7 @@ async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
     return True
 
 
-async def delete_address(auction_room_id, address_id, owner_id):
-    await db.execute(
-        """
-        DELETE FROM auction_house.addresses
-        WHERE auction_room_id = :auction_room_id AND id = :id AND owner_id = :owner_id
-        """,
-        {"auction_room_id": auction_room_id, "id": address_id, "owner_id": owner_id},
-    )
-
-
-async def delete_address_by_id(auction_room_id, address_id):
-    await db.execute(
-        """
-        DELETE FROM auction_house.addresses
-        WHERE auction_room_id = :auction_room_id AND id = :id
-        """,
-        {"auction_room_id": auction_room_id, "id": address_id},
-    )
-
-
-async def create_auction_room_internal(
-    user_id: str, data: CreateAuctionRoomData
-) -> AuctionRoom:
+async def create_auction_room(user_id: str, data: CreateAuctionRoomData) -> AuctionRoom:
     auction_room = AuctionRoom(
         id=urlsafe_short_hash(),
         user_id=user_id,

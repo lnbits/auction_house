@@ -1,22 +1,17 @@
 from http import HTTPStatus
-from typing import Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
-from lnbits.core.models import SimpleStatus, User, WalletTypeInfo
+from lnbits.core.models import SimpleStatus, User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
-    optional_user_id,
     parse_filters,
-    require_admin_key,
-    require_invoice_key,
 )
 from lnbits.helpers import generate_filter_params_openapi
 
 from .crud import (
-    create_auction_room_internal,
-    delete_address,
+    create_auction_room,
     delete_auction_room,
     get_auction_items_for_user,
     get_auction_room,
@@ -25,7 +20,6 @@ from .crud import (
 )
 from .helpers import (
     check_user_id,
-    owner_id_from_user_id,
 )
 from .models import (
     AuctionItemFilters,
@@ -69,7 +63,7 @@ async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
     data.validate_data()
-    return await create_auction_room_internal(user_id=user.id, data=data)
+    return await create_auction_room(user_id=user.id, data=data)
 
 
 @auction_house_api_router.put("/api/v1/auction_room")
@@ -135,44 +129,3 @@ async def api_get_user_auction_items(
     user_id: str = Depends(check_user_id),
 ) -> list[PublicAuctionItem]:
     return await get_auction_items_for_user(user_id=user_id)
-
-
-@auction_house_api_router.delete(
-    "/api/v1/auction_room/{auction_room_id}/address/{address_id}"
-)
-async def api_delete_address(
-    auction_room_id: str,
-    address_id: str,
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
-):
-
-    # make sure the address belongs to the user
-    pass
-
-
-@auction_house_api_router.put(
-    "/api/v1/auction_room/{auction_room_id}/address/{address_id}/activate"
-)
-async def api_activate_address(
-    auction_room_id: str,
-    address_id: str,
-    key_info: WalletTypeInfo = Depends(require_admin_key),
-):
-    # make sure the address belongs to the user
-    pass
-
-
-@auction_house_api_router.delete(
-    "/api/v1/user/auction_room/{auction_room_id}/address/{address_id}"
-)
-async def api_delete_user_address(
-    auction_room_id: str,
-    address_id: str,
-    user_id: Optional[str] = Depends(optional_user_id),
-):
-
-    if not user_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED)
-
-    owner_id = owner_id_from_user_id(user_id)  # todo: allow for admins
-    return await delete_address(auction_room_id, address_id, owner_id)
