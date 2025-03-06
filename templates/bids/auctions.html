@@ -16,6 +16,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           <div class="col-6">
             <q-btn
               v-if="auctionHouseForm.isUserAuthenticated"
+              @click="showAddNewAuctionItemDialog"
               unelevated
               color="primary"
               class="float-right"
@@ -28,11 +29,11 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <q-table
               dense
               flat
-              :rows="addresses"
+              :rows="auctionItems"
               row-key="id"
-              :columns="addressesTable.columns"
-              v-model:pagination="addressesTable.pagination"
-              @request="getAddresses"
+              :columns="itemsTable.columns"
+              v-model:pagination="itemsTable.pagination"
+              @request="getAuctionItemsPaginated"
             >
               {% raw %}
               <template v-slot:header="props">
@@ -51,52 +52,26 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 
               <template v-slot:body="props">
                 <q-tr :props="props">
-                  <q-td>
+                  <q-td auto-width>
                     <q-btn
                       unelevated
                       dense
-                      size="xs"
-                      icon="check"
-                      :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                      :disable="props.row.active == true"
+                      size="md"
+                      label="Bid"
+                      color="secondary"
+                      type="a"
+                      :href="'auctions/' + props.row.id"
+                      target="_blank"
                       class="q-mr-sm"
                     ></q-btn>
-                    <!-- @click="activateAddress(props.row.auction_house_id, props.row.id)" -->
-                    <q-btn
-                      unelevated
-                      dense
-                      size="xs"
-                      icon="edit"
-                      :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                      class="q-mr-sm"
-                    ></q-btn>
-                    <!-- @click="editAddress(props.row)" -->
-                    <q-btn
-                      unelevated
-                      dense
-                      size="xs"
-                      icon="delete"
-                      :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                    ></q-btn>
-                    <!-- @click="deleteAddress(props.row.id)" -->
                   </q-td>
-
-                  <q-td v-text="props.row.id"></q-td>
-                  <q-td v-text="props.row.active"></q-td>
-
-                  <q-td>
-                    <q-tooltip>
-                      <span>Auction House ID:</span>
-                      <span v-text="props.row.auction_house_id"></span
-                    ></q-tooltip>
-                  </q-td>
-                  <q-td v-text="props.row.pubkey"></q-td>
                   <q-td
-                    v-text="props.row.reimburse_amount"
-                    class="cursor-pointer"
+                    v-for="col in props.cols"
+                    :key="col.name"
+                    :props="props"
                   >
+                    {{ col.value }}
                   </q-td>
-                  <q-td v-text="props.row.time"></q-td>
                 </q-tr>
               </template>
               {% endraw %}
@@ -110,6 +85,49 @@ from "macros.jinja" import window_vars with context %} {% block page %}
   <div class="col-md-2 col-sm-none">
     <!-- empty space -->
   </div>
+
+  <q-dialog v-model="itemFormDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="addAuctionItem" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="itemFormDialog.data.name"
+          label="Name"
+          placeholder="Auction Item Name (must be unique)"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="itemFormDialog.data.description"
+          label="Description"
+          type="textarea"
+          rows="2"
+          placeholder="Detailed description of the item"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="itemFormDialog.data.starting_price"
+          min="0"
+          type="number"
+          label="Starting Price"
+          hit="Starting price for bidding for this item"
+        >
+        </q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn unelevated color="primary" type="submit">
+            <!-- :disable="itemFormDialog.data.auction_house_id == null || itemFormDialog.data.pubkey == null || itemFormDialog.data.local_part == null" -->
+            <span> Add Auction Item</span></q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
 </div>
 
 {% endblock %} {% block scripts %}

@@ -3,8 +3,16 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      addresses: [],
-      addressesTable: {
+      auctionItems: [],
+      itemFormDialog: {
+        show: false,
+        data: {
+          name: "",
+          description: "",
+          starting_price: 0,
+        },
+      },
+      itemsTable: {
         columns: [
           {
             name: "name",
@@ -19,6 +27,7 @@ window.app = Vue.createApp({
             label: "Description",
             field: "description",
             sortable: false,
+            format: (val) => (val || "").substring(0, 50),
           },
           {
             name: "starting_price",
@@ -26,6 +35,8 @@ window.app = Vue.createApp({
             label: "Sarting Price",
             field: "starting_price",
             sortable: true,
+            format: (_, row) =>
+              LNbits.utils.formatCurrency(row.starting_price, row.currency),
           },
           {
             name: "current_price",
@@ -33,12 +44,15 @@ window.app = Vue.createApp({
             label: "Current Price",
             field: "current_price",
             sortable: true,
+            format: (_, row) =>
+              LNbits.utils.formatCurrency(row.current_price, row.currency),
           },
           {
             name: "created_at",
             align: "left",
             label: "Created At",
             field: "created_at",
+            format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,
           },
           {
@@ -46,10 +60,9 @@ window.app = Vue.createApp({
             align: "left",
             label: "Expires At",
             field: "expires_at",
+            format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,
           },
-
-          { name: "id", align: "left", label: "ID", field: "id" },
         ],
         pagination: {
           rowsPerPage: 10,
@@ -68,37 +81,68 @@ window.app = Vue.createApp({
     };
   },
   methods: {
-    getAddresses: function (props) {
-      var self = this;
-      if (props) {
-        self.addressesTable.pagination = props.pagination;
-      }
-      let pagination = self.addressesTable.pagination;
-      const query = {
-        all_wallets: true,
-        limit: pagination.rowsPerPage,
-        offset: (pagination.page - 1) * pagination.rowsPerPage ?? 0,
-        sortby: pagination.sortBy || "time",
-        direction: pagination.descending ? "desc" : "asc",
-      };
-      const params = new URLSearchParams(query);
-
-      LNbits.api
-        .request(
+    getAuctionItemsPaginated: async function (props) {
+      try {
+        const params = LNbits.utils.prepareFilterQuery(this.itemsTable, props);
+        const auctionHouseId = this.auctionHouseForm.data.id;
+        const { data, total } = await LNbits.api.request(
           "GET",
-          `/bids/api/v1/addresses/paginated?${params}`,
-          this.g.user.wallets[0].inkey,
-        )
-        .then(function (response) {
-          const { data, total } = response.data;
-          self.addressesTable.pagination.rowsNumber = total;
-          self.addresses = data.map(function (obj) {
-            return mapAuctionHouse(obj);
-          });
+          `/bids/api/v1/${auctionHouseId}/items/paginated?${params}`,
+        );
+
+        console.log("### data", data);
+        this.auctionItems = data.data;
+      } catch (error) {
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to fetch auction items!",
         });
+        LNbits.utils.notifyApiError(error);
+      }
+    },
+
+    addAuctionItem: async function () {
+      const auctionHouseId = this.auctionHouseForm.data.id;
+      try {
+        await LNbits.api.request(
+          "POST",
+          `/bids/api/v1/${auctionHouseId}/items`,
+          null,
+          this.itemFormDialog.data,
+        );
+        this.itemFormDialog.show = false;
+        this.$q.notify({
+          type: "positive",
+          message: "Auction Item added!",
+        });
+        this.getAuctionItemsPaginated();
+      } catch (error) {
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to add!",
+        });
+        LNbits.utils.notifyApiError(error);
+      }
+    },
+    showAddNewAuctionItemDialog: function () {
+      this.itemFormDialog.show = true;
+      this.itemFormDialog.data = {
+        name: "",
+        description: "",
+        starting_price: 0,
+      };
+    },
+    formatCurrency(amount, currency) {
+      try {
+        return LNbits.utils.formatCurrency(amount, currency);
+      } catch (e) {
+        console.error(e);
+        return `${amount} ???`;
+      }
     },
   },
   created() {
     console.log("### created", this.auctionHouseForm);
+    this.getAuctionItemsPaginated();
   },
 });

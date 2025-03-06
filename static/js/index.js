@@ -441,7 +441,7 @@ window.app = Vue.createApp({
     LNbits.api
       .request("GET", "/api/v1/currencies")
       .then((response) => {
-        this.currencyOptions = ["sats", ...response.data];
+        this.currencyOptions = ["sat", ...response.data];
       })
       .catch(LNbits.utils.notifyApiError);
   },

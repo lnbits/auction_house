@@ -1,68 +1,52 @@
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from lnbits.core.crud import get_user
 from lnbits.db import Filters, Page
+from lnbits.helpers import urlsafe_short_hash
 
 from .crud import (
-    get_all_addresses,
-    get_all_addresses_paginated,
+    create_auction_item,
     get_auction_houses,
-)
-from .helpers import (
-    normalize_identifier,
-    validate_pub_key,
+    get_auction_items_paginated,
 )
 from .models import (
-    AddressFilters,
     AuctionHouse,
     AuctionItem,
-    CreateAddressData,
+    AuctionItemFilters,
+    CreateAuctionItem,
+    PublicAuctionItem,
 )
 
 
 async def get_user_auction_houses(user_id: str) -> list[AuctionHouse]:
-
     return await get_auction_houses(user_id)
 
 
-async def get_user_addresses(
-    user_id: str, wallet_id: str, all_wallets: Optional[bool] = False
-) -> list[AuctionItem]:
-    wallet_ids = [wallet_id]
-    if all_wallets:
-        user = await get_user(user_id)  # type: ignore
-        if not user:
-            return []
-        wallet_ids = user.wallet_ids
-
-    return await get_all_addresses(wallet_ids)
-
-
-async def get_user_addresses_paginated(
-    user_id: str,
-    wallet_id: str,
-    all_wallets: Optional[bool] = False,
-    filters: Optional[Filters[AddressFilters]] = None,
-) -> Page[AuctionItem]:
-    wallet_ids = [wallet_id]
-    if all_wallets:
-        user = await get_user(user_id)  # type: ignore
-        if not user:
-            return Page(data=[], total=0)
-        wallet_ids = user.wallet_ids
-
-    return await get_all_addresses_paginated(wallet_ids, filters)
+async def add_auction_item(
+    auction_house: AuctionHouse, user_id: str, data: CreateAuctionItem
+) -> PublicAuctionItem:
+    assert data.starting_price > 0, "Starting price must be positive."
+    expires_at = datetime.now(timezone.utc) + timedelta(days=auction_house.days)
+    item = AuctionItem(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
+        auction_house_id=auction_house.id,
+        created_at=datetime.now(timezone.utc),
+        expires_at=expires_at,
+        **data.dict(),
+    )
+    return await create_auction_item(item)
 
 
-async def create_address(
+async def get_auction_house_items_paginated(
     auction_house: AuctionHouse,
-    data: CreateAddressData,
-    wallet_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    promo_code: Optional[str] = None,
-):
+    filters: Optional[Filters[AuctionItemFilters]] = None,
+) -> Page[PublicAuctionItem]:
 
-    identifier = normalize_identifier(data.local_part)
-    data.local_part = identifier
-    if data.pubkey != "":
-        data.pubkey = validate_pub_key(data.pubkey)
+    page = await get_auction_items_paginated(
+        auction_house_id=auction_house.id, filters=filters
+    )
+    for item in page.data:
+        item.currency = auction_house.currency
+
+    return page

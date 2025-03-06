@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from lnbits.core.models import SimpleStatus, User, WalletTypeInfo
 from lnbits.db import Filters, Page
@@ -18,35 +18,35 @@ from .crud import (
     create_auction_house_internal,
     delete_address,
     delete_auction_house,
-    get_address,
     get_auction_house,
-    update_address,
+    get_auction_house_by_id,
+    get_auction_items_for_user,
     update_auction_house,
 )
 from .helpers import (
+    check_user_id,
     owner_id_from_user_id,
 )
 from .models import (
-    AddressFilters,
     AuctionHouse,
-    AuctionItem,
-    CreateAddressData,
+    AuctionItemFilters,
     CreateAuctionHouseData,
+    CreateAuctionItem,
     EditAuctionHouseData,
-    UpdateAddressData,
+    PublicAuctionItem,
 )
 from .services import (
-    get_user_addresses,
-    get_user_addresses_paginated,
+    add_auction_item,
+    get_auction_house_items_paginated,
     get_user_auction_houses,
 )
 
 bids_api_router: APIRouter = APIRouter()
-address_filters = parse_filters(AddressFilters)
+auction_items_filters = parse_filters(AuctionItemFilters)
 
 
 @bids_api_router.get("/api/v1/auction_houses")
-async def api_auction_houses(
+async def api_get_auction_houses(
     user: User = Depends(check_user_exists),
 ) -> list[AuctionHouse]:
     return await get_user_auction_houses(user.id)
@@ -92,33 +92,49 @@ async def api_auction_house_delete(
     return SimpleStatus(success=deleted, message="Deleted")
 
 
-@bids_api_router.get("/api/v1/addresses")
-async def api_get_addresses(
-    all_wallets: bool = Query(None),
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
-) -> list[AuctionItem]:
-    return await get_user_addresses(
-        key_info.wallet.user, key_info.wallet.id, all_wallets
-    )
+############################# AUCTION ITEMS #############################
+
+
+@bids_api_router.post(
+    "/api/v1/{auction_house_id}/items", status_code=HTTPStatus.CREATED
+)
+async def api_create_auction_item(
+    auction_house_id: str,
+    data: CreateAuctionItem,
+    user_id: str = Depends(check_user_id),
+) -> PublicAuctionItem:
+    auction_house = await get_auction_house_by_id(auction_house_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction House not found.")
+
+    return await add_auction_item(auction_house, user_id, data)
 
 
 @bids_api_router.get(
-    "/api/v1/addresses/paginated",
-    name="Addresses List",
-    summary="get paginated list of addresses",
-    response_description="list of addresses",
-    openapi_extra=generate_filter_params_openapi(AddressFilters),
-    response_model=Page[AuctionItem],
+    "/api/v1/{auction_house_id}/items/paginated",
+    name="Auction Items List",
+    summary="get paginated list of auction items",
+    response_description="list of auction items",
+    openapi_extra=generate_filter_params_openapi(AuctionItemFilters),
+    response_model=Page[PublicAuctionItem],
 )
-async def api_get_addresses_paginated(
-    all_wallets: bool = Query(None),
-    filters: Filters = Depends(address_filters),
-    key_info: WalletTypeInfo = Depends(require_invoice_key),
-) -> Page[AuctionItem]:
-    page = await get_user_addresses_paginated(
-        key_info.wallet.user, key_info.wallet.id, all_wallets, filters
-    )
+async def api_get_auction_items_paginated(
+    auction_house_id: str,
+    filters: Filters = Depends(auction_items_filters),
+) -> Page[PublicAuctionItem]:
+    auction_house = await get_auction_house_by_id(auction_house_id)
+    if not auction_house:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction House not found.")
+
+    page = await get_auction_house_items_paginated(auction_house, filters)
     return page
+
+
+@bids_api_router.get("/api/v1/items")
+async def api_get_user_auction_items(
+    user_id: str = Depends(check_user_id),
+) -> list[PublicAuctionItem]:
+    return await get_auction_items_for_user(user_id=user_id)
 
 
 @bids_api_router.delete("/api/v1/auction_house/{auction_house_id}/address/{address_id}")
@@ -144,43 +160,6 @@ async def api_activate_address(
     pass
 
 
-@bids_api_router.put("/api/v1/auction_house/{auction_house_id}/address/{address_id}")
-async def api_update_address(
-    auction_house_id: str,
-    address_id: str,
-    data: UpdateAddressData,
-    w: WalletTypeInfo = Depends(require_admin_key),
-):
-
-    data.validate_relays_urls()
-
-
-@bids_api_router.post(
-    "/api/v1/auction_house/{auction_house_id}/address", status_code=HTTPStatus.CREATED
-)
-async def api_request_address(
-    address_data: CreateAddressData,
-    auction_house_id: str,
-    key_info: WalletTypeInfo = Depends(require_admin_key),
-):
-    address_data.normalize()
-
-
-@bids_api_router.get("/api/v1/user/addresses")
-async def api_get_user_addresses(
-    user_id: Optional[str] = Depends(optional_user_id),
-    local_part: Optional[str] = None,
-    active: Optional[bool] = None,
-):
-    if not user_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED)
-
-    owner_id = owner_id_from_user_id(user_id)
-    if not owner_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED)
-    return []
-
-
 @bids_api_router.delete(
     "/api/v1/user/auction_house/{auction_house_id}/address/{address_id}"
 )
@@ -195,57 +174,3 @@ async def api_delete_user_address(
 
     owner_id = owner_id_from_user_id(user_id)  # todo: allow for admins
     return await delete_address(auction_house_id, address_id, owner_id)
-
-
-@bids_api_router.put(
-    "/api/v1/user/auction_house/{auction_house_id}/address/{address_id}"
-)
-async def api_update_user_address(
-    auction_house_id: str,
-    address_id: str,
-    data: UpdateAddressData,
-    user_id: Optional[str] = Depends(optional_user_id),
-) -> AuctionItem:
-
-    if not user_id:
-        raise HTTPException(HTTPStatus.UNAUTHORIZED)
-
-    data.validate_data()
-
-    address = await get_address(auction_house_id, address_id)
-    if not address:
-        raise HTTPException(HTTPStatus.NOT_FOUND, "AuctionItem not found.")
-    if address.auction_house_id != auction_house_id:
-        raise HTTPException(HTTPStatus.BAD_REQUEST, "AuctionHouse ID missmatch")
-
-    for k, v in data.dict().items():
-        setattr(address, k, v)
-
-    await update_address(address)
-
-    return address
-
-
-@bids_api_router.post(
-    "/api/v1/user/auction_house/{auction_house_id}/address",
-    status_code=HTTPStatus.CREATED,
-)
-async def api_request_user_address(
-    address_data: CreateAddressData,
-    auction_house_id: str,
-    user: User = Depends(check_user_exists),
-):
-
-    address_data.normalize()
-
-    # make sure the address belongs to the user
-    auction_house = await get_auction_house(
-        user_id=user.id, auction_house_id=address_data.auction_house_id
-    )
-    assert auction_house, "AuctionHouse does not exist."
-
-    assert (
-        address_data.auction_house_id == auction_house_id
-    ), "AuctionHouse ID missmatch"
-
-    return None
