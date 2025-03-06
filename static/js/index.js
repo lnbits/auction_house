@@ -408,45 +408,6 @@ window.app = Vue.createApp({
           LNbits.utils.notifyApiError(error);
         });
     },
-    searchIdentifier: function () {
-      var self = this;
-      return LNbits.api
-        .request(
-          "GET",
-          "/bids/api/v1/ranking/search?q=" +
-            this.identifierFormDialog.data.searchText,
-          self.g.user.wallets[0].adminkey,
-        )
-        .then(function (response) {
-          self.identifierFormDialog.data.identifier = response.data;
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error);
-        });
-    },
-    updateIdentifier: function () {
-      var self = this;
-      return LNbits.api
-        .request(
-          "PUT",
-          "/bids/api/v1/ranking",
-          self.g.user.wallets[0].adminkey,
-          {
-            name: self.identifierFormDialog.data.identifier.name,
-            rank: self.identifierFormDialog.data.identifier.rank,
-          },
-        )
-        .then(function (response) {
-          self.$q.notify({
-            type: "positive",
-            message: "Identifier updated!",
-          });
-          self.resetFormDialog();
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error);
-        });
-    },
 
     auction_houseNameFromId: function (auction_houseId) {
       const auction_house =

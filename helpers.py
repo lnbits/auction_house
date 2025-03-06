@@ -1,14 +1,22 @@
-import re
 from hashlib import sha256
-from typing import Optional
+from http import HTTPStatus
+from typing import Annotated, Optional
 from urllib.parse import urlparse
 
 from bech32 import bech32_decode, convertbits
+from fastapi import Depends, HTTPException
+from lnbits.decorators import optional_user_id
+
+
+async def check_user_id(user_id: Annotated[str, Depends(optional_user_id)]) -> str:
+    if not user_id:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED)
+    return user_id
 
 
 def normalize_identifier(identifier: str):
     identifier = identifier.lower().split("@")[0]
-    validate_local_part(identifier)
+
     return identifier
 
 
@@ -30,18 +38,6 @@ def validate_pub_key(pubkey: str) -> str:
     return pubkey
 
 
-def validate_local_part(local_part: str):
-    if local_part == "_" or local_part == ".":
-        raise ValueError("You're sneaky, nice try.")
-
-    regex = re.compile(r"^[a-z0-9_.]+$")
-    if not re.fullmatch(regex, local_part.lower()):
-        raise ValueError(
-            f"Identifier '{local_part}' not allowed! "
-            "Only a-z, 0-9 and .-_ are allowed characters, case insensitive."
-        )
-
-
 def is_ws_url(url):
     try:
         result = urlparse(url)
@@ -54,7 +50,3 @@ def is_ws_url(url):
 
 def owner_id_from_user_id(user_id: Optional[str] = None) -> str:
     return sha256((user_id or "").encode("utf-8")).hexdigest()
-
-
-def format_amount(amount: float, currency: str):
-    return str(int(amount)) if currency == "sats" else format(amount, ".2f")
