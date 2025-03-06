@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "bids"
+name = "auction_house"
 version = "0.0.0"
-description = "Verify addresses for Bids"
+description = "Verify addresses for Auction House"
 authors = ["leesalminen", "dni <dni@lnbits.com>"]
 
 [tool.poetry.dependencies]

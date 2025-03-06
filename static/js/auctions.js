@@ -87,7 +87,7 @@ window.app = Vue.createApp({
         const auctionRoomId = this.auctionRoomForm.data.id;
         const { data, total } = await LNbits.api.request(
           "GET",
-          `/bids/api/v1/${auctionRoomId}/items/paginated?${params}`,
+          `/auction_house/api/v1/${auctionRoomId}/items/paginated?${params}`,
         );
 
         console.log("### data", data);
@@ -102,7 +102,7 @@ window.app = Vue.createApp({
       try {
         await LNbits.api.request(
           "POST",
-          `/bids/api/v1/${auctionRoomId}/items`,
+          `/auction_house/api/v1/${auctionRoomId}/items`,
           null,
           this.itemFormDialog.data,
         );

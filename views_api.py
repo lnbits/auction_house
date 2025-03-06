@@ -41,18 +41,18 @@ from .services import (
     get_user_auction_rooms,
 )
 
-bids_api_router: APIRouter = APIRouter()
+auction_house_api_router: APIRouter = APIRouter()
 auction_items_filters = parse_filters(AuctionItemFilters)
 
 
-@bids_api_router.get("/api/v1/auction_rooms")
+@auction_house_api_router.get("/api/v1/auction_rooms")
 async def api_get_auction_rooms(
     user: User = Depends(check_user_exists),
 ) -> list[AuctionRoom]:
     return await get_user_auction_rooms(user.id)
 
 
-@bids_api_router.get("/api/v1/auction_room/{auction_room_id}")
+@auction_house_api_router.get("/api/v1/auction_room/{auction_room_id}")
 async def api_get_auction_room(
     auction_room_id: str, user: User = Depends(check_user_exists)
 ):
@@ -64,7 +64,7 @@ async def api_get_auction_room(
     return auction_room
 
 
-@bids_api_router.post("/api/v1/auction_room", status_code=HTTPStatus.CREATED)
+@auction_house_api_router.post("/api/v1/auction_room", status_code=HTTPStatus.CREATED)
 async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
@@ -72,7 +72,7 @@ async def api_create_auction_room(
     return await create_auction_room_internal(user_id=user.id, data=data)
 
 
-@bids_api_router.put("/api/v1/auction_room")
+@auction_house_api_router.put("/api/v1/auction_room")
 async def api_update_auction_room(
     data: EditAuctionRoomData, user: User = Depends(check_user_exists)
 ):
@@ -80,7 +80,7 @@ async def api_update_auction_room(
     return await update_auction_room(user_id=user.id, data=data)
 
 
-@bids_api_router.delete(
+@auction_house_api_router.delete(
     "/api/v1/auction_room/{auction_room_id}", status_code=HTTPStatus.CREATED
 )
 async def api_auction_room_delete(
@@ -95,7 +95,7 @@ async def api_auction_room_delete(
 ############################# AUCTION ITEMS #############################
 
 
-@bids_api_router.post("/api/v1/{auction_room_id}/items", status_code=HTTPStatus.CREATED)
+@auction_house_api_router.post("/api/v1/{auction_room_id}/items", status_code=HTTPStatus.CREATED)
 async def api_create_auction_item(
     auction_room_id: str,
     data: CreateAuctionItem,
@@ -108,7 +108,7 @@ async def api_create_auction_item(
     return await add_auction_item(auction_room, user_id, data)
 
 
-@bids_api_router.get(
+@auction_house_api_router.get(
     "/api/v1/{auction_room_id}/items/paginated",
     name="Auction Items List",
     summary="get paginated list of auction items",
@@ -128,14 +128,14 @@ async def api_get_auction_items_paginated(
     return page
 
 
-@bids_api_router.get("/api/v1/items")
+@auction_house_api_router.get("/api/v1/items")
 async def api_get_user_auction_items(
     user_id: str = Depends(check_user_id),
 ) -> list[PublicAuctionItem]:
     return await get_auction_items_for_user(user_id=user_id)
 
 
-@bids_api_router.delete("/api/v1/auction_room/{auction_room_id}/address/{address_id}")
+@auction_house_api_router.delete("/api/v1/auction_room/{auction_room_id}/address/{address_id}")
 async def api_delete_address(
     auction_room_id: str,
     address_id: str,
@@ -146,7 +146,7 @@ async def api_delete_address(
     pass
 
 
-@bids_api_router.put(
+@auction_house_api_router.put(
     "/api/v1/auction_room/{auction_room_id}/address/{address_id}/activate"
 )
 async def api_activate_address(
@@ -158,7 +158,7 @@ async def api_activate_address(
     pass
 
 
-@bids_api_router.delete(
+@auction_house_api_router.delete(
     "/api/v1/user/auction_room/{auction_room_id}/address/{address_id}"
 )
 async def api_delete_user_address(

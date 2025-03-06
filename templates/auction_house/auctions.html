@@ -135,5 +135,5 @@ from "macros.jinja" import window_vars with context %} {% block page %}
   const auction_room = JSON.parse({{auction_room | tojson | safe}})
   const is_user_authenticated = JSON.parse({{ is_user_authenticated | tojson | safe }})
 </script>
-<script src="{{ static_url_for('bids/static', 'js/auctions.js') }}"></script>
+<script src="{{ static_url_for('auction_house/static', 'js/auctions.js') }}"></script>
 {% endblock %}

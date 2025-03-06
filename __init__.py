@@ -5,24 +5,24 @@ from loguru import logger
 
 from .crud import db
 from .tasks import wait_for_paid_invoices
-from .views import bids_generic_router
-from .views_api import bids_api_router
+from .views import auction_house_generic_router
+from .views_api import auction_house_api_router
 
-bids_static_files = [
+auction_house_static_files = [
     {
-        "path": "/bids/static",
-        "name": "bids_static",
+        "path": "/auction_house/static",
+        "name": "auction_house_static",
     }
 ]
 
-bids_ext: APIRouter = APIRouter(prefix="/bids", tags=["bids"])
-bids_ext.include_router(bids_generic_router)
-bids_ext.include_router(bids_api_router)
+auction_house_ext: APIRouter = APIRouter(prefix="/auction_house", tags=["auction_house"])
+auction_house_ext.include_router(auction_house_generic_router)
+auction_house_ext.include_router(auction_house_api_router)
 
 scheduled_tasks: list[asyncio.Task] = []
 
 
-def bids_stop():
+def auction_house_stop():
     for task in scheduled_tasks:
         try:
             task.cancel()
@@ -30,17 +30,17 @@ def bids_stop():
             logger.warning(ex)
 
 
-def bids_start():
+def auction_house_start():
     from lnbits.tasks import create_permanent_unique_task
 
-    task = create_permanent_unique_task("ext_bids", wait_for_paid_invoices)
+    task = create_permanent_unique_task("ext_auction_house", wait_for_paid_invoices)
     scheduled_tasks.append(task)
 
 
 __all__ = [
-    "bids_ext",
-    "bids_static_files",
-    "bids_start",
-    "bids_stop",
+    "auction_house_ext",
+    "auction_house_static_files",
+    "auction_house_start",
+    "auction_house_stop",
     "db",
 ]

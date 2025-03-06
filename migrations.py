@@ -5,7 +5,7 @@ async def m001_initial_invoices(db: Database):
     empty_dict: dict[str, str] = {}
     await db.execute(
         f"""
-       CREATE TABLE bids.auction_rooms (
+       CREATE TABLE auction_house.auction_rooms (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
             wallet TEXT NOT NULL,
@@ -26,7 +26,7 @@ async def m001_initial_invoices(db: Database):
 
     await db.execute(
         f"""
-       CREATE TABLE bids.auction_items (
+       CREATE TABLE auction_house.auction_items (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
             auction_room_id TEXT NOT NULL,

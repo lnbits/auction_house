@@ -15,12 +15,12 @@ from .models import (
     PublicAuctionRoom,
 )
 
-db = Database("ext_bids")
+db = Database("ext_auction_house")
 
 
 async def get_auction_room(user_id: str, auction_room_id: str) -> Optional[AuctionRoom]:
     return await db.fetchone(
-        "SELECT * FROM bids.auction_rooms WHERE id = :id AND user_id = :user_id",
+        "SELECT * FROM auction_house.auction_rooms WHERE id = :id AND user_id = :user_id",
         {"id": auction_room_id, "user_id": user_id},
         AuctionRoom,
     )
@@ -28,7 +28,7 @@ async def get_auction_room(user_id: str, auction_room_id: str) -> Optional[Aucti
 
 async def get_auction_room_by_id(auction_room_id: str) -> Optional[AuctionRoom]:
     return await db.fetchone(
-        "SELECT * FROM bids.auction_rooms WHERE id = :id",
+        "SELECT * FROM auction_house.auction_rooms WHERE id = :id",
         {"id": auction_room_id},
         AuctionRoom,
     )
@@ -38,7 +38,7 @@ async def get_auction_room_public_data(
     auction_room_id: str,
 ) -> Optional[PublicAuctionRoom]:
     return await db.fetchone(
-        "SELECT * " "FROM bids.auction_rooms WHERE id = :id",
+        "SELECT * " "FROM auction_house.auction_rooms WHERE id = :id",
         {"id": auction_room_id},
         PublicAuctionRoom,
     )
@@ -46,21 +46,21 @@ async def get_auction_room_public_data(
 
 async def get_auction_rooms(user_id: str) -> list[AuctionRoom]:
     return await db.fetchall(
-        "SELECT * FROM bids.auction_rooms WHERE user_id = :user_id",
+        "SELECT * FROM auction_house.auction_rooms WHERE user_id = :user_id",
         {"user_id": user_id},
         model=AuctionRoom,
     )
 
 
 async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
-    await db.insert("bids.auction_items", data)
+    await db.insert("auction_house.auction_items", data)
     return PublicAuctionItem(**data.dict())
 
 
 async def get_address(auction_room_id: str, address_id: str) -> Optional[AuctionItem]:
     return await db.fetchone(
         """
-        SELECT * FROM bids.addresses
+        SELECT * FROM auction_house.addresses
         WHERE auction_room_id = :auction_room_id AND id = :address_id
         """,
         {"auction_room_id": auction_room_id, "address_id": address_id},
@@ -70,7 +70,7 @@ async def get_address(auction_room_id: str, address_id: str) -> Optional[Auction
 
 async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
     return await db.fetchall(
-        "SELECT * FROM bids.auction_items WHERE auction_room_id = :auction_room_id",
+        "SELECT * FROM auction_house.auction_items WHERE auction_room_id = :auction_room_id",
         {"auction_room_id": auction_room_id},
         PublicAuctionItem,
     )
@@ -79,7 +79,7 @@ async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
 async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
     return await db.fetchall(
         """
-        SELECT * FROM bids.auction_items WHERE user_id = :user_id
+        SELECT * FROM auction_house.auction_items WHERE user_id = :user_id
         ORDER BY time DESC
         """,
         {"user_id": user_id},
@@ -94,8 +94,8 @@ async def get_all_addresses(wallet_ids: Union[str, list[str]]) -> list[AuctionIt
     q = ",".join([f"'{w}'" for w in wallet_ids])
     return await db.fetchall(
         f"""
-        SELECT a.* FROM bids.addresses a
-        JOIN bids.auction_rooms d ON d.id = a.auction_room_id
+        SELECT a.* FROM auction_house.addresses a
+        JOIN auction_house.auction_rooms d ON d.id = a.auction_room_id
         WHERE d.wallet IN ({q})
         """,
         model=AuctionItem,
@@ -108,7 +108,7 @@ async def get_auction_items_paginated(
 ) -> Page[PublicAuctionItem]:
     return await db.fetch_page(
         """
-        SELECT * FROM bids.auction_items
+        SELECT * FROM auction_house.auction_items
         WHERE auction_room_id = :auction_room_id
         """,
         values={"auction_room_id": auction_room_id},
@@ -118,7 +118,7 @@ async def get_auction_items_paginated(
 
 
 async def update_address(address: AuctionItem) -> AuctionItem:
-    await db.update("bids.addresses", address)
+    await db.update("auction_house.addresses", address)
     return address
 
 
@@ -130,13 +130,13 @@ async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
         return False
     await db.execute(
         """
-        DELETE FROM bids.addresses WHERE auction_room_id = :auction_room_id
+        DELETE FROM auction_house.addresses WHERE auction_room_id = :auction_room_id
         """,
         {"auction_room_id": auction_room_id},
     )
 
     await db.execute(
-        "DELETE FROM bids.auction_rooms WHERE id = :id",
+        "DELETE FROM auction_house.auction_rooms WHERE id = :id",
         {"id": auction_room_id},
     )
 
@@ -146,7 +146,7 @@ async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
 async def delete_address(auction_room_id, address_id, owner_id):
     await db.execute(
         """
-        DELETE FROM bids.addresses
+        DELETE FROM auction_house.addresses
         WHERE auction_room_id = :auction_room_id AND id = :id AND owner_id = :owner_id
         """,
         {"auction_room_id": auction_room_id, "id": address_id, "owner_id": owner_id},
@@ -156,7 +156,7 @@ async def delete_address(auction_room_id, address_id, owner_id):
 async def delete_address_by_id(auction_room_id, address_id):
     await db.execute(
         """
-        DELETE FROM bids.addresses
+        DELETE FROM auction_house.addresses
         WHERE auction_room_id = :auction_room_id AND id = :id
         """,
         {"auction_room_id": auction_room_id, "id": address_id},
@@ -173,7 +173,7 @@ async def create_auction_room_internal(
         extra=AuctionRoomConfig(),
         **data.dict(),
     )
-    await db.insert("bids.auction_rooms", auction_room)
+    await db.insert("auction_house.auction_rooms", auction_room)
     return auction_room
 
 
@@ -187,7 +187,7 @@ async def update_auction_room(
         raise ValueError("Cannot change auction room type.")
 
     await db.update(
-        "bids.auction_rooms", AuctionRoom(**{**auction_room.dict(), **data.dict()})
+        "auction_house.auction_rooms", AuctionRoom(**{**auction_room.dict(), **data.dict()})
     )
 
     return auction_room

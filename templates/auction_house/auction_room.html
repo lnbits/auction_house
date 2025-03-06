@@ -123,5 +123,5 @@ page %}
 <script>
   const auction_room = JSON.parse({{auction_room | tojson | safe}})
 </script>
-<script src="{{ static_url_for('bids/static', 'js/auction_room.js') }}"></script>
+<script src="{{ static_url_for('auction_house/static', 'js/auction_room.js') }}"></script>
 {% endblock %}

@@ -1,9 +1,9 @@
 {
   "repos": [
     {
-      "id": "bids",
+      "id": "auction_house",
       "organisation": "lnbits",
-      "repository": "bids"
+      "repository": "auction_house"
     }
   ]
 }

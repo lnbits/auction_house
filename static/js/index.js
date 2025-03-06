@@ -142,7 +142,7 @@ window.app = Vue.createApp({
       LNbits.api
         .request(
           "GET",
-          "/bids/api/v1/auction_rooms",
+          "/auction_house/api/v1/auction_rooms",
           this.g.user.wallets[0].inkey,
         )
         .then(function (response) {
@@ -179,7 +179,7 @@ window.app = Vue.createApp({
       LNbits.api
         .request(
           method,
-          "/bids/api/v1/auction_room",
+          "/auction_house/api/v1/auction_room",
           _.findWhere(this.g.user.wallets, { id: this.formDialog.data.wallet })
             .adminkey,
           data,
@@ -208,7 +208,7 @@ window.app = Vue.createApp({
           LNbits.api
             .request(
               "DELETE",
-              "/bids/api/v1/auction_room/" + auction_room_id,
+              "/auction_house/api/v1/auction_room/" + auction_room_id,
               _.findWhere(self.g.user.wallets, { id: auction_room.wallet })
                 .adminkey,
             )
@@ -239,7 +239,7 @@ window.app = Vue.createApp({
       LNbits.api
         .request(
           "POST",
-          "/bids/api/v1/auction_room/" +
+          "/auction_house/api/v1/auction_room/" +
             formDialog.data.auction_room_id +
             "/address",
           adminkey,
@@ -261,7 +261,7 @@ window.app = Vue.createApp({
       return LNbits.api
         .request(
           "PUT",
-          "/bids/api/v1/auction_room/" +
+          "/auction_house/api/v1/auction_room/" +
             data.auction_room_id +
             "/address/" +
             data.id,
@@ -292,7 +292,7 @@ window.app = Vue.createApp({
           LNbits.api
             .request(
               "DELETE",
-              `/bids/api/v1/auction_room/${auction_room.id}/address/${address_id}`,
+              `/auction_house/api/v1/auction_room/${auction_room.id}/address/${address_id}`,
               _.findWhere(self.g.user.wallets, { id: auction_room.wallet })
                 .adminkey,
             )
@@ -320,7 +320,7 @@ window.app = Vue.createApp({
           return LNbits.api
             .request(
               "PUT",
-              "/bids/api/v1/auction_room/" +
+              "/auction_house/api/v1/auction_room/" +
                 auction_room_id +
                 "/address/" +
                 address_id +
@@ -357,7 +357,7 @@ window.app = Vue.createApp({
       return LNbits.api
         .request(
           "GET",
-          `/bids/api/v1/auction_room/${address.auction_room_id}` +
+          `/auction_house/api/v1/auction_room/${address.auction_room_id}` +
             `/address/${address.id}/reimburse`,
           self.g.user.wallets[0].adminkey,
         )
@@ -374,7 +374,7 @@ window.app = Vue.createApp({
       return LNbits.api
         .request(
           "PUT",
-          "/bids/api/v1/auction_room/ranking/" + braket,
+          "/auction_house/api/v1/auction_room/ranking/" + braket,
           self.g.user.wallets[0].adminkey,
         )
         .then(function (response) {
@@ -392,7 +392,7 @@ window.app = Vue.createApp({
       return LNbits.api
         .request(
           "PATCH",
-          "/bids/api/v1/auction_room/ranking/" +
+          "/auction_house/api/v1/auction_room/ranking/" +
             this.rankingFormDialog.data.bucket,
           self.g.user.wallets[0].adminkey,
           this.rankingFormDialog.data.identifiers,
