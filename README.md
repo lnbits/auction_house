@@ -1,2 +1,1 @@
-# bids
-Bidding Extension
+# Online Auction House
