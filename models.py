@@ -84,21 +84,6 @@ class AuctionItem(PublicAuctionItem):
 
 
 class AuctionItemFilters(FilterModel):
-    __search_fields__ = [
-        "name",
-        "description",
-        "starting_price",
-        "current_price",
-        "created_at",
-        "expires_at",
-    ]
-    __sort_fields__ = [
-        "name",
-        "starting_price",
-        "current_price",
-        "created_at",
-        "expires_at",
-    ]
 
     name: str | None
     description: str | None
