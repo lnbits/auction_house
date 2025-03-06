@@ -26,7 +26,9 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@auction_house_generic_router.get("/auction_room/{auction_room_id}", response_class=HTMLResponse)
+@auction_house_generic_router.get(
+    "/auction_room/{auction_room_id}", response_class=HTMLResponse
+)
 async def auction_room_details(
     request: Request, auction_room_id: str, user: User = Depends(check_user_exists)
 ):
@@ -45,7 +47,9 @@ async def auction_room_details(
     )
 
 
-@auction_house_generic_router.get("/auctions/{auction_room_id}", response_class=HTMLResponse)
+@auction_house_generic_router.get(
+    "/auctions/{auction_room_id}", response_class=HTMLResponse
+)
 async def auctions_list(
     request: Request,
     auction_room_id: str,

@@ -17,7 +17,12 @@
   label="API info"
   :content-inset-level="0.5"
 >
-  <q-btn flat label="Swagger API" type="a" href="../docs#/auction_house"></q-btn>
+  <q-btn
+    flat
+    label="Swagger API"
+    type="a"
+    href="../docs#/auction_house"
+  ></q-btn>
   <q-expansion-item
     group="api"
     dense
@@ -27,7 +32,8 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /auction_house/api/v1/auction_rooms</code
+          ><span class="text-blue">GET</span>
+          /auction_house/api/v1/auction_rooms</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -38,8 +44,8 @@
         <code>[&lt;auction_room_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}auction_house/api/v1/auction_rooms -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X GET {{ request.base_url }}auction_house/api/v1/auction_rooms
+          -H "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -48,7 +54,10 @@
   <q-expansion-item group="api" dense expand-separator label="List Addresses">
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span> /auction_house/api/v1/addresses</code>
+        <code
+          ><span class="text-blue">GET</span>
+          /auction_house/api/v1/addresses</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -103,7 +112,8 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">POST</span> /auction_house/api/v1/auction_room</code
+          ><span class="text-blue">POST</span>
+          /auction_house/api/v1/auction_room</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -114,8 +124,8 @@
         <code>{auction_room_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}auction_house/api/v1/auction_room -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X POST {{ request.base_url }}auction_house/api/v1/auction_room
+          -H "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -143,8 +153,8 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
-          }}auction_house/api/v1/auction_room/{auction_room_id}/address -H "X-Api-Key:
-          &lt;invoice_key&gt;"
+          }}auction_house/api/v1/auction_room/{auction_room_id}/address -H
+          "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
     </q-card>

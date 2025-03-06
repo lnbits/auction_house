@@ -92,7 +92,9 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Auction House extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Auction House extension
+        </h6>
         <p>
           <strong>Create auctions or fixed price salles</strong>
         </p>
@@ -197,77 +199,6 @@
         <q-btn v-close-popup flat color="grey" class="q-ml-auto float-right"
           >Cancel</q-btn
         >
-      </q-form>
-    </q-card>
-  </q-dialog>
-
-  <q-dialog
-    v-model="addressFormDialog.show"
-    position="top"
-    @hide="closeAddressFormDialog"
-  >
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="saveAddress" class="q-gutter-md">
-        <q-select
-          v-if="!addressFormDialog.data.id"
-          filled
-          dense
-          emit-value
-          v-model="addressFormDialog.data.auction_room_id"
-          :options="auctionRoomOptions"
-          label="Auction Room *"
-        ></q-select>
-        <q-input
-          filled
-          dense
-          v-model.trim="addressFormDialog.data.pubkey"
-          label="Public Key"
-          placeholder="npub or hex"
-        ></q-input>
-        <q-input
-          v-if="!addressFormDialog.data.id"
-          filled
-          dense
-          v-model.trim="addressFormDialog.data.local_part"
-          label="Local Part"
-          placeholder="benarc"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model="addressFormDialog.data.relay"
-          @keydown.enter="addRelayForAddress"
-          type="text"
-          label="Relay"
-        >
-          <q-btn @click="addRelayForAddress" dense flat icon="add"></q-btn>
-        </q-input>
-        <div>
-          <q-chip
-            v-for="relay in addressFormDialog.data.config.relays"
-            :key="relay"
-            removable
-            @remove="removeRelayForAddress(relay)"
-            color="primary"
-            text-color="white"
-            ><span v-text="relay"></span
-          ></q-chip>
-        </div>
-
-        <div class="row q-mt-lg">
-          <q-btn
-            unelevated
-            color="primary"
-            :disable="addressFormDialog.data.auction_room_id == null || addressFormDialog.data.pubkey == null || addressFormDialog.data.local_part == null"
-            type="submit"
-          >
-            <span v-if="!addressFormDialog.data.id"> Create AuctionItem</span>
-            <span v-else> Update AuctionItem</span></q-btn
-          >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
       </q-form>
     </q-card>
   </q-dialog>

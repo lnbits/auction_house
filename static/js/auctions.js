@@ -90,7 +90,6 @@ window.app = Vue.createApp({
           `/auction_house/api/v1/${auctionRoomId}/items/paginated?${params}`,
         );
 
-        console.log("### data", data);
         this.auctionItems = data.data;
       } catch (error) {
         LNbits.utils.notifyApiError(error);

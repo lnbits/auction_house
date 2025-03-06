@@ -95,7 +95,9 @@ async def api_auction_room_delete(
 ############################# AUCTION ITEMS #############################
 
 
-@auction_house_api_router.post("/api/v1/{auction_room_id}/items", status_code=HTTPStatus.CREATED)
+@auction_house_api_router.post(
+    "/api/v1/{auction_room_id}/items", status_code=HTTPStatus.CREATED
+)
 async def api_create_auction_item(
     auction_room_id: str,
     data: CreateAuctionItem,
@@ -135,7 +137,9 @@ async def api_get_user_auction_items(
     return await get_auction_items_for_user(user_id=user_id)
 
 
-@auction_house_api_router.delete("/api/v1/auction_room/{auction_room_id}/address/{address_id}")
+@auction_house_api_router.delete(
+    "/api/v1/auction_room/{auction_room_id}/address/{address_id}"
+)
 async def api_delete_address(
     auction_room_id: str,
     address_id: str,

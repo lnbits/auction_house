@@ -15,7 +15,9 @@ auction_house_static_files = [
     }
 ]
 
-auction_house_ext: APIRouter = APIRouter(prefix="/auction_house", tags=["auction_house"])
+auction_house_ext: APIRouter = APIRouter(
+    prefix="/auction_house", tags=["auction_house"]
+)
 auction_house_ext.include_router(auction_house_generic_router)
 auction_house_ext.include_router(auction_house_api_router)
 

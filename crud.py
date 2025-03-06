@@ -20,7 +20,10 @@ db = Database("ext_auction_house")
 
 async def get_auction_room(user_id: str, auction_room_id: str) -> Optional[AuctionRoom]:
     return await db.fetchone(
-        "SELECT * FROM auction_house.auction_rooms WHERE id = :id AND user_id = :user_id",
+        """
+            SELECT * FROM auction_house.auction_rooms
+            WHERE id = :id AND user_id = :user_id
+        """,
         {"id": auction_room_id, "user_id": user_id},
         AuctionRoom,
     )
@@ -70,7 +73,10 @@ async def get_address(auction_room_id: str, address_id: str) -> Optional[Auction
 
 async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
     return await db.fetchall(
-        "SELECT * FROM auction_house.auction_items WHERE auction_room_id = :auction_room_id",
+        """
+            SELECT * FROM auction_house.auction_items
+            WHERE auction_room_id = :auction_room_id
+        """,
         {"auction_room_id": auction_room_id},
         PublicAuctionItem,
     )
@@ -187,7 +193,8 @@ async def update_auction_room(
         raise ValueError("Cannot change auction room type.")
 
     await db.update(
-        "auction_house.auction_rooms", AuctionRoom(**{**auction_room.dict(), **data.dict()})
+        "auction_house.auction_rooms",
+        AuctionRoom(**{**auction_room.dict(), **data.dict()}),
     )
 
     return auction_room
