@@ -1,9 +1,10 @@
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from lnbits.core.models import User
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import check_user_exists, optional_user_id
 from lnbits.helpers import template_renderer
 
 from .crud import (
@@ -47,11 +48,19 @@ async def auction_house_details(
 
 
 @bids_generic_router.get("/auctions/{auction_house_id}", response_class=HTMLResponse)
-async def auctions_list(request: Request, auction_house_id: str):
+async def auctions_list(
+    request: Request,
+    auction_house_id: str,
+    user_id: Optional[str] = Depends(optional_user_id),
+):
     auction_house = await get_auction_house_public_data(auction_house_id)
     if not auction_house:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction House does not exist.")
     return bids_renderer().TemplateResponse(
         "bids/auctions.html",
-        {"request": request, "auction_house": auction_house.json()},
+        {
+            "request": request,
+            "is_user_authenticated": user_id is not None,
+            "auction_house": auction_house.json(),
+        },
     )

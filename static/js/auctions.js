@@ -61,6 +61,7 @@ window.app = Vue.createApp({
       currencyOptions: [],
       auctionHouseForm: {
         show: false,
+        isUserAuthenticated: is_user_authenticated,
         data: auction_house,
       },
       auctionHouseTab: "overview",
@@ -97,5 +98,7 @@ window.app = Vue.createApp({
         });
     },
   },
-  created() {},
+  created() {
+    console.log("### created", this.auctionHouseForm);
+  },
 });

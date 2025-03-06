@@ -1,6 +1,5 @@
-{% extends "public.html" %} {% block toolbar_title %} Auctions {%
-endblock %} {% from "macros.jinja" import window_vars with context %} {% block
-page %}
+{% extends "public.html" %} {% block toolbar_title %} Auctions {% endblock %} {%
+from "macros.jinja" import window_vars with context %} {% block page %}
 
 <div class="row">
   <div class="col-md-2 col-sm-none">
@@ -11,8 +10,18 @@ page %}
     <q-card>
       <q-card-section>
         <div class="row">
-          <div class="col-12">
+          <div class="col-6">
             <h5 class="q-mt-sm">Auctions</h5>
+          </div>
+          <div class="col-6">
+            <q-btn
+              v-if="auctionHouseForm.isUserAuthenticated"
+              unelevated
+              color="primary"
+              class="float-right"
+              >Add Auction Item</q-btn
+            >
+            <q-badge class="float-right" v-else>Login to place bid</q-badge>
           </div>
 
           <div class="col-12">
@@ -106,6 +115,7 @@ page %}
 {% endblock %} {% block scripts %}
 <script>
   const auction_house = JSON.parse({{auction_house | tojson | safe}})
+  const is_user_authenticated = JSON.parse({{ is_user_authenticated | tojson | safe }})
 </script>
 <script src="{{ static_url_for('bids/static', 'js/auctions.js') }}"></script>
 {% endblock %}
