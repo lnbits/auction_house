@@ -22,12 +22,12 @@
     group="api"
     dense
     expand-separator
-    label="List Auction Houses"
+    label="List Auction Rooms"
   >
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /bids/api/v1/auction_houses</code
+          ><span class="text-blue">GET</span> /bids/api/v1/auction_rooms</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -35,10 +35,10 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>[&lt;auction_house_object&gt;, ...]</code>
+        <code>[&lt;auction_room_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}bids/api/v1/auction_houses -H
+          >curl -X GET {{ request.base_url }}bids/api/v1/auction_rooms -H
           "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -69,13 +69,13 @@
     group="api"
     dense
     expand-separator
-    label="Fetch Auction House"
+    label="Fetch Auction Room"
   >
     <q-card>
       <q-card-section>
         <code
           ><span class="text-blue">GET</span>
-          /bids/api/v1/auction_house/{auction_house_id}</code
+          /bids/api/v1/auction_room/{auction_room_id}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -83,11 +83,11 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>{auction_house_object}</code>
+        <code>{auction_room_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}bids/api/v1/auction_house/{auction_house_id} -H "X-Api-Key:
+          }}bids/api/v1/auction_room/{auction_room_id} -H "X-Api-Key:
           &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -98,12 +98,12 @@
     group="api"
     dense
     expand-separator
-    label="Create Auction House"
+    label="Create Auction Room"
   >
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">POST</span> /bids/api/v1/auction_house</code
+          ><span class="text-blue">POST</span> /bids/api/v1/auction_room</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -111,10 +111,10 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>{auction_house_object}</code>
+        <code>{auction_room_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}bids/api/v1/auction_house -H
+          >curl -X POST {{ request.base_url }}bids/api/v1/auction_room -H
           "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -131,7 +131,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">POST</span>
-          /bids/api/v1/auction_house/{auction_house_id}/address</code
+          /bids/api/v1/auction_room/{auction_room_id}/address</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -143,7 +143,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
-          }}bids/api/v1/auction_house/{auction_house_id}/address -H "X-Api-Key:
+          }}bids/api/v1/auction_room/{auction_room_id}/address -H "X-Api-Key:
           &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -188,7 +188,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">GET</span>
-          /bids/api/v1/auction_house/{auction_house_id}/payments/{payment_hash}</code
+          /bids/api/v1/auction_room/{auction_room_id}/payments/{payment_hash}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -198,7 +198,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}bids/api/v1/auction_house/{auction_house_id}/payments/{payment_hash}
+          }}bids/api/v1/auction_room/{auction_room_id}/payments/{payment_hash}
           -H "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>

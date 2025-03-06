@@ -1,4 +1,4 @@
-{% extends "public.html" %} {% block toolbar_title %} Edit auction house {%
+{% extends "public.html" %} {% block toolbar_title %} Edit auction room {%
 endblock %} {% from "macros.jinja" import window_vars with context %} {% block
 page %}
 
@@ -12,10 +12,10 @@ page %}
       <q-btn
         unelevated
         color="primary"
-        @click="saveAuctionHouse"
+        @click="saveAuctionRoom"
         class="float-right"
-        :disable="auctionHouseForm.data.wallet == null || auctionHouseForm.data.currency == null"
-        >Update Auction House</q-btn
+        :disable="auctionRoomForm.data.wallet == null || auctionRoomForm.data.currency == null"
+        >Update Auction Room</q-btn
       >
     </div>
   </q-card>
@@ -32,12 +32,12 @@ page %}
   {% raw %}
   <div class="col-md-6 col-sm-12">
     <q-card class="q-pa-lg q-mt-md">
-      <q-tabs v-model="auctionHouseTab" active-color="primary" align="justify">
+      <q-tabs v-model="auctionRoomTab" active-color="primary" align="justify">
         <q-tab name="overview" label="Overview"></q-tab>
         <q-tab name="webhooks" label="Web Hooks"></q-tab>
       </q-tabs>
 
-      <q-tab-panels class="bg-transparent" v-model="auctionHouseTab">
+      <q-tab-panels class="bg-transparent" v-model="auctionRoomTab">
         <q-tab-panel name="overview">
           <!-- <q-card class="q-pa-lg"> -->
           <div class="q-gutter-md">
@@ -45,7 +45,7 @@ page %}
               filled
               dense
               emit-value
-              v-model="auctionHouseForm.data.wallet"
+              v-model="auctionRoomForm.data.wallet"
               :options="g.user.walletOptions"
               label="Wallet *"
             ></q-select>
@@ -53,52 +53,52 @@ page %}
               filled
               dense
               emit-value
-              v-model="auctionHouseForm.data.currency"
+              v-model="auctionRoomForm.data.currency"
               :options="currencyOptions"
               label="Currency *"
             ></q-select>
             <q-input
               filled
               dense
-              v-model.trim="auctionHouseForm.data.name"
+              v-model.trim="auctionRoomForm.data.name"
               label="Name"
-              placeholder="Name of the auction house"
+              placeholder="Name of the auction room"
             ></q-input>
             <q-input
               filled
               dense
               type="textarea"
               rows="3"
-              v-model.trim="auctionHouseForm.data.description"
+              v-model.trim="auctionRoomForm.data.description"
               label="Description"
-              placeholder="Description of the auction house"
+              placeholder="Description of the auction room"
             ></q-input>
             <q-input
               filled
               dense
-              v-model="auctionHouseForm.data.days"
+              v-model="auctionRoomForm.data.days"
               type="number"
               min="0"
               step="1"
               label="Days"
               placeholder="Number of days"
-              hint="Number of days the auction house will be active."
+              hint="Number of days the auction room will be active."
             ></q-input>
             <q-input
               filled
               dense
-              v-model="auctionHouseForm.data.house_percentage"
+              v-model="auctionRoomForm.data.room_percentage"
               type="number"
               min="1"
               step="1"
-              label="House Fee"
-              placeholder="House fee percentage"
-              hint="Percentage that the house gets when the auction is done."
+              label="Room Fee"
+              placeholder="Room fee percentage"
+              hint="Percentage that the room gets when the auction is done."
             ></q-input>
             <q-input
               filled
               dense
-              v-model="auctionHouseForm.data.min_bid_up_percentage"
+              v-model="auctionRoomForm.data.min_bid_up_percentage"
               type="number"
               min="1"
               step="1"
@@ -121,7 +121,7 @@ page %}
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  const auction_house = JSON.parse({{auction_house | tojson | safe}})
+  const auction_room = JSON.parse({{auction_room | tojson | safe}})
 </script>
-<script src="{{ static_url_for('bids/static', 'js/auction_house.js') }}"></script>
+<script src="{{ static_url_for('bids/static', 'js/auction_room.js') }}"></script>
 {% endblock %}

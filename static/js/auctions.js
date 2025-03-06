@@ -72,41 +72,37 @@ window.app = Vue.createApp({
       },
 
       currencyOptions: [],
-      auctionHouseForm: {
+      auctionRoomForm: {
         show: false,
         isUserAuthenticated: is_user_authenticated,
-        data: auction_house,
+        data: auction_room,
       },
-      auctionHouseTab: "overview",
+      auctionRoomTab: "overview",
     };
   },
   methods: {
     getAuctionItemsPaginated: async function (props) {
       try {
         const params = LNbits.utils.prepareFilterQuery(this.itemsTable, props);
-        const auctionHouseId = this.auctionHouseForm.data.id;
+        const auctionRoomId = this.auctionRoomForm.data.id;
         const { data, total } = await LNbits.api.request(
           "GET",
-          `/bids/api/v1/${auctionHouseId}/items/paginated?${params}`,
+          `/bids/api/v1/${auctionRoomId}/items/paginated?${params}`,
         );
 
         console.log("### data", data);
         this.auctionItems = data.data;
       } catch (error) {
-        this.$q.notify({
-          type: "negative",
-          message: "Failed to fetch auction items!",
-        });
         LNbits.utils.notifyApiError(error);
       }
     },
 
     addAuctionItem: async function () {
-      const auctionHouseId = this.auctionHouseForm.data.id;
+      const auctionRoomId = this.auctionRoomForm.data.id;
       try {
         await LNbits.api.request(
           "POST",
-          `/bids/api/v1/${auctionHouseId}/items`,
+          `/bids/api/v1/${auctionRoomId}/items`,
           null,
           this.itemFormDialog.data,
         );
@@ -117,10 +113,6 @@ window.app = Vue.createApp({
         });
         this.getAuctionItemsPaginated();
       } catch (error) {
-        this.$q.notify({
-          type: "negative",
-          message: "Failed to add!",
-        });
         LNbits.utils.notifyApiError(error);
       }
     },
@@ -142,7 +134,7 @@ window.app = Vue.createApp({
     },
   },
   created() {
-    console.log("### created", this.auctionHouseForm);
+    console.log("### created", this.auctionRoomForm);
     this.getAuctionItemsPaginated();
   },
 });

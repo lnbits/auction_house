@@ -15,7 +15,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           </div>
           <div class="col-6">
             <q-btn
-              v-if="auctionHouseForm.isUserAuthenticated"
+              v-if="auctionRoomForm.isUserAuthenticated"
               @click="showAddNewAuctionItemDialog"
               unelevated
               color="primary"
@@ -118,7 +118,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 
         <div class="row q-mt-lg">
           <q-btn unelevated color="primary" type="submit">
-            <!-- :disable="itemFormDialog.data.auction_house_id == null || itemFormDialog.data.pubkey == null || itemFormDialog.data.local_part == null" -->
+            <!-- :disable="itemFormDialog.data.auction_room_id == null || itemFormDialog.data.pubkey == null || itemFormDialog.data.local_part == null" -->
             <span> Add Auction Item</span></q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -132,7 +132,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 
 {% endblock %} {% block scripts %}
 <script>
-  const auction_house = JSON.parse({{auction_house | tojson | safe}})
+  const auction_room = JSON.parse({{auction_room | tojson | safe}})
   const is_user_authenticated = JSON.parse({{ is_user_authenticated | tojson | safe }})
 </script>
 <script src="{{ static_url_for('bids/static', 'js/auctions.js') }}"></script>

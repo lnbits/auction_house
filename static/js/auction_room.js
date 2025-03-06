@@ -4,27 +4,27 @@ window.app = Vue.createApp({
   data: function () {
     return {
       currencyOptions: [],
-      auctionHouseForm: {
+      auctionRoomForm: {
         show: false,
-        data: auction_house,
+        data: auction_room,
       },
-      auctionHouseTab: "overview",
+      auctionRoomTab: "overview",
     };
   },
   methods: {
-    saveAuctionHouse: async function () {
+    saveAuctionRoom: async function () {
       try {
         await LNbits.api.request(
           "PUT",
-          "/bids/api/v1/auction_house",
+          "/bids/api/v1/auction_room",
           _.findWhere(this.g.user.wallets, {
-            id: this.auctionHouseForm.data.wallet,
+            id: this.auctionRoomForm.data.wallet,
           }).adminkey,
-          this.auctionHouseForm.data,
+          this.auctionRoomForm.data,
         );
         this.$q.notify({
           type: "positive",
-          message: "Auction House updated!",
+          message: "Auction Room updated!",
         });
       } catch (error) {
         this.$q.notify({

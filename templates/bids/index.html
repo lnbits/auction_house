@@ -9,7 +9,7 @@
           color="primary"
           @click="formDialog.show = true"
           class="q-mr-md"
-          >New Auction House</q-btn
+          >New Auction Room</q-btn
         >
       </q-card-section>
     </q-card>
@@ -18,7 +18,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Auction Houses</h5>
+            <h5 class="text-subtitle1 q-my-none">Auction Rooms</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
@@ -27,10 +27,10 @@
         <q-table
           dense
           flat
-          :rows="auction_houses"
+          :rows="auction_rooms"
           row-key="id"
-          :columns="auction_housesTable.columns"
-          v-model:pagination="auction_housesTable.pagination"
+          :columns="auction_roomsTable.columns"
+          v-model:pagination="auction_roomsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
@@ -52,7 +52,7 @@
                   size="xs"
                   icon="delete"
                   color="red"
-                  @click="deleteAuctionHouse(props.row.id)"
+                  @click="deleteAuctionRoom(props.row.id)"
                   class="q-mr-sm"
                 ></q-btn>
                 <q-btn
@@ -62,7 +62,7 @@
                   icon="edit"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="'auction_house/' + props.row.id"
+                  :href="'auction_room/' + props.row.id"
                   target="_blank"
                   class="q-mr-sm"
                 ></q-btn>
@@ -106,13 +106,13 @@
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="saveAuctionHouse" class="q-gutter-md">
+      <q-form @submit="saveAuctionRoom" class="q-gutter-md">
         <q-input
           filled
           dense
           v-model.trim="formDialog.data.name"
           label="Name"
-          placeholder="Name of the auction house"
+          placeholder="Name of the auction room"
         ></q-input>
         <q-input
           filled
@@ -121,7 +121,7 @@
           rows="2"
           v-model.trim="formDialog.data.description"
           label="Description"
-          placeholder="Description of the auction house"
+          placeholder="Description of the auction room"
         ></q-input>
         <q-select
           filled
@@ -160,19 +160,19 @@
           step="1"
           label="Days"
           placeholder="Number of days"
-          hint="Number of days the auction house will be active."
+          hint="Number of days the auction room will be active."
         ></q-input>
         <q-input
           v-if="formDialog.data.type === 'auction'"
           filled
           dense
-          v-model="formDialog.data.house_percentage"
+          v-model="formDialog.data.room_percentage"
           type="number"
           min="1"
           step="1"
-          label="House Fee"
-          placeholder="House fee percentage"
-          hint="Percentage that the house gets when the auction is done."
+          label="Room Fee"
+          placeholder="Room fee percentage"
+          hint="Percentage that the room gets when the auction is done."
         ></q-input>
         <q-input
           v-if="formDialog.data.type === 'auction'"
@@ -190,9 +190,9 @@
         <q-btn
           unelevated
           color="primary"
-          :disable="formDialog.data.wallet == null || formDialog.data.currency == null || formDialog.data.days == null|| formDialog.data.house_percentage == null|| formDialog.data.min_bid_up_percentage == null"
+          :disable="formDialog.data.wallet == null || formDialog.data.currency == null || formDialog.data.days == null|| formDialog.data.room_percentage == null|| formDialog.data.min_bid_up_percentage == null"
           type="submit"
-          >Create Auction House</q-btn
+          >Create Auction Room</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto float-right"
           >Cancel</q-btn
@@ -213,9 +213,9 @@
           filled
           dense
           emit-value
-          v-model="addressFormDialog.data.auction_house_id"
-          :options="auctionHouseOptions"
-          label="Auction House *"
+          v-model="addressFormDialog.data.auction_room_id"
+          :options="auctionRoomOptions"
+          label="Auction Room *"
         ></q-select>
         <q-input
           filled
@@ -258,7 +258,7 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="addressFormDialog.data.auction_house_id == null || addressFormDialog.data.pubkey == null || addressFormDialog.data.local_part == null"
+            :disable="addressFormDialog.data.auction_room_id == null || addressFormDialog.data.pubkey == null || addressFormDialog.data.local_part == null"
             type="submit"
           >
             <span v-if="!addressFormDialog.data.id"> Create AuctionItem</span>
