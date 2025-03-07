@@ -51,12 +51,11 @@
     </q-card>
   </q-expansion-item>
 
-  <q-expansion-item group="api" dense expand-separator label="List Addresses">
+  <q-expansion-item group="api" dense expand-separator label="List Items">
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span>
-          /auction_house/api/v1/addresses</code
+          ><span class="text-blue">GET</span> /auction_house/api/v1/items</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -64,10 +63,10 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>[&lt;address_object&gt;, ...]</code>
+        <code>[&lt;itmems&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}auction_house/api/v1/addresses -H
+          >curl -X GET {{ request.base_url }}auction_house/api/v1/items -H
           "X-Api-Key: &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -149,7 +148,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>{address_object}</code>
+        <code>{items}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
