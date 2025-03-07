@@ -13,9 +13,11 @@ from lnbits.helpers import generate_filter_params_openapi
 from .crud import (
     create_auction_room,
     delete_auction_room,
+    get_auction_item_by_id,
     get_auction_items_for_user,
     get_auction_room,
     get_auction_room_by_id,
+    get_bids_paginated,
     update_auction_room,
 )
 from .helpers import (
@@ -24,15 +26,19 @@ from .helpers import (
 from .models import (
     AuctionItemFilters,
     AuctionRoom,
+    BidRequest,
+    BidResponse,
     CreateAuctionItem,
     CreateAuctionRoomData,
     EditAuctionRoomData,
     PublicAuctionItem,
+    PublicBid,
 )
 from .services import (
     add_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
+    place_bid,
 )
 
 auction_house_api_router: APIRouter = APIRouter()
@@ -129,3 +135,40 @@ async def api_get_user_auction_items(
     user_id: str = Depends(check_user_id),
 ) -> list[PublicAuctionItem]:
     return await get_auction_items_for_user(user_id=user_id)
+
+
+############################# BIDS #############################
+
+
+@auction_house_api_router.put(
+    "/api/v1/bids/{auction_item_id}", status_code=HTTPStatus.CREATED
+)
+async def api_place_bid(
+    auction_item_id: str,
+    data: BidRequest,
+    user_id: str = Depends(check_user_id),
+) -> BidResponse:
+
+    return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
+
+
+@auction_house_api_router.get(
+    "/api/v1/bids/{auction_item_id}/paginated",
+    name="Bids List",
+    summary="get paginated list of bids for an auction item",
+    response_description="list of bids",
+    # openapi_extra=generate_filter_params_openapi(AuctionItemFilters),
+    response_model=Page[PublicAuctionItem],
+)
+async def api_get_bids_paginated(
+    auction_item_id: str,
+    # filters: Filters = Depends(auction_items_filters),
+) -> Page[PublicBid]:
+    auction_item = await get_auction_item_by_id(auction_item_id)
+    if not auction_item:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
+
+    page = await get_bids_paginated(
+        auction_item_id=auction_item_id, filters=None
+    )  # todo: add filters
+    return page

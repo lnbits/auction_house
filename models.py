@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from lnbits.db import FilterModel
@@ -12,7 +12,7 @@ class AuctionRoomConfig(BaseModel):
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet: str
+    wallet: str  # todo: wallet_id
     currency: str
     name: str
     description: str
@@ -77,6 +77,22 @@ class PublicAuctionItem(BaseModel):
     expires_at: datetime
     bid_count: int = Field(default=0, no_database=True)
     currency: str = Field(default="sat", no_database=True)
+    next_min_bid: float = Field(default=0, no_database=True)
+    time_left_seconds: int = Field(default=0, no_database=True)
+
+    def sync_with_room(self, currency: str, min_bid_up_percentage: float):
+        time_left = self.expires_at - datetime.now(timezone.utc)
+        self.time_left_seconds = max(0, int(time_left.total_seconds()))
+        self.currency = currency
+        if self.time_left_seconds > 0:
+            if self.current_price == 0:
+                self.next_min_bid = self.starting_price
+            else:
+                self.next_min_bid = int(
+                    self.current_price * (1 + min_bid_up_percentage / 100)
+                )
+        else:
+            self.active = False
 
 
 class AuctionItem(PublicAuctionItem):
@@ -94,3 +110,32 @@ class AuctionItemFilters(FilterModel):
     current_price: float | None
     created_at: datetime | None
     expires_at: datetime | None
+
+
+class BidRequest(BaseModel):
+    memo: Optional[str]
+    amount: float
+
+
+class BidResponse(BaseModel):
+    id: str
+    payment_hash: str
+    payment_request: str
+
+
+class PublicBid(BaseModel):
+    id: str
+    auction_item_id: str
+    memo: str = ""
+    amount: float
+    amount_sat: int
+    currency: str
+    created_at: datetime
+
+
+class Bid(PublicBid):
+    user_id: str
+    paid: bool = False
+    higher_bid_made: bool = False
+    payment_hash: str
+    expires_at: datetime  # todo: give 5 minutes to pay

@@ -9,10 +9,12 @@ from .models import (
     AuctionItemFilters,
     AuctionRoom,
     AuctionRoomConfig,
+    Bid,
     CreateAuctionRoomData,
     EditAuctionRoomData,
     PublicAuctionItem,
     PublicAuctionRoom,
+    PublicBid,
 )
 
 db = Database("ext_auction_house")
@@ -52,48 +54,6 @@ async def get_auction_rooms(user_id: str) -> list[AuctionRoom]:
         "SELECT * FROM auction_house.auction_rooms WHERE user_id = :user_id",
         {"user_id": user_id},
         model=AuctionRoom,
-    )
-
-
-async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
-    await db.insert("auction_house.auction_items", data)
-    return PublicAuctionItem(**data.dict())
-
-
-async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
-    return await db.fetchall(
-        """
-            SELECT * FROM auction_house.auction_items
-            WHERE auction_room_id = :auction_room_id
-        """,
-        {"auction_room_id": auction_room_id},
-        PublicAuctionItem,
-    )
-
-
-async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
-    return await db.fetchall(
-        """
-        SELECT * FROM auction_house.auction_items WHERE user_id = :user_id
-        ORDER BY time DESC
-        """,
-        {"user_id": user_id},
-        PublicAuctionItem,
-    )
-
-
-async def get_auction_items_paginated(
-    auction_room_id: str,
-    filters: Optional[Filters[AuctionItemFilters]] = None,
-) -> Page[PublicAuctionItem]:
-    return await db.fetch_page(
-        """
-        SELECT * FROM auction_house.auction_items
-        WHERE auction_room_id = :auction_room_id
-        """,
-        values={"auction_room_id": auction_room_id},
-        filters=filters,
-        model=PublicAuctionItem,
     )
 
 
@@ -145,3 +105,115 @@ async def update_auction_room(
     )
 
     return auction_room
+
+
+async def get_auction_items_paginated(
+    auction_room_id: str,
+    filters: Optional[Filters[AuctionItemFilters]] = None,
+) -> Page[PublicAuctionItem]:
+    return await db.fetch_page(
+        """
+        SELECT * FROM auction_house.auction_items
+        WHERE auction_room_id = :auction_room_id
+        """,
+        values={"auction_room_id": auction_room_id},
+        filters=filters,
+        model=PublicAuctionItem,
+    )
+
+
+async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
+    await db.insert("auction_house.auction_items", data)
+    return PublicAuctionItem(**data.dict())
+
+
+async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
+    return await db.fetchall(
+        """
+            SELECT * FROM auction_house.auction_items
+            WHERE auction_room_id = :auction_room_id
+        """,
+        {"auction_room_id": auction_room_id},
+        PublicAuctionItem,
+    )
+
+
+async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
+    return await db.fetchall(
+        """
+        SELECT * FROM auction_house.auction_items WHERE user_id = :user_id
+        ORDER BY created_at DESC
+        """,
+        {"user_id": user_id},
+        PublicAuctionItem,
+    )
+
+
+async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
+    return await db.fetchone(
+        """
+        SELECT * FROM auction_house.auction_items WHERE id = :id
+        ORDER BY created_at DESC
+        """,
+        {"id": item_id},
+        PublicAuctionItem,
+    )
+
+
+async def get_bid_by_payment_hash(payment_hash: str) -> Optional[Bid]:
+    return await db.fetchone(
+        """
+        SELECT * FROM auction_house.bids WHERE payment_hash = :payment_hash
+        ORDER BY created_at DESC
+        """,
+        {"payment_hash": payment_hash},
+        Bid,
+    )
+
+
+async def create_bid(data: Bid) -> PublicBid:
+    await db.insert("auction_house.bids", data)
+    return PublicBid(**data.dict())
+
+
+async def update_bid(data: Bid) -> Bid:
+    await db.update("auction_house.bids", data)
+    return data
+
+
+async def update_top_bid(auction_item_id: str, bid_id: str) -> None:
+    await db.execute(
+        """
+        UPDATE auction_house.bids
+        SET higher_bid_made = true
+        WHERE auction_item_id = :auction_item_id AND id != :bid_id
+        """,
+        {"auction_item_id": auction_item_id, "bid_id": bid_id},
+    )
+
+
+async def get_bids(auction_item_id: str) -> list[PublicBid]:
+    return await db.fetchall(
+        """
+            SELECT * FROM auction_house.bids
+            WHERE auction_item_id = :auction_item_id AND paid = true
+            ORDER BY created_at DESC
+        """,
+        {"auction_item_id": auction_item_id},
+        PublicBid,
+    )
+
+
+async def get_bids_paginated(
+    auction_item_id: str,
+    filters: Optional[Filters[AuctionItemFilters]] = None,
+) -> Page[PublicBid]:
+    return await db.fetch_page(
+        """
+        SELECT * FROM auction_house.bids
+        WHERE auction_item_id = :auction_item_id AND paid = true
+        """,
+        values={"auction_item_id": auction_item_id},
+        filters=filters,
+        model=PublicBid,
+    )

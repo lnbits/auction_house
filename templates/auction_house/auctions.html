@@ -22,7 +22,9 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               class="float-right"
               >Add Auction Item</q-btn
             >
-            <q-badge class="float-right" v-else>Login to place bid</q-badge>
+            <q-btn color="gray" outline disable class="float-right" v-else
+              >Login to add your item</q-btn
+            >
           </div>
 
           <div class="col-12">
@@ -57,10 +59,10 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                       unelevated
                       dense
                       size="md"
-                      label="Bid"
+                      label="Bid Now"
                       color="secondary"
                       type="a"
-                      :href="'auctions/' + props.row.id"
+                      :href="'/auction_house/bids/' + props.row.id"
                       target="_blank"
                       class="q-mr-sm"
                     ></q-btn>
@@ -112,7 +114,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           min="0"
           type="number"
           label="Starting Price"
-          hit="Starting price for bidding for this item"
+          hint="Starting price for bidding for this item"
         >
         </q-input>
         <q-input

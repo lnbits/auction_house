@@ -71,13 +71,11 @@ window.app = Vue.createApp({
         },
       },
 
-      currencyOptions: [],
       auctionRoomForm: {
         show: false,
         isUserAuthenticated: is_user_authenticated,
         data: auction_room,
       },
-      auctionRoomTab: "overview",
     };
   },
   methods: {
@@ -101,7 +99,7 @@ window.app = Vue.createApp({
       try {
         await LNbits.api.request(
           "POST",
-          `/auction_house/api/v1/${auctionRoomId}/items`,
+          `/auction_house/api/v1/${auctionRoomId}/items`, // items/{}
           null,
           this.itemFormDialog.data,
         );
