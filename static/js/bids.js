@@ -4,6 +4,12 @@ window.app = Vue.createApp({
   data: function () {
     return {
       auctionItems: [],
+      timeLeft: {
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+      },
       itemFormDialog: {
         show: false,
         data: {
@@ -70,11 +76,10 @@ window.app = Vue.createApp({
           rowsNumber: 10,
         },
       },
-
-      auctionRoomForm: {
+      bidForm: {
         show: false,
         isUserAuthenticated: is_user_authenticated,
-        data: auction_room,
+        data: auction_item,
       },
     };
   },
@@ -82,7 +87,7 @@ window.app = Vue.createApp({
     getAuctionItemsPaginated: async function (props) {
       try {
         const params = LNbits.utils.prepareFilterQuery(this.itemsTable, props);
-        const auctionRoomId = this.auctionRoomForm.data.id;
+        const auctionRoomId = this.bidForm.data.id;
         const { data, total } = await LNbits.api.request(
           "GET",
           `/auction_house/api/v1/${auctionRoomId}/items/paginated?${params}`,
@@ -95,7 +100,7 @@ window.app = Vue.createApp({
     },
 
     addAuctionItem: async function () {
-      const auctionRoomId = this.auctionRoomForm.data.id;
+      const auctionRoomId = this.bidForm.data.id;
       try {
         await LNbits.api.request(
           "POST",
@@ -131,7 +136,23 @@ window.app = Vue.createApp({
     },
   },
   created() {
-    console.log("### created", this.auctionRoomForm);
+    console.log("### created bidForm", this.bidForm);
+    console.log(
+      "### created auctionItems",
+      this.bidForm.data.time_left_seconds,
+    );
+
+    setInterval(() => {
+      this.bidForm.data.time_left_seconds -= 1;
+      const duration = moment.utc(this.bidForm.data.time_left_seconds * 1000);
+      this.timeLeft = {
+        days: duration.format("DDD"),
+        hours: duration.format("HH"),
+        minutes: duration.format("mm"),
+        seconds: duration.format("ss"),
+      };
+      setTimeout(() => {});
+    }, 1000);
     this.getAuctionItemsPaginated();
   },
 });

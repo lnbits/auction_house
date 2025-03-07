@@ -55,48 +55,6 @@ async def get_auction_rooms(user_id: str) -> list[AuctionRoom]:
     )
 
 
-async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
-    await db.insert("auction_house.auction_items", data)
-    return PublicAuctionItem(**data.dict())
-
-
-async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
-    return await db.fetchall(
-        """
-            SELECT * FROM auction_house.auction_items
-            WHERE auction_room_id = :auction_room_id
-        """,
-        {"auction_room_id": auction_room_id},
-        PublicAuctionItem,
-    )
-
-
-async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
-    return await db.fetchall(
-        """
-        SELECT * FROM auction_house.auction_items WHERE user_id = :user_id
-        ORDER BY time DESC
-        """,
-        {"user_id": user_id},
-        PublicAuctionItem,
-    )
-
-
-async def get_auction_items_paginated(
-    auction_room_id: str,
-    filters: Optional[Filters[AuctionItemFilters]] = None,
-) -> Page[PublicAuctionItem]:
-    return await db.fetch_page(
-        """
-        SELECT * FROM auction_house.auction_items
-        WHERE auction_room_id = :auction_room_id
-        """,
-        values={"auction_room_id": auction_room_id},
-        filters=filters,
-        model=PublicAuctionItem,
-    )
-
-
 async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
     auction_room = await get_auction_room(
         user_id=user_id, auction_room_id=auction_room_id
@@ -145,3 +103,60 @@ async def update_auction_room(
     )
 
     return auction_room
+
+
+async def get_auction_items_paginated(
+    auction_room_id: str,
+    filters: Optional[Filters[AuctionItemFilters]] = None,
+) -> Page[PublicAuctionItem]:
+    return await db.fetch_page(
+        """
+        SELECT * FROM auction_house.auction_items
+        WHERE auction_room_id = :auction_room_id
+        """,
+        values={"auction_room_id": auction_room_id},
+        filters=filters,
+        model=PublicAuctionItem,
+    )
+
+
+async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
+    await db.insert("auction_house.auction_items", data)
+    return PublicAuctionItem(**data.dict())
+
+
+async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
+    return await db.fetchall(
+        """
+            SELECT * FROM auction_house.auction_items
+            WHERE auction_room_id = :auction_room_id
+        """,
+        {"auction_room_id": auction_room_id},
+        PublicAuctionItem,
+    )
+
+
+async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
+    return await db.fetchall(
+        """
+        SELECT * FROM auction_house.auction_items WHERE user_id = :user_id
+        ORDER BY created_at DESC
+        """,
+        {"user_id": user_id},
+        PublicAuctionItem,
+    )
+
+
+async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
+    item = await db.fetchone(
+        """
+        SELECT * FROM auction_house.auction_items WHERE id = :id
+        ORDER BY created_at DESC
+        """,
+        {"id": item_id},
+        PublicAuctionItem,
+    )
+    if item:
+        time_left = item.expires_at - datetime.now(timezone.utc)
+        item.time_left_seconds = int(time_left.total_seconds())
+    return item
