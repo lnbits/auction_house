@@ -118,11 +118,11 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <q-table
               dense
               flat
-              :rows="auctionItems"
+              :rows="bidsList"
               row-key="id"
-              :columns="itemsTable.columns"
-              v-model:pagination="itemsTable.pagination"
-              @request="getAuctionItemsPaginated"
+              :columns="bidsTable.columns"
+              v-model:pagination="bidsTable.pagination"
+              @request="getBidsPaginated"
             >
               {% raw %}
               <template v-slot:header="props">

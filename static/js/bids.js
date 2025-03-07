@@ -3,7 +3,7 @@ window.app = Vue.createApp({
   mixins: [window.windowMixin],
   data: function () {
     return {
-      auctionItems: [],
+      bidsList: [],
       timeLeft: {
         days: 0,
         hours: 0,
@@ -22,54 +22,50 @@ window.app = Vue.createApp({
           starting_price: 0,
         },
       },
-      itemsTable: {
+      // memo: str = ""
+      // amount: float
+      // amount_sat: int
+      // currency: str
+      // created_at: datetime
+      bidsTable: {
         columns: [
           {
-            name: "name",
+            name: "id",
             align: "left",
-            label: "Name",
-            field: "name",
+            label: "Id",
+            field: "ID",
             sortable: true,
           },
           {
-            name: "description",
+            name: "memo",
             align: "left",
             label: "Description",
-            field: "description",
-            sortable: false,
-            format: (val) => (val || "").substring(0, 50),
+            field: "memo",
+            sortable: true,
           },
           {
-            name: "starting_price",
+            name: "amount",
             align: "left",
-            label: "Sarting Price",
-            field: "starting_price",
+            label: "Amount",
+            field: "amount",
             sortable: true,
             format: (_, row) =>
-              LNbits.utils.formatCurrency(row.starting_price, row.currency),
+              LNbits.utils.formatCurrency(row.amount, row.currency),
           },
           {
-            name: "current_price",
+            name: "amount_sat",
             align: "left",
-            label: "Current Price",
-            field: "current_price",
+            label: "Amount Sat",
+            field: "amount_sat",
             sortable: true,
             format: (_, row) =>
-              LNbits.utils.formatCurrency(row.current_price, row.currency),
+              LNbits.utils.formatCurrency(row.amount_sat, "sat"),
           },
           {
             name: "created_at",
             align: "left",
             label: "Created At",
             field: "created_at",
-            format: (val) => LNbits.utils.formatDateString(val),
-            sortable: true,
-          },
-          {
-            name: "expires_at",
-            align: "left",
-            label: "Expires At",
-            field: "expires_at",
             format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,
           },
@@ -88,16 +84,16 @@ window.app = Vue.createApp({
     };
   },
   methods: {
-    getAuctionItemsPaginated: async function (props) {
+    getBidsPaginated: async function (props) {
       try {
-        const params = LNbits.utils.prepareFilterQuery(this.itemsTable, props);
-        const auctionRoomId = this.bidForm.data.id;
+        const params = LNbits.utils.prepareFilterQuery(this.bidsTable, props);
+        const auctionItemId = this.bidForm.data.id;
         const { data, total } = await LNbits.api.request(
           "GET",
-          `/auction_house/api/v1/${auctionRoomId}/items/paginated?${params}`,
+          `/auction_house/api/v1/bids/${auctionItemId}/paginated?${params}`,
         );
 
-        this.auctionItems = data.data;
+        this.bidsList = data.data;
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }
@@ -185,6 +181,6 @@ window.app = Vue.createApp({
     console.log("### created bidForm", this.bidForm);
 
     this.initTimeLeft(this.bidForm.data);
-    this.getAuctionItemsPaginated();
+    this.getBidsPaginated();
   },
 });

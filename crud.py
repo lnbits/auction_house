@@ -190,3 +190,30 @@ async def update_top_bid(auction_item_id: str, bid_id: str) -> None:
         """,
         {"auction_item_id": auction_item_id, "bid_id": bid_id},
     )
+
+
+async def get_bids(auction_item_id: str) -> list[PublicBid]:
+    return await db.fetchall(
+        """
+            SELECT * FROM auction_house.bids
+            WHERE auction_item_id = :auction_item_id AND paid = true
+            ORDER BY created_at DESC
+        """,
+        {"auction_item_id": auction_item_id},
+        PublicBid,
+    )
+
+
+async def get_bids_paginated(
+    auction_item_id: str,
+    filters: Optional[Filters[AuctionItemFilters]] = None,
+) -> Page[PublicBid]:
+    return await db.fetch_page(
+        """
+        SELECT * FROM auction_house.bids
+        WHERE auction_item_id = :auction_item_id AND paid = true
+        """,
+        values={"auction_item_id": auction_item_id},
+        filters=filters,
+        model=PublicBid,
+    )
