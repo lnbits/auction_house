@@ -12,7 +12,7 @@ class AuctionRoomConfig(BaseModel):
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet: str
+    wallet: str  # todo: wallet_id
     currency: str
     name: str
     description: str
@@ -96,3 +96,31 @@ class AuctionItemFilters(FilterModel):
     current_price: float | None
     created_at: datetime | None
     expires_at: datetime | None
+
+
+class CreateBid(BaseModel):
+    bid_memo: Optional[str]
+    bid_amount: float
+
+
+class BidRequest(BaseModel):
+    id: str
+    payment_hash: str
+    bolt11: str
+
+
+class PublicBid(BaseModel):
+    id: str
+    auction_item_id: str
+    bid_memo: str
+    bid_amount: float
+    bid_amount_sat: int
+    currency: str
+    created_at: datetime
+
+
+class Bid(PublicBid):
+    user_id: str
+    paid: bool = False
+    deprecated: bool = False  # a higher bid was made
+    payment_hash: str

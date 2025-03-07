@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from lnbits.core.models import Payment
+from lnbits.core.services import create_invoice
 from lnbits.db import Filters, Page
 from lnbits.helpers import urlsafe_short_hash
 
 from .crud import (
     create_auction_item,
+    create_bid,
     get_auction_item_by_id,
     get_auction_items_paginated,
     get_auction_room_by_id,
@@ -15,7 +18,10 @@ from .models import (
     AuctionItem,
     AuctionItemFilters,
     AuctionRoom,
+    Bid,
+    BidRequest,
     CreateAuctionItem,
+    CreateBid,
     PublicAuctionItem,
 )
 
@@ -40,6 +46,20 @@ async def add_auction_item(
     return await create_auction_item(item)
 
 
+async def get_auction_room_items_paginated(
+    auction_room: AuctionRoom,
+    filters: Optional[Filters[AuctionItemFilters]] = None,
+) -> Page[PublicAuctionItem]:
+
+    page = await get_auction_items_paginated(
+        auction_room_id=auction_room.id, filters=filters
+    )
+    for item in page.data:
+        item.currency = auction_room.currency
+
+    return page
+
+
 async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
     item = await get_auction_item_by_id(item_id)
     if not item:
@@ -59,18 +79,50 @@ async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
             item.next_min_bid = int(
                 item.current_price * (1 + auction_room.min_bid_up_percentage / 100)
             )
+    else:
+        item.active = False
     return item
 
 
-async def get_auction_room_items_paginated(
-    auction_room: AuctionRoom,
-    filters: Optional[Filters[AuctionItemFilters]] = None,
-) -> Page[PublicAuctionItem]:
+async def place_bid(user_id: str, auction_item_id: str, data: CreateBid) -> BidRequest:
+    auction_item = await get_auction_item(auction_item_id)
+    if not auction_item:
+        raise ValueError("Auction Item not found.")
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        raise ValueError("Auction Room not found.")
+    if auction_item.active is False:
+        raise ValueError("Auction Closed.")
 
-    page = await get_auction_items_paginated(
-        auction_room_id=auction_room.id, filters=filters
+    if auction_item.next_min_bid > data.bid_amount:
+        raise ValueError(
+            f"Bid amount too low. Next min bid: {auction_item.next_min_bid}"
+        )
+
+    payment: Payment = await create_invoice(
+        wallet_id=auction_room.wallet,
+        amount=data.bid_amount,
+        currency=auction_room.currency,
+        extra={"tag": "auction_house"},
+        memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}."
+        f"Amount: {data.bid_amount} {auction_room.currency}",
     )
-    for item in page.data:
-        item.currency = auction_room.currency
 
-    return page
+    bid = Bid(
+        **data.dict(),
+        id=urlsafe_short_hash(),
+        user_id=user_id,
+        auction_item_id=auction_item.id,
+        currency=auction_room.currency,
+        payment_hash=payment.payment_hash,
+        bid_amount=data.bid_amount,
+        bid_amount_sat=payment.amount,
+        created_at=datetime.now(timezone.utc),
+        **data.dict(),
+    )
+    await create_bid(bid)
+    return BidRequest(
+        id=bid.id,
+        payment_hash=payment.payment_hash,
+        bolt11=payment.bolt11,
+    )

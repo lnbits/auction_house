@@ -24,8 +24,10 @@ from .helpers import (
 from .models import (
     AuctionItemFilters,
     AuctionRoom,
+    BidRequest,
     CreateAuctionItem,
     CreateAuctionRoomData,
+    CreateBid,
     EditAuctionRoomData,
     PublicAuctionItem,
 )
@@ -33,6 +35,7 @@ from .services import (
     add_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
+    place_bid,
 )
 
 auction_house_api_router: APIRouter = APIRouter()
@@ -129,3 +132,18 @@ async def api_get_user_auction_items(
     user_id: str = Depends(check_user_id),
 ) -> list[PublicAuctionItem]:
     return await get_auction_items_for_user(user_id=user_id)
+
+
+############################# BIDS #############################
+
+
+@auction_house_api_router.post(
+    "/api/v1/bids/{auction_item_id}", status_code=HTTPStatus.CREATED
+)
+async def api_place_bid(
+    auction_item_id: str,
+    data: CreateBid,
+    user_id: str = Depends(check_user_id),
+) -> BidRequest:
+
+    return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)

@@ -9,10 +9,12 @@ from .models import (
     AuctionItemFilters,
     AuctionRoom,
     AuctionRoomConfig,
+    Bid,
     CreateAuctionRoomData,
     EditAuctionRoomData,
     PublicAuctionItem,
     PublicAuctionRoom,
+    PublicBid,
 )
 
 db = Database("ext_auction_house")
@@ -156,3 +158,8 @@ async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
         {"id": item_id},
         PublicAuctionItem,
     )
+
+
+async def create_bid(data: Bid) -> PublicBid:
+    await db.insert("auction_house.bids", data)
+    return PublicBid(**data.dict())
