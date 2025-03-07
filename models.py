@@ -98,23 +98,23 @@ class AuctionItemFilters(FilterModel):
     expires_at: datetime | None
 
 
-class CreateBid(BaseModel):
-    bid_memo: Optional[str]
-    bid_amount: float
-
-
 class BidRequest(BaseModel):
+    memo: Optional[str]
+    amount: float
+
+
+class BidResponse(BaseModel):
     id: str
     payment_hash: str
-    bolt11: str
+    payment_request: str
 
 
 class PublicBid(BaseModel):
     id: str
     auction_item_id: str
-    bid_memo: str
-    bid_amount: float
-    bid_amount_sat: int
+    memo: str = ""
+    amount: float
+    amount_sat: int
     currency: str
     created_at: datetime
 
@@ -122,5 +122,5 @@ class PublicBid(BaseModel):
 class Bid(PublicBid):
     user_id: str
     paid: bool = False
-    deprecated: bool = False  # a higher bid was made
+    higher_bid_made: bool = False
     payment_hash: str

@@ -1,7 +1,7 @@
 from lnbits.db import Database
 
 
-async def m001_initial_invoices(db: Database):
+async def m001_auction_rooms(db: Database):
     empty_dict: dict[str, str] = {}
     await db.execute(
         f"""
@@ -43,6 +43,32 @@ async def m001_initial_invoices(db: Database):
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
 
             extra TEXT NOT NULL DEFAULT '{empty_dict}'
+        );
+   """
+    )
+
+
+async def m002_bids(db: Database):
+
+    await db.execute(
+        f"""
+       CREATE TABLE auction_house.bids (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            auction_item_id TEXT NOT NULL,
+
+            paid BOOLEAN NOT NULL DEFAULT true,
+            higher_bid_made BOOLEAN NOT NULL DEFAULT true,
+
+            payment_hash TEXT NOT NULL,
+            memo TEXT NOT NULL,
+
+            amount REAL NOT NULL,
+            amount_sat INT NOT NULL,
+
+            currency TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+
         );
    """
     )

@@ -10,8 +10,10 @@ window.app = Vue.createApp({
         minutes: 0,
         seconds: 0,
       },
+      bidRequest: null,
       bidPrice: 0,
-      bidPriceSats: 0,
+      bidMemo: "",
+      showBidRequestQrCode: false,
       itemFormDialog: {
         show: false,
         data: {
@@ -120,6 +122,31 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(error);
       }
     },
+    placeBid: async function () {
+      const auctionItemId = this.bidForm.data.id;
+      try {
+        const {data} = await LNbits.api.request(
+          "PUT",
+          `/auction_house/api/v1/bids/${auctionItemId}`,
+          null,
+          {
+            amount: this.bidPrice,
+            memo: this.bidMemo,
+          },
+        );
+        console.log("### placeBid", data);
+        this.bidRequest = data;
+        this.showBidRequestQrCode = true
+        this.$q.notify({
+          type: "positive",
+          message: "Bid queued!",
+          caption: "Pay the invoice to confirm the bid",
+        });
+        // this.getAuctionItemsPaginated();
+      } catch (error) {
+        LNbits.utils.notifyApiError(error);
+      }
+    },
     showAddNewAuctionItemDialog: function () {
       this.itemFormDialog.show = true;
       this.itemFormDialog.data = {
@@ -127,6 +154,23 @@ window.app = Vue.createApp({
         description: "",
         starting_price: 0,
       };
+    },
+    initTimeLeft: function (item) {
+      setInterval(() => {
+        item.time_left_seconds -= 1;
+        const duration = moment.utc(item.time_left_seconds * 1000);
+        this.timeLeft = {
+          days: duration.format("DDD"),
+          hours: duration.format("HH"),
+          minutes: duration.format("mm"),
+          seconds: duration.format("ss"),
+        };
+        this.currentPrice = LNbits.utils.formatCurrency(
+          item.current_price,
+          item.currency,
+        );
+        this.bidPrice = item.next_min_bid;
+      }, 1000);
     },
     formatCurrency(amount, currency) {
       try {
@@ -139,27 +183,8 @@ window.app = Vue.createApp({
   },
   created() {
     console.log("### created bidForm", this.bidForm);
-    console.log(
-      "### created auctionItems",
-      this.bidForm.data.time_left_seconds,
-    );
 
-    setInterval(() => {
-      const item = this.bidForm.data;
-      item.time_left_seconds -= 1;
-      const duration = moment.utc(item.time_left_seconds * 1000);
-      this.timeLeft = {
-        days: duration.format("DDD"),
-        hours: duration.format("HH"),
-        minutes: duration.format("mm"),
-        seconds: duration.format("ss"),
-      };
-      this.currentPrice = LNbits.utils.formatCurrency(
-        item.current_price,
-        item.currency,
-      );
-      this.bidPrice = item.next_min_bid;
-    }, 1000);
+    this.initTimeLeft(this.bidForm.data);
     this.getAuctionItemsPaginated();
   },
 });

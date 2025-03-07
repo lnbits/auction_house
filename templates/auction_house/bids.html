@@ -31,7 +31,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <h5 class="q-mt-sm">Time Left:</h5>
           </div>
           <div class="col-8">
-            <div v-if="timeLeft">
+            <div v-if="timeLeft" class="q-mt-md">
               <span v-text="timeLeft.days"></span> days
               <span v-text="timeLeft.hours"></span> hours
               <span v-text="timeLeft.minutes"></span> minutes
@@ -44,7 +44,9 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <h5 class="q-mt-sm">Last Bid:</h5>
           </div>
           <div class="col-8">
-            <span v-text="currentPrice"></span>
+            <div class="q-mt-md">
+              <span v-text="currentPrice"></span>
+            </div>
           </div>
         </div>
         <div v-if="this.bidForm.data.current_price" class="row">
@@ -57,7 +59,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           <div class="col-4">
             <h5 class="q-mt-sm">Next Bid:</h5>
           </div>
-          <div class="col-8">
+          <div class="col-4">
             <q-input
               filled
               dense
@@ -68,12 +70,10 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               hint="The minimum value for the next bid"
             ></q-input>
           </div>
-        </div>
-        <div class="row">
-          <div class="col-12">
+          <div class="col-4">
             <q-btn
               v-if="bidForm.isUserAuthenticated"
-              @click="showAddNewAuctionItemDialog"
+              @click="placeBid"
               unelevated
               color="primary"
               class="float-right"
@@ -84,6 +84,25 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             >
           </div>
         </div>
+        <div v-if="bidForm.isUserAuthenticated" class="row">
+          <div class="col-4">
+            <h5 class="q-mt-sm">Memo:</h5>
+          </div>
+
+          <div class="col-8">
+            <q-input
+              filled
+              dense
+              type="textarea"
+              rows="2"
+              v-model.trim="bidMemo"
+              label="Memo"
+              placeholder="Memo for the bid"
+              hint="Optional. This will be displayed in the bid history"
+            ></q-input>
+          </div>
+        </div>
+        <div class="row"></div>
       </q-card-section>
     </q-card>
 
@@ -155,53 +174,25 @@ from "macros.jinja" import window_vars with context %} {% block page %}
   <div class="col-md-2 col-sm-none">
     <!-- empty space -->
   </div>
-
-  <q-dialog v-model="itemFormDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="addAuctionItem" class="q-gutter-md">
-        <q-input
-          filled
-          dense
-          v-model.trim="itemFormDialog.data.name"
-          label="Name"
-          placeholder="Auction Item Name (must be unique)"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="itemFormDialog.data.description"
-          label="Description"
-          type="textarea"
-          rows="2"
-          placeholder="Detailed description of the item"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model="itemFormDialog.data.starting_price"
-          min="0"
-          type="number"
-          label="Starting Price"
-          hit="Starting price for bidding for this item"
-        >
-        </q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="itemFormDialog.data.transfer_code"
-          label="Transfer Code"
-          hint="Code required to prove the ownership of the item"
-        ></q-input>
-
-        <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit">
-            <span> Add Auction Item</span></q-btn
-          >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
+  <q-dialog v-model="showBidRequestQrCode" position="top">
+    <q-card v-if="bidRequest" class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
+      <a
+        class="text-secondary"
+        :href="'lightning:' + bidRequest.payment_request"
+      >
+        <q-responsive :ratio="1" class="q-mx-xs">
+          <lnbits-qrcode
+            :value="bidRequest.payment_request"
+          ></lnbits-qrcode>
+        </q-responsive>
+      </a>
+      <br />
+      <q-btn
+        outline
+        color="grey"
+        @click="copyText('lightning:' + bidRequest.payment_request, 'Invoice copied to clipboard!')"
+        >Copy Invoice</q-btn
+      >
     </q-card>
   </q-dialog>
 </div>

@@ -25,9 +25,9 @@ from .models import (
     AuctionItemFilters,
     AuctionRoom,
     BidRequest,
+    BidResponse,
     CreateAuctionItem,
     CreateAuctionRoomData,
-    CreateBid,
     EditAuctionRoomData,
     PublicAuctionItem,
 )
@@ -137,13 +137,13 @@ async def api_get_user_auction_items(
 ############################# BIDS #############################
 
 
-@auction_house_api_router.post(
+@auction_house_api_router.put(
     "/api/v1/bids/{auction_item_id}", status_code=HTTPStatus.CREATED
 )
 async def api_place_bid(
     auction_item_id: str,
-    data: CreateBid,
+    data: BidRequest,
     user_id: str = Depends(check_user_id),
-) -> BidRequest:
+) -> BidResponse:
 
     return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)

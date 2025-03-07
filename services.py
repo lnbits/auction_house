@@ -20,8 +20,8 @@ from .models import (
     AuctionRoom,
     Bid,
     BidRequest,
+    BidResponse,
     CreateAuctionItem,
-    CreateBid,
     PublicAuctionItem,
 )
 
@@ -84,7 +84,9 @@ async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
     return item
 
 
-async def place_bid(user_id: str, auction_item_id: str, data: CreateBid) -> BidRequest:
+async def place_bid(
+    user_id: str, auction_item_id: str, data: BidRequest
+) -> BidResponse:
     auction_item = await get_auction_item(auction_item_id)
     if not auction_item:
         raise ValueError("Auction Item not found.")
@@ -94,35 +96,34 @@ async def place_bid(user_id: str, auction_item_id: str, data: CreateBid) -> BidR
     if auction_item.active is False:
         raise ValueError("Auction Closed.")
 
-    if auction_item.next_min_bid > data.bid_amount:
+    if auction_item.next_min_bid > data.amount:
         raise ValueError(
             f"Bid amount too low. Next min bid: {auction_item.next_min_bid}"
         )
 
     payment: Payment = await create_invoice(
         wallet_id=auction_room.wallet,
-        amount=data.bid_amount,
+        amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
         memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}."
-        f"Amount: {data.bid_amount} {auction_room.currency}",
+        f"Amount: {data.amount} {auction_room.currency}",
     )
 
     bid = Bid(
-        **data.dict(),
         id=urlsafe_short_hash(),
         user_id=user_id,
         auction_item_id=auction_item.id,
         currency=auction_room.currency,
         payment_hash=payment.payment_hash,
-        bid_amount=data.bid_amount,
-        bid_amount_sat=payment.amount,
+        amount=data.amount,
+        amount_sat=payment.amount,
+        memo=data.memo or "",
         created_at=datetime.now(timezone.utc),
-        **data.dict(),
     )
     await create_bid(bid)
-    return BidRequest(
+    return BidResponse(
         id=bid.id,
         payment_hash=payment.payment_hash,
-        bolt11=payment.bolt11,
+        payment_request=payment.bolt11,
     )
