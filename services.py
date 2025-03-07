@@ -5,6 +5,7 @@ from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice
 from lnbits.db import Filters, Page
 from lnbits.helpers import urlsafe_short_hash
+from loguru import logger
 
 from .crud import (
     create_auction_item,
@@ -13,6 +14,9 @@ from .crud import (
     get_auction_items_paginated,
     get_auction_room_by_id,
     get_auction_rooms,
+    get_bid_by_payment_hash,
+    update_bid,
+    update_top_bid,
 )
 from .models import (
     AuctionItem,
@@ -68,20 +72,22 @@ async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         return None
+    item.sync_with_room(auction_room.currency, auction_room.min_bid_up_percentage)
 
-    time_left = item.expires_at - datetime.now(timezone.utc)
-    item.time_left_seconds = max(0, int(time_left.total_seconds()))
-    item.currency = auction_room.currency
-    if item.time_left_seconds > 0:
-        if item.current_price == 0:
-            item.next_min_bid = 1
-        else:
-            item.next_min_bid = int(
-                item.current_price * (1 + auction_room.min_bid_up_percentage / 100)
-            )
-    else:
-        item.active = False
     return item
+
+
+# async def get_auction_item_for_bid(payment_hash: str) -> Optional[PublicAuctionItem]:
+#     bid = await get_bid_by_payment_hash(payment_hash)
+#     if not bid:
+#         return None
+
+#     auction_room = await get_auction_room_by_id(item.auction_room_id)
+#     if not auction_room:
+#         return None
+#     item.sync_with_room(auction_room.currency, auction_room.min_bid_up_percentage)
+
+#     return item
 
 
 async def place_bid(
@@ -117,9 +123,10 @@ async def place_bid(
         currency=auction_room.currency,
         payment_hash=payment.payment_hash,
         amount=data.amount,
-        amount_sat=payment.amount,
+        amount_sat=payment.sat,
         memo=data.memo or "",
         created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     await create_bid(bid)
     return BidResponse(
@@ -127,3 +134,35 @@ async def place_bid(
         payment_hash=payment.payment_hash,
         payment_request=payment.bolt11,
     )
+
+
+async def update_paid_bid(payment: Payment) -> None:
+    bid = await get_bid_by_payment_hash(payment.payment_hash)
+    if not bid:
+        logger.warning(f"Payment received for unknown bid: {payment.payment_hash}")
+        return
+    auction_item = await get_auction_item(bid.auction_item_id)
+    if not auction_item:
+        logger.warning(
+            f"Payment received for unknown auction item: {bid.auction_item_id}"
+        )
+        return
+    if not auction_item.active:
+        logger.warning(f"Payment received for closed auction: {payment.payment_hash}")
+        # TODO: refund payment
+        return
+    if bid.amount_sat < auction_item.next_min_bid:
+        logger.warning(
+            f"Payment received for bid too low: {payment.payment_hash}. "
+            f"Bid: {bid.amount_sat} Next Min Bid: {auction_item.next_min_bid}. "
+            f"Auction Item: '{auction_item.name}' "
+            f"({auction_item.auction_room_id}/{auction_item.id})"
+        )
+        # todo: refund payment
+        return
+    # todo: more checks
+    bid.paid = True
+    await update_bid(bid)
+    await update_top_bid(bid.auction_item_id, bid.id)
+
+    logger.debug(f"Bid accepted for '{auction_item.name}' for '{bid.amount_sat} sat'.")

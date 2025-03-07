@@ -175,15 +175,16 @@ from "macros.jinja" import window_vars with context %} {% block page %}
     <!-- empty space -->
   </div>
   <q-dialog v-model="showBidRequestQrCode" position="top">
-    <q-card v-if="bidRequest" class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
+    <q-card
+      v-if="bidRequest"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card text-center"
+    >
       <a
         class="text-secondary"
         :href="'lightning:' + bidRequest.payment_request"
       >
         <q-responsive :ratio="1" class="q-mx-xs">
-          <lnbits-qrcode
-            :value="bidRequest.payment_request"
-          ></lnbits-qrcode>
+          <lnbits-qrcode :value="bidRequest.payment_request"></lnbits-qrcode>
         </q-responsive>
       </a>
       <br />

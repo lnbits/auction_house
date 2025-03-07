@@ -160,6 +160,33 @@ async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
     )
 
 
+async def get_bid_by_payment_hash(payment_hash: str) -> Optional[Bid]:
+    return await db.fetchone(
+        """
+        SELECT * FROM auction_house.bids WHERE payment_hash = :payment_hash
+        ORDER BY created_at DESC
+        """,
+        {"payment_hash": payment_hash},
+        Bid,
+    )
+
+
 async def create_bid(data: Bid) -> PublicBid:
     await db.insert("auction_house.bids", data)
     return PublicBid(**data.dict())
+
+
+async def update_bid(data: Bid) -> Bid:
+    await db.update("auction_house.bids", data)
+    return data
+
+
+async def update_top_bid(auction_item_id: str, bid_id: str) -> None:
+    await db.execute(
+        """
+        UPDATE auction_house.bids
+        SET higher_bid_made = true
+        WHERE auction_item_id = :auction_item_id AND id != :bid_id
+        """,
+        {"auction_item_id": auction_item_id, "bid_id": bid_id},
+    )

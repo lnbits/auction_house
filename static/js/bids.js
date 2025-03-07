@@ -125,7 +125,7 @@ window.app = Vue.createApp({
     placeBid: async function () {
       const auctionItemId = this.bidForm.data.id;
       try {
-        const {data} = await LNbits.api.request(
+        const { data } = await LNbits.api.request(
           "PUT",
           `/auction_house/api/v1/bids/${auctionItemId}`,
           null,
@@ -136,7 +136,7 @@ window.app = Vue.createApp({
         );
         console.log("### placeBid", data);
         this.bidRequest = data;
-        this.showBidRequestQrCode = true
+        this.showBidRequestQrCode = true;
         this.$q.notify({
           type: "positive",
           message: "Bid queued!",
