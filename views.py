@@ -8,10 +8,10 @@ from lnbits.decorators import check_user_exists, optional_user_id
 from lnbits.helpers import template_renderer
 
 from .crud import (
-    get_auction_item_by_id,
     get_auction_room,
     get_auction_room_public_data,
 )
+from .services import get_auction_item
 
 auction_house_generic_router: APIRouter = APIRouter()
 
@@ -77,7 +77,7 @@ async def bids_list(
     auction_item_id: str,
     user_id: Optional[str] = Depends(optional_user_id),
 ):
-    auction_item = await get_auction_item_by_id(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item does not exist.")
     return auction_house_renderer().TemplateResponse(

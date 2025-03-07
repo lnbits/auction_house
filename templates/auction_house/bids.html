@@ -10,23 +10,17 @@ from "macros.jinja" import window_vars with context %} {% block page %}
     <q-card>
       <q-card-section>
         <div class="row">
-          <div class="col-6">
+          <div class="col-12">
             <h3 class="q-mt-sm">
               <span v-text="this.bidForm.data.name"></span>
             </h3>
           </div>
-          <div class="col-6">
-            <q-btn
-              v-if="bidForm.isUserAuthenticated"
-              @click="showAddNewAuctionItemDialog"
-              unelevated
-              color="primary"
-              class="float-right"
-              >Add Auction Item</q-btn
-            >
-            <q-btn v-else color="gray" outline disable class="float-right"
-              >Login to place your bid</q-btn
-            >
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <h6 class="q-mt-none q-mb-none">
+              <span v-text="this.bidForm.data.description"></span>
+            </h6>
           </div>
         </div>
       </q-card-section>
@@ -49,9 +43,11 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           <div class="col-4">
             <h5 class="q-mt-sm">Last Bid:</h5>
           </div>
-          <div class="col-8"></div>
+          <div class="col-8">
+            <span v-text="currentPrice"></span>
+          </div>
         </div>
-        <div class="row">
+        <div v-if="this.bidForm.data.current_price" class="row">
           <div class="col-4">
             <h5 class="q-mt-sm">Last Bidder Name:</h5>
           </div>
@@ -65,12 +61,27 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <q-input
               filled
               dense
-              v-model="itemFormDialog.data.starting_price"
+              v-model="bidPrice"
               min="0"
               type="number"
               label="Next Bid Value"
               hint="The minimum value for the next bid"
             ></q-input>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <q-btn
+              v-if="bidForm.isUserAuthenticated"
+              @click="showAddNewAuctionItemDialog"
+              unelevated
+              color="primary"
+              class="float-right"
+              >Place Bid</q-btn
+            >
+            <q-btn v-else color="gray" outline disable class="float-right"
+              >Login to place your bid</q-btn
+            >
           </div>
         </div>
       </q-card-section>

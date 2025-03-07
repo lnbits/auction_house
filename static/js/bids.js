@@ -10,6 +10,8 @@ window.app = Vue.createApp({
         minutes: 0,
         seconds: 0,
       },
+      bidPrice: 0,
+      bidPriceSats: 0,
       itemFormDialog: {
         show: false,
         data: {
@@ -143,15 +145,20 @@ window.app = Vue.createApp({
     );
 
     setInterval(() => {
-      this.bidForm.data.time_left_seconds -= 1;
-      const duration = moment.utc(this.bidForm.data.time_left_seconds * 1000);
+      const item = this.bidForm.data;
+      item.time_left_seconds -= 1;
+      const duration = moment.utc(item.time_left_seconds * 1000);
       this.timeLeft = {
         days: duration.format("DDD"),
         hours: duration.format("HH"),
         minutes: duration.format("mm"),
         seconds: duration.format("ss"),
       };
-      setTimeout(() => {});
+      this.currentPrice = LNbits.utils.formatCurrency(
+        item.current_price,
+        item.currency,
+      );
+      this.bidPrice = item.next_min_bid;
     }, 1000);
     this.getAuctionItemsPaginated();
   },

@@ -148,7 +148,7 @@ async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
 
 
 async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
-    item = await db.fetchone(
+    return await db.fetchone(
         """
         SELECT * FROM auction_house.auction_items WHERE id = :id
         ORDER BY created_at DESC
@@ -156,7 +156,3 @@ async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
         {"id": item_id},
         PublicAuctionItem,
     )
-    if item:
-        time_left = item.expires_at - datetime.now(timezone.utc)
-        item.time_left_seconds = int(time_left.total_seconds())
-    return item

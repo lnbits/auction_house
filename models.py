@@ -77,6 +77,7 @@ class PublicAuctionItem(BaseModel):
     expires_at: datetime
     bid_count: int = Field(default=0, no_database=True)
     currency: str = Field(default="sat", no_database=True)
+    next_min_bid: int = Field(default=0, no_database=True)
     time_left_seconds: int = Field(default=0, no_database=True)
 
 
