@@ -67,7 +67,10 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             ></q-input>
           </div>
           <div class="col-4">
-            <span v-text="this.bidForm.data.currency" class="float-left q-mt-sm q-ml-md"></span>
+            <span
+              v-text="this.bidForm.data.currency"
+              class="float-left q-mt-sm q-ml-md"
+            ></span>
           </div>
         </div>
         <div v-if="bidForm.isUserAuthenticated" class="row">

@@ -168,16 +168,13 @@ async def new_bid_made(payment: Payment) -> None:
         # todo: refund payment
         return
     # todo: more checks
-    await _accept_bid(auction_item, bid, payment.payment_hash)
+    await _accept_bid(bid, payment.payment_hash)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' for '{bid.amount_sat} sat'.")
 
 
-async def _accept_bid(auction_item: AuctionItem, bid: Bid, payment_hash: str):
+async def _accept_bid(bid: Bid, payment_hash: str):
     bid.paid = True
     bid.payment_hash = payment_hash
     await update_bid(bid)
     await update_top_bid(bid.auction_item_id, bid.id)
-    # auction_item.current_price_sat = bid.amount_sat
-    # auction_item.current_price = bid.amount
-    # await update_auction_item(auction_item)

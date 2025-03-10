@@ -37,7 +37,6 @@ async def m001_auction_rooms(db: Database):
             description TEXT,
 
             starting_price REAL NOT NULL,
-            current_price REAL NOT NULL,
 
             expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
