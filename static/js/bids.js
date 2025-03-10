@@ -42,7 +42,7 @@ window.app = Vue.createApp({
           {
             name: "created_at",
             align: "left",
-            label: "Created At",
+            label: "Date",
             field: "created_at",
             format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,

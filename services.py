@@ -60,22 +60,25 @@ async def get_auction_room_items_paginated(
         auction_room_id=auction_room.id, filters=filters
     )
     for item in page.data:
-        item.currency = auction_room.currency
+        await get_auction_item_details(item)
 
     return page
 
 
-# todo: should be PublicAuctionItem?
-async def get_auction_item(item_id: str) -> Optional[AuctionItem]:
+async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
     item = await get_auction_item_by_id(item_id)
     if not item:
         return None
 
+    return await get_auction_item_details(item)
+
+
+async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem:
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
-        return None
+        return item
 
-    top_bid = await get_top_bid(item_id)
+    top_bid = await get_top_bid(item.id)
     if top_bid:
         item.current_price_sat = top_bid.amount_sat
         item.current_price = top_bid.amount
