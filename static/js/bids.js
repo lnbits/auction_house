@@ -111,7 +111,6 @@ window.app = Vue.createApp({
           type: "positive",
           message: "Auction Item added!",
         });
-        this.getAuctionItemsPaginated();
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }
@@ -133,12 +132,39 @@ window.app = Vue.createApp({
         this.showBidRequestQrCode = true;
         this.$q.notify({
           type: "positive",
-          message: "Bid queued!",
-          caption: "Pay the invoice to confirm the bid",
+          message: "Pay the invoice to confirm the bid!",
+          caption: "Bid pending.",
         });
-        // this.getAuctionItemsPaginated();
+        this.waitForPayment(this.bidRequest.payment_hash);
       } catch (error) {
         LNbits.utils.notifyApiError(error);
+      }
+    },
+    async waitForPayment(paymentHash) {
+      try {
+
+        const url = new URL(window.location)
+        url.protocol = url.protocol === 'https:' ? 'wss' : 'ws'
+        url.pathname = `/api/v1/ws/${paymentHash}`
+        const ws = new WebSocket(url)
+        ws.addEventListener('message', async ({data}) => {
+          const payment = JSON.parse(data)
+          if (payment.pending === false) {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: 'Invoice Paid!'
+            })
+            this.showBidRequestQrCode = false
+            ws.close()
+            setTimeout(() => {
+              window.location.reload()
+            }
+            , 2000)
+          }
+        })
+      } catch (err) {
+        console.warn(err)
+        LNbits.utils.notifyApiError(err)
       }
     },
     showAddNewAuctionItemDialog: function () {
