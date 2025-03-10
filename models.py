@@ -124,12 +124,12 @@ class PublicBid(BaseModel):
     amount: float
     amount_sat: int
     currency: str
+    higher_bid_made: bool = False
     created_at: datetime
 
 
 class Bid(PublicBid):
     user_id: str
     paid: bool = False
-    higher_bid_made: bool = False
     payment_hash: str
     expires_at: datetime  # todo: give 5 minutes to pay

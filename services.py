@@ -123,7 +123,7 @@ async def place_bid(
         amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
-        memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}."
+        memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}. "
         f"Amount: {data.amount} {auction_room.currency}",
     )
 
@@ -152,58 +152,55 @@ async def new_bid_made(payment: Payment) -> bool:
     if not bid:
         logger.warning(f"Payment received for unknown bid: {payment.payment_hash}")
         return False
+    bid_details = (
+        f"Bid {bid.memo} ({bid.id}). "
+        f"Amount: {bid.amount_sat} sat. {bid.amount} {bid.currency}. "
+        f"Payment: {payment.payment_hash}."
+    )
     if bid.amount_sat != payment.sat:
         logger.warning(
             "Payment amount different than bid amount. "
-            f"Bid amount: {bid.amount_sat}. Payment amount: {payment.sat}. "
-            f"Bid: '{bid.memo}' ({bid.id})"
+            f"Payment amount: {payment.sat}. {bid_details}"
         )
         return False
 
     auction_item = await get_auction_item(bid.auction_item_id)
+    if not auction_item:
+        logger.warning(
+            "Payment received for unknown auction item: "
+            f"{bid.auction_item_id}. {bid_details}"
+        )
+        return False
 
     if await _must_refund_bid_payment(bid, auction_item):
-        message = (
-            f"Bid '{bid.memo}' ({bid.id}). "
-            f"Amount: {bid.amount} sat."
-            f"Payment: {payment.payment_hash}"
-        )
-        logger.info(f"Refunding. {message}")
-        await _refund_payment(bid, auction_item)
-        logger.info(f"Refunded. {message}")
-        return False
+        logger.info(f"Refunding. {bid_details}")
+        refunded = await _refund_payment(bid, auction_item)
+        logger.info(f"Refunded: {refunded}. {bid_details}")
+        return True
 
     assert auction_item
 
     # todo: more checks
     await _accept_bid(bid)
-    logger.debug(f"Bid accepted for '{auction_item.name}' for '{bid.amount_sat} sat'.")
+    logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
     return True
 
 
-async def _must_refund_bid_payment(
-    bid: Bid, auction_item: Optional[PublicAuctionItem] = None
-) -> bool:
-    if not auction_item:
-        logger.warning(
-            f"Payment received for unknown auction item: {bid.auction_item_id}. "
-            f"Bid: '{bid.memo}' ({bid.id})."
-        )
-        return True
+async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
 
     if not auction_item.active:
         logger.warning(
             f"Payment received for closed auction:  {bid.auction_item_id}"
-            f"Bid: '{bid.memo}' ({bid.id})."
+            f"Bid: {bid.memo} ({bid.id})."
         )
         return True
 
-    if bid.amount_sat < auction_item.next_min_bid:
+    if bid.amount < auction_item.next_min_bid:
         logger.warning(
             f"Payment received for bid too low. "
-            f"Bid: '{bid.memo}' ({bid.id}). "
-            f"Bid: {bid.amount_sat} Next Min Bid: {auction_item.next_min_bid}. "
+            f"Bid: {bid.memo} ({bid.id}). "
+            f"Bid: {bid.amount}. Next Min Bid: {auction_item.next_min_bid}. "
             f"Auction Item: '{auction_item.name}' "
             f"({auction_item.auction_room_id}/{auction_item.id})"
         )
@@ -212,9 +209,12 @@ async def _must_refund_bid_payment(
     return False
 
 
-async def _refund_payment(
-    bid: Bid, auction_item: Optional[PublicAuctionItem] = None
-) -> bool:
+async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
+        return False
+
     wallets = await get_wallets(bid.user_id)
     if len(wallets) == 0:
         logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
@@ -223,7 +223,7 @@ async def _refund_payment(
     user_wallet = wallets[0]
 
     memo = (
-        f"Refund Bid: '{bid.memo}' ({bid.id})"
+        f"Refund Bid: {bid.memo} ({bid.id})"
         f"Amount: {bid.amount} {bid.currency}."
         f"Auction item: '{auction_item.name}' ({auction_item.id})."
         if auction_item
@@ -232,16 +232,16 @@ async def _refund_payment(
     refund_payment: Payment = await create_invoice(
         wallet_id=user_wallet.id,
         amount=bid.amount_sat,
-        extra={"tag": "auction_house"},
+        extra={"tag": "auction_house", "is_refund": True},
         memo=memo,
     )
 
     await pay_invoice(
-        wallet_id=user_wallet.id,  # rooom wallet
+        wallet_id=auction_room.wallet,
         payment_request=refund_payment.bolt11,
-        extra={"tag": "auction_house"},
+        extra={"tag": "auction_house", "is_refund": True},
     )
-    logger.info(f"Refund paid. details: {memo}")
+    logger.info(f"Refund paid. {memo}")
     return True
 
 

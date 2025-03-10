@@ -19,6 +19,11 @@ async def wait_for_paid_invoices():
 async def on_invoice_paid(payment: Payment) -> None:
     if not payment.extra or payment.extra.get("tag") != "auction_house":
         return
+    if payment.extra.get("is_refund", False):
+        logger.debug(
+            f"Auction House refund received: '{payment.payment_hash}: {payment.memo}'"
+        )
+        return
     logger.debug(
         f"Auction House payment received: '{payment.payment_hash}: {payment.memo}'"
     )
