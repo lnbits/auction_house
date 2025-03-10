@@ -117,6 +117,13 @@ window.app = Vue.createApp({
     },
     placeBid: async function () {
       const auctionItemId = this.bidForm.data.id;
+      if (!this.bidMemo) {
+        this.$q.notify({
+          type: "warning",
+          message: "Please enter a memo!",
+        });
+        return;
+      }
       try {
         const { data } = await LNbits.api.request(
           "PUT",

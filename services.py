@@ -223,11 +223,10 @@ async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
     user_wallet = wallets[0]
 
     memo = (
-        f"Refund Bid: {bid.memo} ({bid.id})"
-        f"Amount: {bid.amount} {bid.currency}."
-        f"Auction item: '{auction_item.name}' ({auction_item.id})."
-        if auction_item
-        else ""
+        f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
+        f"Auction item: '{auction_room.name}/{auction_item.name}'. "
+        f"Memo: {bid.memo}. "
+        f"Id: {bid.id}."
     )
     refund_payment: Payment = await create_invoice(
         wallet_id=user_wallet.id,

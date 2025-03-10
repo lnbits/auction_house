@@ -107,7 +107,7 @@ class AuctionItemFilters(FilterModel):
 
 
 class BidRequest(BaseModel):
-    memo: Optional[str]
+    memo: str
     amount: float
 
 
@@ -120,7 +120,7 @@ class BidResponse(BaseModel):
 class PublicBid(BaseModel):
     id: str
     auction_item_id: str
-    memo: str = ""
+    memo: str
     amount: float
     amount_sat: int
     currency: str
