@@ -8,11 +8,11 @@ from pydantic import BaseModel, Field
 
 
 class AuctionRoomConfig(BaseModel):
-    bla: int = 1
+    only_creator_can_add: bool = True
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet: str  # todo: wallet_id
+    wallet: str
     currency: str
     name: str
     description: str
@@ -54,10 +54,6 @@ class AuctionRoom(PublicAuctionRoom):
     extra: AuctionRoomConfig
 
 
-class AuctionExtra(BaseModel):
-    currency: Optional[str] = None
-
-
 class CreateAuctionItem(BaseModel):
     name: str
     description: Optional[str] = None
@@ -82,11 +78,15 @@ class PublicAuctionItem(BaseModel):
     time_left_seconds: int = Field(default=0, no_database=True)
 
 
+class AuctionItemExtra(BaseModel):
+    currency: Optional[str] = None
+
+
 class AuctionItem(PublicAuctionItem):
     user_id: str
     # code required to check that the user is the owner of the item
     transfer_code: str
-    extra: AuctionExtra = AuctionExtra()
+    extra: AuctionItemExtra = AuctionItemExtra()
 
 
 class AuctionItemFilters(FilterModel):
