@@ -4,7 +4,7 @@ from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 from loguru import logger
 
-from .services import update_paid_bid
+from .services import new_bid_made
 
 
 async def wait_for_paid_invoices():
@@ -23,6 +23,6 @@ async def on_invoice_paid(payment: Payment) -> None:
         f"Auction House payment received: '{payment.payment_hash}: {payment.memo}'"
     )
     try:
-        await update_paid_bid(payment)
+        await new_bid_made(payment)
     except Exception as e:
         logger.warning(f"Error processing payment: {e}")

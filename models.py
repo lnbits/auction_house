@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from lnbits.db import FilterModel
@@ -72,27 +72,14 @@ class PublicAuctionItem(BaseModel):
     active: bool = True
     description: Optional[str] = None
     starting_price: float = 0
-    current_price: float = 0
     created_at: datetime
     expires_at: datetime
+    current_price: float = Field(default=0, no_database=True)
+    current_price_sat: float = Field(default=0, no_database=True)
     bid_count: int = Field(default=0, no_database=True)
     currency: str = Field(default="sat", no_database=True)
     next_min_bid: float = Field(default=0, no_database=True)
     time_left_seconds: int = Field(default=0, no_database=True)
-
-    def sync_with_room(self, currency: str, min_bid_up_percentage: float):
-        time_left = self.expires_at - datetime.now(timezone.utc)
-        self.time_left_seconds = max(0, int(time_left.total_seconds()))
-        self.currency = currency
-        if self.time_left_seconds > 0:
-            if self.current_price == 0:
-                self.next_min_bid = self.starting_price
-            else:
-                self.next_min_bid = int(
-                    self.current_price * (1 + min_bid_up_percentage / 100)
-                )
-        else:
-            self.active = False
 
 
 class AuctionItem(PublicAuctionItem):
@@ -104,10 +91,17 @@ class AuctionItem(PublicAuctionItem):
 
 class AuctionItemFilters(FilterModel):
 
+    __search_fields__ = [
+        "created_at",
+        "amount",
+    ]
+
+    __sort_fields__ = [
+        "created_at",
+        "amount",
+    ]
+
     name: str | None
-    description: str | None
-    starting_price: float | None
-    current_price: float | None
     created_at: datetime | None
     expires_at: datetime | None
 

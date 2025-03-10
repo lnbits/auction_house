@@ -15,6 +15,7 @@ from .crud import (
     get_auction_room_by_id,
     get_auction_rooms,
     get_bid_by_payment_hash,
+    get_top_bid,
     update_bid,
     update_top_bid,
 )
@@ -64,7 +65,8 @@ async def get_auction_room_items_paginated(
     return page
 
 
-async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
+# todo: should be PublicAuctionItem?
+async def get_auction_item(item_id: str) -> Optional[AuctionItem]:
     item = await get_auction_item_by_id(item_id)
     if not item:
         return None
@@ -72,22 +74,27 @@ async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         return None
-    item.sync_with_room(auction_room.currency, auction_room.min_bid_up_percentage)
+
+    top_bid = await get_top_bid(item_id)
+    if top_bid:
+        item.current_price_sat = top_bid.amount_sat
+        item.current_price = top_bid.amount
+
+    time_left = item.expires_at - datetime.now(timezone.utc)
+    item.time_left_seconds = max(0, int(time_left.total_seconds()))
+    item.currency = auction_room.currency
+    if item.time_left_seconds > 0:
+        if item.current_price == 0:
+            item.next_min_bid = item.starting_price
+        else:
+            item.next_min_bid = item.current_price * (
+                1 + auction_room.min_bid_up_percentage / 100
+            )
+
+    else:
+        item.active = False
 
     return item
-
-
-# async def get_auction_item_for_bid(payment_hash: str) -> Optional[PublicAuctionItem]:
-#     bid = await get_bid_by_payment_hash(payment_hash)
-#     if not bid:
-#         return None
-
-#     auction_room = await get_auction_room_by_id(item.auction_room_id)
-#     if not auction_room:
-#         return None
-#     item.sync_with_room(auction_room.currency, auction_room.min_bid_up_percentage)
-
-#     return item
 
 
 async def place_bid(
@@ -136,7 +143,7 @@ async def place_bid(
     )
 
 
-async def update_paid_bid(payment: Payment) -> None:
+async def new_bid_made(payment: Payment) -> None:
     bid = await get_bid_by_payment_hash(payment.payment_hash)
     if not bid:
         logger.warning(f"Payment received for unknown bid: {payment.payment_hash}")
@@ -161,8 +168,16 @@ async def update_paid_bid(payment: Payment) -> None:
         # todo: refund payment
         return
     # todo: more checks
-    bid.paid = True
-    await update_bid(bid)
-    await update_top_bid(bid.auction_item_id, bid.id)
+    await _accept_bid(auction_item, bid, payment.payment_hash)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' for '{bid.amount_sat} sat'.")
+
+
+async def _accept_bid(auction_item: AuctionItem, bid: Bid, payment_hash: str):
+    bid.paid = True
+    bid.payment_hash = payment_hash
+    await update_bid(bid)
+    await update_top_bid(bid.auction_item_id, bid.id)
+    # auction_item.current_price_sat = bid.amount_sat
+    # auction_item.current_price = bid.amount
+    # await update_auction_item(auction_item)

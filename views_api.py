@@ -157,18 +157,16 @@ async def api_place_bid(
     name="Bids List",
     summary="get paginated list of bids for an auction item",
     response_description="list of bids",
-    # openapi_extra=generate_filter_params_openapi(AuctionItemFilters),
+    openapi_extra=generate_filter_params_openapi(AuctionItemFilters),
     response_model=Page[PublicAuctionItem],
 )
 async def api_get_bids_paginated(
     auction_item_id: str,
-    # filters: Filters = Depends(auction_items_filters),
+    filters: Filters = Depends(auction_items_filters),
 ) -> Page[PublicBid]:
     auction_item = await get_auction_item_by_id(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
-    page = await get_bids_paginated(
-        auction_item_id=auction_item_id, filters=None
-    )  # todo: add filters
+    page = await get_bids_paginated(auction_item_id=auction_item_id, filters=filters)
     return page

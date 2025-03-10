@@ -127,6 +127,11 @@ async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
     return PublicAuctionItem(**data.dict())
 
 
+async def update_auction_item(data: AuctionItem) -> AuctionItem:
+    await db.update("auction_house.auction_items", data)
+    return data
+
+
 async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
     return await db.fetchall(
         """
@@ -149,14 +154,14 @@ async def get_auction_items_for_user(user_id: str) -> list[PublicAuctionItem]:
     )
 
 
-async def get_auction_item_by_id(item_id: str) -> Optional[PublicAuctionItem]:
+async def get_auction_item_by_id(item_id: str) -> Optional[AuctionItem]:
     return await db.fetchone(
         """
         SELECT * FROM auction_house.auction_items WHERE id = :id
         ORDER BY created_at DESC
         """,
         {"id": item_id},
-        PublicAuctionItem,
+        AuctionItem,
     )
 
 
@@ -192,12 +197,25 @@ async def update_top_bid(auction_item_id: str, bid_id: str) -> None:
     )
 
 
+async def get_top_bid(auction_item_id: str) -> Optional[PublicBid]:
+    return await db.fetchone(
+        """
+            SELECT * FROM auction_house.bids
+            WHERE auction_item_id = :auction_item_id
+                AND paid = true
+                AND higher_bid_made = false
+        """,
+        {"auction_item_id": auction_item_id},
+        PublicBid,
+    )
+
+
 async def get_bids(auction_item_id: str) -> list[PublicBid]:
     return await db.fetchall(
         """
             SELECT * FROM auction_house.bids
             WHERE auction_item_id = :auction_item_id AND paid = true
-            ORDER BY created_at DESC
+            ORDER BY amount DESC
         """,
         {"auction_item_id": auction_item_id},
         PublicBid,

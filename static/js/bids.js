@@ -71,8 +71,10 @@ window.app = Vue.createApp({
           },
         ],
         pagination: {
+          sortBy: "amount",
           rowsPerPage: 10,
           page: 1,
+          descending: true,
           rowsNumber: 10,
         },
       },
@@ -161,11 +163,6 @@ window.app = Vue.createApp({
           minutes: duration.format("mm"),
           seconds: duration.format("ss"),
         };
-        this.currentPrice = LNbits.utils.formatCurrency(
-          item.current_price,
-          item.currency,
-        );
-        this.bidPrice = item.next_min_bid;
       }, 1000);
     },
     formatCurrency(amount, currency) {
@@ -179,8 +176,13 @@ window.app = Vue.createApp({
   },
   created() {
     console.log("### created bidForm", this.bidForm);
-
-    this.initTimeLeft(this.bidForm.data);
+    const item = this.bidForm.data;
+    this.initTimeLeft(item);
     this.getBidsPaginated();
+    this.currentPrice = LNbits.utils.formatCurrency(
+      item.current_price,
+      item.currency,
+    );
+    this.bidPrice = item.next_min_bid;
   },
 });

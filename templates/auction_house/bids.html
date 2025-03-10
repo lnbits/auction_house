@@ -49,12 +49,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             </div>
           </div>
         </div>
-        <div v-if="this.bidForm.data.current_price" class="row">
-          <div class="col-4">
-            <h5 class="q-mt-sm">Last Bidder Name:</h5>
-          </div>
-          <div class="col-8"></div>
-        </div>
+
         <div class="row">
           <div class="col-4">
             <h5 class="q-mt-sm">Next Bid:</h5>
@@ -65,24 +60,13 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               dense
               v-model="bidPrice"
               min="0"
+              step="0.01"
               type="number"
               label="Next Bid Value"
               hint="The minimum value for the next bid"
             ></q-input>
           </div>
-          <div class="col-4">
-            <q-btn
-              v-if="bidForm.isUserAuthenticated"
-              @click="placeBid"
-              unelevated
-              color="primary"
-              class="float-right"
-              >Place Bid</q-btn
-            >
-            <q-btn v-else color="gray" outline disable class="float-right"
-              >Login to place your bid</q-btn
-            >
-          </div>
+          <div class="col-4"></div>
         </div>
         <div v-if="bidForm.isUserAuthenticated" class="row">
           <div class="col-4">
@@ -102,7 +86,21 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             ></q-input>
           </div>
         </div>
-        <div class="row"></div>
+        <div v-if="bidForm.isUserAuthenticated" class="row">
+          <div class="col-12">
+            <q-btn
+              v-if="bidForm.isUserAuthenticated"
+              @click="placeBid"
+              unelevated
+              color="primary"
+              class="float-right"
+              >Place Bid</q-btn
+            >
+            <q-btn v-else color="gray" outline disable class="float-right"
+              >Login to place your bid</q-btn
+            >
+          </div>
+        </div>
       </q-card-section>
     </q-card>
 
