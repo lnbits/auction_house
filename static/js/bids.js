@@ -142,29 +142,27 @@ window.app = Vue.createApp({
     },
     async waitForPayment(paymentHash) {
       try {
-
-        const url = new URL(window.location)
-        url.protocol = url.protocol === 'https:' ? 'wss' : 'ws'
-        url.pathname = `/api/v1/ws/${paymentHash}`
-        const ws = new WebSocket(url)
-        ws.addEventListener('message', async ({data}) => {
-          const payment = JSON.parse(data)
+        const url = new URL(window.location);
+        url.protocol = url.protocol === "https:" ? "wss" : "ws";
+        url.pathname = `/api/v1/ws/${paymentHash}`;
+        const ws = new WebSocket(url);
+        ws.addEventListener("message", async ({ data }) => {
+          const payment = JSON.parse(data);
           if (payment.pending === false) {
             Quasar.Notify.create({
-              type: 'positive',
-              message: 'Invoice Paid!'
-            })
-            this.showBidRequestQrCode = false
-            ws.close()
+              type: "positive",
+              message: "Invoice Paid!",
+            });
+            this.showBidRequestQrCode = false;
+            ws.close();
             setTimeout(() => {
-              window.location.reload()
-            }
-            , 2000)
+              window.location.reload();
+            }, 2000);
           }
-        })
+        });
       } catch (err) {
-        console.warn(err)
-        LNbits.utils.notifyApiError(err)
+        console.warn(err);
+        LNbits.utils.notifyApiError(err);
       }
     },
     showAddNewAuctionItemDialog: function () {

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.db import Filters, Page
 from lnbits.helpers import urlsafe_short_hash
 from loguru import logger
@@ -146,38 +147,105 @@ async def place_bid(
     )
 
 
-async def new_bid_made(payment: Payment) -> None:
+async def new_bid_made(payment: Payment) -> bool:
     bid = await get_bid_by_payment_hash(payment.payment_hash)
     if not bid:
         logger.warning(f"Payment received for unknown bid: {payment.payment_hash}")
-        return
+        return False
+    if bid.amount_sat != payment.sat:
+        logger.warning(
+            "Payment amount different than bid amount. "
+            f"Bid amount: {bid.amount_sat}. Payment amount: {payment.sat}. "
+            f"Bid: '{bid.memo}' ({bid.id})"
+        )
+        return False
+
     auction_item = await get_auction_item(bid.auction_item_id)
+
+    if await _must_refund_bid_payment(bid, auction_item):
+        message = (
+            f"Bid '{bid.memo}' ({bid.id}). "
+            f"Amount: {bid.amount} sat."
+            f"Payment: {payment.payment_hash}"
+        )
+        logger.info(f"Refunding. {message}")
+        await _refund_payment(bid, auction_item)
+        logger.info(f"Refunded. {message}")
+        return False
+
+    assert auction_item
+
+    # todo: more checks
+    await _accept_bid(bid)
+    logger.debug(f"Bid accepted for '{auction_item.name}' for '{bid.amount_sat} sat'.")
+
+    return True
+
+
+async def _must_refund_bid_payment(
+    bid: Bid, auction_item: Optional[PublicAuctionItem] = None
+) -> bool:
     if not auction_item:
         logger.warning(
-            f"Payment received for unknown auction item: {bid.auction_item_id}"
+            f"Payment received for unknown auction item: {bid.auction_item_id}. "
+            f"Bid: '{bid.memo}' ({bid.id})."
         )
-        return
+        return True
+
     if not auction_item.active:
-        logger.warning(f"Payment received for closed auction: {payment.payment_hash}")
-        # TODO: refund payment
-        return
+        logger.warning(
+            f"Payment received for closed auction:  {bid.auction_item_id}"
+            f"Bid: '{bid.memo}' ({bid.id})."
+        )
+        return True
+
     if bid.amount_sat < auction_item.next_min_bid:
         logger.warning(
-            f"Payment received for bid too low: {payment.payment_hash}. "
+            f"Payment received for bid too low. "
+            f"Bid: '{bid.memo}' ({bid.id}). "
             f"Bid: {bid.amount_sat} Next Min Bid: {auction_item.next_min_bid}. "
             f"Auction Item: '{auction_item.name}' "
             f"({auction_item.auction_room_id}/{auction_item.id})"
         )
-        # todo: refund payment
-        return
-    # todo: more checks
-    await _accept_bid(bid, payment.payment_hash)
+        return True
 
-    logger.debug(f"Bid accepted for '{auction_item.name}' for '{bid.amount_sat} sat'.")
+    return False
 
 
-async def _accept_bid(bid: Bid, payment_hash: str):
+async def _refund_payment(
+    bid: Bid, auction_item: Optional[PublicAuctionItem] = None
+) -> bool:
+    wallets = await get_wallets(bid.user_id)
+    if len(wallets) == 0:
+        logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
+        return False
+
+    user_wallet = wallets[0]
+
+    memo = (
+        f"Refund Bid: '{bid.memo}' ({bid.id})"
+        f"Amount: {bid.amount} {bid.currency}."
+        f"Auction item: '{auction_item.name}' ({auction_item.id})."
+        if auction_item
+        else ""
+    )
+    refund_payment: Payment = await create_invoice(
+        wallet_id=user_wallet.id,
+        amount=bid.amount_sat,
+        extra={"tag": "auction_house"},
+        memo=memo,
+    )
+
+    await pay_invoice(
+        wallet_id=user_wallet.id,  # rooom wallet
+        payment_request=refund_payment.bolt11,
+        extra={"tag": "auction_house"},
+    )
+    logger.info(f"Refund paid. details: {memo}")
+    return True
+
+
+async def _accept_bid(bid: Bid):
     bid.paid = True
-    bid.payment_hash = payment_hash
     await update_bid(bid)
     await update_top_bid(bid.auction_item_id, bid.id)
