@@ -87,8 +87,8 @@ async def get_auction_item(item_id: str) -> Optional[AuctionItem]:
         if item.current_price == 0:
             item.next_min_bid = item.starting_price
         else:
-            item.next_min_bid = item.current_price * (
-                1 + auction_room.min_bid_up_percentage / 100
+            item.next_min_bid = round(
+                item.current_price * (1 + auction_room.min_bid_up_percentage / 100), 2
             )
 
     else:

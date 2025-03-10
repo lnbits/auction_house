@@ -52,7 +52,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 
         <div class="row">
           <div class="col-4">
-            <h5 class="q-mt-sm">Next Bid:</h5>
+            <h5 class="q-mt-sm">Minimum Bid:</h5>
           </div>
           <div class="col-4">
             <q-input
@@ -66,25 +66,28 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               hint="The minimum value for the next bid"
             ></q-input>
           </div>
-          <div class="col-4"></div>
+          <div class="col-4">
+            <span v-text="this.bidForm.data.currency" class="float-left q-mt-sm q-ml-md"></span>
+          </div>
         </div>
         <div v-if="bidForm.isUserAuthenticated" class="row">
           <div class="col-4">
             <h5 class="q-mt-sm">Memo:</h5>
           </div>
 
-          <div class="col-8">
+          <div class="col-4">
             <q-input
               filled
               dense
               type="textarea"
-              rows="2"
+              rows="3"
               v-model.trim="bidMemo"
               label="Memo"
               placeholder="Memo for the bid"
               hint="Optional. This will be displayed in the bid history"
             ></q-input>
           </div>
+          <div class="col-4"></div>
         </div>
         <div v-if="bidForm.isUserAuthenticated" class="row">
           <div class="col-12">
@@ -139,19 +142,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 
               <template v-slot:body="props">
                 <q-tr :props="props">
-                  <q-td auto-width>
-                    <q-btn
-                      unelevated
-                      dense
-                      size="md"
-                      label="Bid"
-                      color="secondary"
-                      type="a"
-                      :href="'auctions/' + props.row.id"
-                      target="_blank"
-                      class="q-mr-sm"
-                    ></q-btn>
-                  </q-td>
+                  <q-td auto-width> </q-td>
                   <q-td
                     v-for="col in props.cols"
                     :key="col.name"

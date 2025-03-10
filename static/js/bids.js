@@ -22,25 +22,29 @@ window.app = Vue.createApp({
           starting_price: 0,
         },
       },
-      // memo: str = ""
-      // amount: float
-      // amount_sat: int
-      // currency: str
-      // created_at: datetime
+
       bidsTable: {
         columns: [
           {
             name: "id",
             align: "left",
             label: "Id",
-            field: "ID",
+            field: "id",
             sortable: true,
           },
           {
             name: "memo",
             align: "left",
-            label: "Description",
+            label: "Memo",
             field: "memo",
+            sortable: true,
+          },
+          {
+            name: "created_at",
+            align: "left",
+            label: "Created At",
+            field: "created_at",
+            format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,
           },
           {
@@ -60,14 +64,6 @@ window.app = Vue.createApp({
             sortable: true,
             format: (_, row) =>
               LNbits.utils.formatCurrency(row.amount_sat, "sat"),
-          },
-          {
-            name: "created_at",
-            align: "left",
-            label: "Created At",
-            field: "created_at",
-            format: (val) => LNbits.utils.formatDateString(val),
-            sortable: true,
           },
         ],
         pagination: {
@@ -175,7 +171,6 @@ window.app = Vue.createApp({
     },
   },
   created() {
-    console.log("### created bidForm", this.bidForm);
     const item = this.bidForm.data;
     this.initTimeLeft(item);
     this.getBidsPaginated();
