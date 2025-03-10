@@ -86,12 +86,13 @@ window.app = Vue.createApp({
       try {
         const params = LNbits.utils.prepareFilterQuery(this.bidsTable, props);
         const auctionItemId = this.bidForm.data.id;
-        const { data, total } = await LNbits.api.request(
+        const { data } = await LNbits.api.request(
           "GET",
           `/auction_house/api/v1/bids/${auctionItemId}/paginated?${params}`,
         );
 
         this.bidsList = data.data;
+        this.bidsTable.pagination.rowsNumber = data.total;
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }

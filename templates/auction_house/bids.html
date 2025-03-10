@@ -24,7 +24,8 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           </div>
         </div>
       </q-card-section>
-      <q-separator></q-separator>
+    </q-card>
+    <q-card class="q-mt-lg">
       <q-card-section>
         <div class="row">
           <div class="col-4">
@@ -87,7 +88,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               v-model.trim="bidMemo"
               label="Memo"
               placeholder="Memo for the bid"
-              hint="Optional. This will be displayed in the bid history."
+              hint="This will be displayed in the bid history."
             ></q-input>
           </div>
           <div class="col-4"></div>
