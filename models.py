@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from lnbits.db import FilterModel
@@ -8,11 +8,11 @@ from pydantic import BaseModel, Field
 
 
 class AuctionRoomConfig(BaseModel):
-    bla: int = 1
+    bla: bool = True
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet: str  # todo: wallet_id
+    wallet: str
     currency: str
     name: str
     description: str
@@ -33,6 +33,7 @@ class CreateAuctionRoomData(BaseModel):
 
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
+    is_open_room: bool = False
 
 
 class PublicAuctionRoom(BaseModel):
@@ -42,6 +43,8 @@ class PublicAuctionRoom(BaseModel):
     currency: str
     type: str = "auction"  # [auction, fixed_price]
     days: int = 7
+    # is the room open for everyone who is logged in to add items
+    is_open_room: bool = False
     room_percentage: float = 10
     min_bid_up_percentage: float = 5
 
@@ -52,10 +55,6 @@ class AuctionRoom(PublicAuctionRoom):
     wallet: str
 
     extra: AuctionRoomConfig
-
-
-class AuctionExtra(BaseModel):
-    currency: Optional[str] = None
 
 
 class CreateAuctionItem(BaseModel):
@@ -75,37 +74,43 @@ class PublicAuctionItem(BaseModel):
     current_price: float = 0
     created_at: datetime
     expires_at: datetime
+    current_price_sat: float = Field(default=0, no_database=True)
     bid_count: int = Field(default=0, no_database=True)
     currency: str = Field(default="sat", no_database=True)
     next_min_bid: float = Field(default=0, no_database=True)
     time_left_seconds: int = Field(default=0, no_database=True)
 
-    def sync_with_room(self, currency: str, min_bid_up_percentage: float):
-        time_left = self.expires_at - datetime.now(timezone.utc)
-        self.time_left_seconds = max(0, int(time_left.total_seconds()))
-        self.currency = currency
-        if self.time_left_seconds > 0:
-            if self.current_price == 0:
-                self.next_min_bid = self.starting_price
-            else:
-                self.next_min_bid = int(
-                    self.current_price * (1 + min_bid_up_percentage / 100)
-                )
-        else:
-            self.active = False
+
+class AuctionItemExtra(BaseModel):
+    currency: Optional[str] = None
 
 
 class AuctionItem(PublicAuctionItem):
     user_id: str
     # code required to check that the user is the owner of the item
     transfer_code: str
-    extra: AuctionExtra = AuctionExtra()
+    extra: AuctionItemExtra = AuctionItemExtra()
 
 
 class AuctionItemFilters(FilterModel):
 
+    __search_fields__ = [
+        "name",
+        "created_at",
+        "expires_at",
+        "starting_price",
+        "current_price",
+    ]
+
+    __sort_fields__ = [
+        "name",
+        "created_at",
+        "expires_at",
+        "starting_price",
+        "current_price",
+    ]
+
     name: str | None
-    description: str | None
     starting_price: float | None
     current_price: float | None
     created_at: datetime | None
@@ -113,7 +118,7 @@ class AuctionItemFilters(FilterModel):
 
 
 class BidRequest(BaseModel):
-    memo: Optional[str]
+    memo: str
     amount: float
 
 
@@ -126,16 +131,37 @@ class BidResponse(BaseModel):
 class PublicBid(BaseModel):
     id: str
     auction_item_id: str
-    memo: str = ""
+    memo: str
     amount: float
     amount_sat: int
     currency: str
+    higher_bid_made: bool = False
     created_at: datetime
 
 
 class Bid(PublicBid):
     user_id: str
     paid: bool = False
-    higher_bid_made: bool = False
     payment_hash: str
-    expires_at: datetime  # todo: give 5 minutes to pay
+    expires_at: datetime
+
+
+class BidFilters(FilterModel):
+    __search_fields__ = [
+        "memo",
+        "created_at",
+        "amount",
+        "amount_sat",
+    ]
+
+    __sort_fields__ = [
+        "memo",
+        "created_at",
+        "amount",
+        "amount_sat",
+    ]
+
+    memo: str | None
+    created_at: datetime | None
+    amount: float | None
+    amount_sat: float | None

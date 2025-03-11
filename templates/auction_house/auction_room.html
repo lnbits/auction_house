@@ -82,7 +82,7 @@ page %}
               step="1"
               label="Days"
               placeholder="Number of days"
-              hint="Number of days the auction room will be active."
+              hint="Number of days the items in the auction room will be active."
             ></q-input>
             <q-input
               filled
@@ -106,8 +106,24 @@ page %}
               placeholder="Minimum bid up percentage"
               hint="Minimum percentage that the bid must be increased by."
             ></q-input>
+            <q-list>
+              <q-item tag="label" v-ripple>
+                <q-item-section avatar top>
+                  <q-checkbox
+                    filled
+                    dense
+                    v-model="auctionRoomForm.data.is_open_room"
+                  ></q-checkbox>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Open Room</q-item-label>
+                  <q-item-label caption>
+                    Is the room open for everyone who is logged in to add items
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
-          <!-- </q-card> -->
         </q-tab-panel>
         <q-tab-panel name="webhooks"> </q-tab-panel>
       </q-tab-panels>

@@ -22,25 +22,29 @@ window.app = Vue.createApp({
           starting_price: 0,
         },
       },
-      // memo: str = ""
-      // amount: float
-      // amount_sat: int
-      // currency: str
-      // created_at: datetime
+
       bidsTable: {
         columns: [
           {
             name: "id",
             align: "left",
             label: "Id",
-            field: "ID",
+            field: "id",
             sortable: true,
           },
           {
             name: "memo",
             align: "left",
-            label: "Description",
+            label: "Memo",
             field: "memo",
+            sortable: true,
+          },
+          {
+            name: "created_at",
+            align: "left",
+            label: "Date",
+            field: "created_at",
+            format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,
           },
           {
@@ -61,18 +65,12 @@ window.app = Vue.createApp({
             format: (_, row) =>
               LNbits.utils.formatCurrency(row.amount_sat, "sat"),
           },
-          {
-            name: "created_at",
-            align: "left",
-            label: "Created At",
-            field: "created_at",
-            format: (val) => LNbits.utils.formatDateString(val),
-            sortable: true,
-          },
         ],
         pagination: {
+          sortBy: "amount",
           rowsPerPage: 10,
           page: 1,
+          descending: true,
           rowsNumber: 10,
         },
       },
@@ -88,12 +86,13 @@ window.app = Vue.createApp({
       try {
         const params = LNbits.utils.prepareFilterQuery(this.bidsTable, props);
         const auctionItemId = this.bidForm.data.id;
-        const { data, total } = await LNbits.api.request(
+        const { data } = await LNbits.api.request(
           "GET",
           `/auction_house/api/v1/bids/${auctionItemId}/paginated?${params}`,
         );
 
         this.bidsList = data.data;
+        this.bidsTable.pagination.rowsNumber = data.total;
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }
@@ -113,13 +112,19 @@ window.app = Vue.createApp({
           type: "positive",
           message: "Auction Item added!",
         });
-        this.getAuctionItemsPaginated();
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }
     },
     placeBid: async function () {
       const auctionItemId = this.bidForm.data.id;
+      if (!this.bidMemo) {
+        this.$q.notify({
+          type: "warning",
+          message: "Please enter a memo!",
+        });
+        return;
+      }
       try {
         const { data } = await LNbits.api.request(
           "PUT",
@@ -130,17 +135,41 @@ window.app = Vue.createApp({
             memo: this.bidMemo,
           },
         );
-        console.log("### placeBid", data);
         this.bidRequest = data;
         this.showBidRequestQrCode = true;
         this.$q.notify({
           type: "positive",
-          message: "Bid queued!",
-          caption: "Pay the invoice to confirm the bid",
+          message: "Pay the invoice to confirm the bid!",
+          caption: "Bid pending.",
         });
-        // this.getAuctionItemsPaginated();
+        this.waitForPayment(this.bidRequest.payment_hash);
       } catch (error) {
         LNbits.utils.notifyApiError(error);
+      }
+    },
+    async waitForPayment(paymentHash) {
+      try {
+        const url = new URL(window.location);
+        url.protocol = url.protocol === "https:" ? "wss" : "ws";
+        url.pathname = `/api/v1/ws/${paymentHash}`;
+        const ws = new WebSocket(url);
+        ws.addEventListener("message", async ({ data }) => {
+          const payment = JSON.parse(data);
+          if (payment.pending === false) {
+            Quasar.Notify.create({
+              type: "positive",
+              message: "Invoice Paid!",
+            });
+            this.showBidRequestQrCode = false;
+            ws.close();
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          }
+        });
+      } catch (err) {
+        console.warn(err);
+        LNbits.utils.notifyApiError(err);
       }
     },
     showAddNewAuctionItemDialog: function () {
@@ -161,11 +190,6 @@ window.app = Vue.createApp({
           minutes: duration.format("mm"),
           seconds: duration.format("ss"),
         };
-        this.currentPrice = LNbits.utils.formatCurrency(
-          item.current_price,
-          item.currency,
-        );
-        this.bidPrice = item.next_min_bid;
       }, 1000);
     },
     formatCurrency(amount, currency) {
@@ -178,9 +202,13 @@ window.app = Vue.createApp({
     },
   },
   created() {
-    console.log("### created bidForm", this.bidForm);
-
-    this.initTimeLeft(this.bidForm.data);
+    const item = this.bidForm.data;
+    this.initTimeLeft(item);
     this.getBidsPaginated();
+    this.currentPrice = LNbits.utils.formatCurrency(
+      item.current_price,
+      item.currency,
+    );
+    this.bidPrice = item.next_min_bid;
   },
 });

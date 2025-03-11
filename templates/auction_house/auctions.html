@@ -10,21 +10,41 @@ from "macros.jinja" import window_vars with context %} {% block page %}
     <q-card>
       <q-card-section>
         <div class="row">
+          <div class="col-12">
+            <h3 class="q-mt-sm">
+              <span v-text="auctionRoomForm.data.name"></span>
+            </h3>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <h6 class="q-mt-none q-mb-none">
+              <span v-text="auctionRoomForm.data.description"></span>
+            </h6>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <div class="row">
           <div class="col-6">
             <h5 class="q-mt-sm">Auctions</h5>
           </div>
           <div class="col-6">
-            <q-btn
-              v-if="auctionRoomForm.isUserAuthenticated"
-              @click="showAddNewAuctionItemDialog"
-              unelevated
-              color="primary"
-              class="float-right"
-              >Add Auction Item</q-btn
-            >
-            <q-btn color="gray" outline disable class="float-right" v-else
-              >Login to add your item</q-btn
-            >
+            <div v-if="auctionRoomForm.data.is_open_room">
+              <q-btn
+                v-if="auctionRoomForm.isUserAuthenticated"
+                @click="showAddNewAuctionItemDialog"
+                unelevated
+                color="primary"
+                class="float-right"
+                >Add Auction Item</q-btn
+              >
+              <q-btn color="gray" outline disable class="float-right" v-else
+                >Login to add your item</q-btn
+              >
+            </div>
           </div>
 
           <div class="col-12">
@@ -59,7 +79,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                       unelevated
                       dense
                       size="md"
-                      label="Bid Now"
+                      label="Check Bids"
                       color="secondary"
                       type="a"
                       :href="'/auction_house/bids/' + props.row.id"

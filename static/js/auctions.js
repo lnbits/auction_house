@@ -131,7 +131,6 @@ window.app = Vue.createApp({
     },
   },
   created() {
-    console.log("### created", this.auctionRoomForm);
     this.getAuctionItemsPaginated();
   },
 });
