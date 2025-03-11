@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
+
 from lnbits.core.models import SimpleStatus, User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -35,6 +36,7 @@ from .models import (
     CreateAuctionRoomData,
     EditAuctionRoomData,
     PublicAuctionItem,
+    PublicAuctionRoom,
     PublicBid,
 )
 from .services import (
@@ -66,6 +68,26 @@ async def api_get_auction_room(
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
     return auction_room
+
+
+@auction_house_api_router.get("/api/v1/auction_rooms/{auction_room_id}/public")
+async def api_get_public_auction_room(
+    auction_room_id: str,
+):
+    auction_room = await get_auction_room_by_id(auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+    return PublicAuctionRoom(
+        id=auction_room.id,
+        name=auction_room.name,
+        description=auction_room.description,
+        currency=auction_room.currency,
+        type=auction_room.type,
+        days=auction_room.days,
+        is_open_room=auction_room.is_open_room,
+        room_percentage=auction_room.room_percentage,
+        min_bid_up_percentage=auction_room.min_bid_up_percentage,
+    )
 
 
 @auction_house_api_router.post("/api/v1/auction_room", status_code=HTTPStatus.CREATED)
@@ -158,7 +180,6 @@ async def api_place_bid(
     data: BidRequest,
     user_id: str = Depends(check_user_id),
 ) -> BidResponse:
-
     return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
 
 
@@ -194,6 +215,5 @@ async def api_get_bids_paginated(
     user_id: str = Depends(check_user_id),
     filters: Filters = Depends(bid_filters),
 ) -> Page[PublicBid]:
-
     page = await get_bids_for_user_paginated(user_id=user_id, filters=filters)
     return page
