@@ -17,6 +17,7 @@ async def m001_auction_rooms(db: Database):
             days INTEGER NOT NULL,
             room_percentage REAL NOT NULL,
             min_bid_up_percentage REAL NOT NULL,
+            is_open_room BOOLEAN NOT NULL DEFAULT false,
 
             extra TEXT NOT NULL DEFAULT '{empty_dict}',
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
@@ -37,6 +38,7 @@ async def m001_auction_rooms(db: Database):
             description TEXT,
 
             starting_price REAL NOT NULL,
+            current_price REAL NOT NULL,
 
             expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},

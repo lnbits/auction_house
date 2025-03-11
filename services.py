@@ -42,6 +42,7 @@ async def add_auction_item(
 ) -> PublicAuctionItem:
     assert data.starting_price > 0, "Starting price must be positive."
     expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
+    data.name = data.name.strip()
     item = AuctionItem(
         id=urlsafe_short_hash(),
         user_id=user_id,

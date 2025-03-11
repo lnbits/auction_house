@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class AuctionRoomConfig(BaseModel):
-    only_creator_can_add: bool = True
+    bla: bool = True
 
 
 class CreateAuctionRoomData(BaseModel):
@@ -33,6 +33,7 @@ class CreateAuctionRoomData(BaseModel):
 
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
+    is_open_room: bool = False
 
 
 class PublicAuctionRoom(BaseModel):
@@ -42,6 +43,8 @@ class PublicAuctionRoom(BaseModel):
     currency: str
     type: str = "auction"  # [auction, fixed_price]
     days: int = 7
+    # is the room open for everyone who is logged in to add items
+    is_open_room: bool = False
     room_percentage: float = 10
     min_bid_up_percentage: float = 5
 
@@ -68,9 +71,9 @@ class PublicAuctionItem(BaseModel):
     active: bool = True
     description: Optional[str] = None
     starting_price: float = 0
+    current_price: float = 0
     created_at: datetime
     expires_at: datetime
-    current_price: float
     current_price_sat: float = Field(default=0, no_database=True)
     bid_count: int = Field(default=0, no_database=True)
     currency: str = Field(default="sat", no_database=True)

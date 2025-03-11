@@ -32,17 +32,19 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <h5 class="q-mt-sm">Auctions</h5>
           </div>
           <div class="col-6">
-            <q-btn
-              v-if="auctionRoomForm.isUserAuthenticated"
-              @click="showAddNewAuctionItemDialog"
-              unelevated
-              color="primary"
-              class="float-right"
-              >Add Auction Item</q-btn
-            >
-            <q-btn color="gray" outline disable class="float-right" v-else
-              >Login to add your item</q-btn
-            >
+            <div v-if="auctionRoomForm.data.is_open_room">
+              <q-btn
+                v-if="auctionRoomForm.isUserAuthenticated"
+                @click="showAddNewAuctionItemDialog"
+                unelevated
+                color="primary"
+                class="float-right"
+                >Add Auction Item</q-btn
+              >
+              <q-btn color="gray" outline disable class="float-right" v-else
+                >Login to add your item</q-btn
+              >
+            </div>
           </div>
 
           <div class="col-12">

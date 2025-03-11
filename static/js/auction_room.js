@@ -17,9 +17,7 @@ window.app = Vue.createApp({
         await LNbits.api.request(
           "PUT",
           "/auction_house/api/v1/auction_room",
-          _.findWhere(this.g.user.wallets, {
-            id: this.auctionRoomForm.data.wallet,
-          }).adminkey,
+          null,
           this.auctionRoomForm.data,
         );
         this.$q.notify({

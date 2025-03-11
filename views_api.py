@@ -14,6 +14,7 @@ from .crud import (
     create_auction_room,
     delete_auction_room,
     get_auction_item_by_id,
+    get_auction_item_by_name,
     get_auction_items_for_user,
     get_auction_room,
     get_auction_room_by_id,
@@ -109,6 +110,12 @@ async def api_create_auction_item(
     auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+
+    auction_item = await get_auction_item_by_name(auction_room_id, data.name)
+    if auction_item:
+        raise HTTPException(
+            HTTPStatus.CONFLICT, "Auction Item with this name already exists."
+        )
 
     return await add_auction_item(auction_room, user_id, data)
 

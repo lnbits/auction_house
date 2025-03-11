@@ -174,6 +174,21 @@ async def get_auction_item_by_id(item_id: str) -> Optional[AuctionItem]:
     )
 
 
+async def get_auction_item_by_name(
+    auction_room_id: str, name: str
+) -> Optional[AuctionItem]:
+    return await db.fetchone(
+        """
+        SELECT * FROM auction_house.auction_items
+            WHERE auction_room_id = :auction_room_id
+                AND name = :name
+        ORDER BY created_at DESC
+        """,
+        {"name": name, "auction_room_id": auction_room_id},
+        AuctionItem,
+    )
+
+
 async def get_bid_by_payment_hash(payment_hash: str) -> Optional[Bid]:
     return await db.fetchone(
         """

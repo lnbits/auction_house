@@ -135,7 +135,6 @@ window.app = Vue.createApp({
             memo: this.bidMemo,
           },
         );
-        console.log("### placeBid", data);
         this.bidRequest = data;
         this.showBidRequestQrCode = true;
         this.$q.notify({
