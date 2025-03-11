@@ -17,6 +17,7 @@ from .crud import (
     get_auction_items_for_user,
     get_auction_room,
     get_auction_room_by_id,
+    get_bids_for_user_paginated,
     get_bids_paginated,
     update_auction_room,
 )
@@ -26,6 +27,7 @@ from .helpers import (
 from .models import (
     AuctionItemFilters,
     AuctionRoom,
+    BidFilters,
     BidRequest,
     BidResponse,
     CreateAuctionItem,
@@ -43,6 +45,7 @@ from .services import (
 
 auction_house_api_router: APIRouter = APIRouter()
 auction_items_filters = parse_filters(AuctionItemFilters)
+bid_filters = parse_filters(BidFilters)
 
 
 @auction_house_api_router.get("/api/v1/auction_rooms")
@@ -157,16 +160,33 @@ async def api_place_bid(
     name="Bids List",
     summary="get paginated list of bids for an auction item",
     response_description="list of bids",
-    openapi_extra=generate_filter_params_openapi(AuctionItemFilters),
+    openapi_extra=generate_filter_params_openapi(BidFilters),
     response_model=Page[PublicAuctionItem],
 )
-async def api_get_bids_paginated(
+async def api_get_user_bids_paginated(
     auction_item_id: str,
-    filters: Filters = Depends(auction_items_filters),
+    filters: Filters = Depends(bid_filters),
 ) -> Page[PublicBid]:
     auction_item = await get_auction_item_by_id(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
     page = await get_bids_paginated(auction_item_id=auction_item_id, filters=filters)
+    return page
+
+
+@auction_house_api_router.get(
+    "/api/v1/user/bids/paginated",
+    name="Bids List",
+    summary="get paginated list of bids for the user",
+    response_description="list of bids",
+    openapi_extra=generate_filter_params_openapi(BidFilters),
+    response_model=Page[PublicAuctionItem],
+)
+async def api_get_bids_paginated(
+    user_id: str = Depends(check_user_id),
+    filters: Filters = Depends(bid_filters),
+) -> Page[PublicBid]:
+
+    page = await get_bids_for_user_paginated(user_id=user_id, filters=filters)
     return page

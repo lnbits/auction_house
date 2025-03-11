@@ -70,7 +70,7 @@ class PublicAuctionItem(BaseModel):
     starting_price: float = 0
     created_at: datetime
     expires_at: datetime
-    current_price: float = Field(default=0, no_database=True)
+    current_price: float
     current_price_sat: float = Field(default=0, no_database=True)
     bid_count: int = Field(default=0, no_database=True)
     currency: str = Field(default="sat", no_database=True)
@@ -92,16 +92,24 @@ class AuctionItem(PublicAuctionItem):
 class AuctionItemFilters(FilterModel):
 
     __search_fields__ = [
+        "name",
         "created_at",
-        "amount",
+        "expires_at",
+        "starting_price",
+        "current_price",
     ]
 
     __sort_fields__ = [
+        "name",
         "created_at",
-        "amount",
+        "expires_at",
+        "starting_price",
+        "current_price",
     ]
 
     name: str | None
+    starting_price: float | None
+    current_price: float | None
     created_at: datetime | None
     expires_at: datetime | None
 
@@ -132,4 +140,25 @@ class Bid(PublicBid):
     user_id: str
     paid: bool = False
     payment_hash: str
-    expires_at: datetime  # todo: give 5 minutes to pay
+    expires_at: datetime
+
+
+class BidFilters(FilterModel):
+    __search_fields__ = [
+        "memo",
+        "created_at",
+        "amount",
+        "amount_sat",
+    ]
+
+    __sort_fields__ = [
+        "memo",
+        "created_at",
+        "amount",
+        "amount_sat",
+    ]
+
+    memo: str | None
+    created_at: datetime | None
+    amount: float | None
+    amount_sat: float | None

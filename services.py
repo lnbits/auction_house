@@ -17,6 +17,7 @@ from .crud import (
     get_auction_rooms,
     get_bid_by_payment_hash,
     get_top_bid,
+    update_auction_item_top_price,
     update_bid,
     update_top_bid,
 )
@@ -182,6 +183,7 @@ async def new_bid_made(payment: Payment) -> bool:
 
     # todo: more checks
     await _accept_bid(bid)
+
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
     return True
@@ -248,3 +250,4 @@ async def _accept_bid(bid: Bid):
     bid.paid = True
     await update_bid(bid)
     await update_top_bid(bid.auction_item_id, bid.id)
+    await update_auction_item_top_price(bid.auction_item_id, bid.amount)
