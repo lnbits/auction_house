@@ -138,6 +138,7 @@ async def place_bid(
         amount=data.amount,
         amount_sat=payment.sat,
         memo=data.memo or "",
+        ln_address=data.ln_address,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )

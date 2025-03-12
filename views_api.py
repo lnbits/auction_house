@@ -158,7 +158,7 @@ async def api_place_bid(
     data: BidRequest,
     user_id: str = Depends(check_user_id),
 ) -> BidResponse:
-
+    data.validate_data()
     return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
 
 
