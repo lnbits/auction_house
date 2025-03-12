@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import httpx
 from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.db import Filters, Page
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import check_callback_url, urlsafe_short_hash
 from loguru import logger
 
 from .crud import (
@@ -219,6 +220,11 @@ async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
         logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
         return False
 
+    if bid.ln_address:
+        print("### refund to ln address")
+        # if success return True
+
+    # todo: extract refund to user wallet
     wallets = await get_wallets(bid.user_id)
     if len(wallets) == 0:
         logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
@@ -248,8 +254,26 @@ async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
     return True
 
 
+async def _fetch_ln_address_invoice(ln_address: str):
+    name_domain = ln_address.split("@")
+    if len(name_domain) != 2 and len(name_domain[1].split(".")) < 2:
+        raise ValueError(f"Invalid Lightning Address '{ln_address}'.")
+
+    name, domain = name_domain
+    url = f"https://{domain}/.well-known/lnurlp/{name}"
+    check_callback_url(url)
+
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        r = await client.get(url, timeout=5)
+        r.raise_for_status()
+
+        data = r.json()
+        print("#### data", data)
+
+
 async def _accept_bid(bid: Bid):
     bid.paid = True
     await update_bid(bid)
+    # todo: refund previous top bid
     await update_top_bid(bid.auction_item_id, bid.id)
     await update_auction_item_top_price(bid.auction_item_id, bid.amount)
