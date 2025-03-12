@@ -12,6 +12,7 @@ window.app = Vue.createApp({
       },
       bidRequest: null,
       bidPrice: 0,
+      lnAddress: "",
       bidMemo: "",
       showBidRequestQrCode: false,
       itemFormDialog: {
@@ -132,6 +133,7 @@ window.app = Vue.createApp({
           null,
           {
             amount: this.bidPrice,
+            ln_address: this.lnAddress,
             memo: this.bidMemo,
           },
         );

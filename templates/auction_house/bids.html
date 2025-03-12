@@ -76,6 +76,21 @@ from "macros.jinja" import window_vars with context %} {% block page %}
         </div>
         <div v-if="bidForm.isUserAuthenticated" class="row">
           <div class="col-4">
+            <h5 class="q-mt-sm">LN Address:</h5>
+          </div>
+          <div class="col-4">
+            <q-input
+              filled
+              dense
+              v-model="lnAddress"
+              label="Lightning Network Address"
+              hint="Optional. The funds will return to this address when outbidded."
+            ></q-input>
+          </div>
+          <div class="col-4"></div>
+        </div>
+        <div v-if="bidForm.isUserAuthenticated" class="row">
+          <div class="col-4">
             <h5 class="q-mt-sm">Memo:</h5>
           </div>
 

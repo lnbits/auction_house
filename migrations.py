@@ -63,6 +63,7 @@ async def m002_bids(db: Database):
 
             payment_hash TEXT NOT NULL,
             memo TEXT NOT NULL,
+            ln_address TEXT,
 
             amount REAL NOT NULL,
             amount_sat INT NOT NULL,
