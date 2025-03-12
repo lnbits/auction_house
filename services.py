@@ -254,7 +254,7 @@ async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
     return True
 
 
-async def _fetch_ln_address_invoice(ln_address: str):
+async def _fetch_ln_address_invoice(ln_address: str) -> str:
     name_domain = ln_address.split("@")
     if len(name_domain) != 2 and len(name_domain[1].split(".")) < 2:
         raise ValueError(f"Invalid Lightning Address '{ln_address}'.")
