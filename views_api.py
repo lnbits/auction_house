@@ -20,7 +20,6 @@ from .crud import (
     get_auction_items_for_user,
     get_auction_room,
     get_auction_room_by_id,
-    get_bids_for_user_paginated,
     get_bids_paginated,
     update_auction_room,
 )
@@ -123,7 +122,7 @@ async def api_create_auction_item(
 
 
 @auction_house_api_router.get(
-    "/api/v1/{auction_room_id}/items/paginated",
+    "/api/v1/items/{auction_room_id}/paginated",
     name="Auction Items List",
     summary="get paginated list of auction items",
     response_description="list of auction items",
@@ -188,21 +187,4 @@ async def api_get_user_bids_paginated(
     )
     # for bid in page.data:
     #     bid.is_mine = bid.user_id == user_id
-    return page
-
-
-@auction_house_api_router.get(
-    "/api/v1/user/bids/paginated",
-    name="Bids List",
-    summary="get paginated list of bids for the user",
-    response_description="list of bids",
-    openapi_extra=generate_filter_params_openapi(BidFilters),
-    response_model=Page[PublicAuctionItem],
-)
-async def api_get_bids_paginated(
-    user_id: str = Depends(check_user_id),
-    filters: Filters = Depends(bid_filters),
-) -> Page[PublicBid]:
-
-    page = await get_bids_for_user_paginated(user_id=user_id, filters=filters)
     return page
