@@ -130,16 +130,21 @@ async def place_bid(
         memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}. "
         f"Amount: {data.amount} {auction_room.currency}",
     )
-
+    currency = auction_room.currency
+    memo = (
+        f"[{auction_item.current_price} {currency}"
+        " -> "
+        f"{data.amount} {currency}] {data.memo}"
+    )
     bid = Bid(
         id=urlsafe_short_hash(),
         user_id=user_id,
         auction_item_id=auction_item.id,
-        currency=auction_room.currency,
+        currency=currency,
         payment_hash=payment.payment_hash,
         amount=data.amount,
         amount_sat=payment.sat,
-        memo=data.memo or "",
+        memo=memo,
         ln_address=data.ln_address,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
