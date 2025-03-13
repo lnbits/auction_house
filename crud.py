@@ -221,7 +221,7 @@ async def update_top_bid(auction_item_id: str, bid_id: str) -> None:
     )
 
 
-async def get_top_bid(auction_item_id: str) -> Optional[PublicBid]:
+async def get_top_bid(auction_item_id: str) -> Optional[Bid]:
     return await db.fetchone(
         """
             SELECT * FROM auction_house.bids
@@ -230,7 +230,7 @@ async def get_top_bid(auction_item_id: str) -> Optional[PublicBid]:
                 AND higher_bid_made = false
         """,
         {"auction_item_id": auction_item_id},
-        PublicBid,
+        Bid,
     )
 
 

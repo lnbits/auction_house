@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bolt11
 import httpx
 from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
@@ -180,16 +181,30 @@ async def new_bid_made(payment: Payment) -> bool:
         logger.info(f"Refunding. {bid_details}")
         refunded = await _refund_payment(bid, auction_item)
         logger.info(f"Refunded: {refunded}. {bid_details}")
-        return True
-
-    assert auction_item
+        return False
 
     # todo: more checks
+    await _refund_previous_winner(auction_item)
     await _accept_bid(bid)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
     return True
+
+
+async def _refund_previous_winner(auction_item: PublicAuctionItem):
+    try:
+        top_bid = await get_top_bid(auction_item.id)
+        if not top_bid:
+            return
+        logger.info(f"Refunding previous winner bid '{top_bid.memo}' ({top_bid.id}).")
+        refunded = await _refund_payment(top_bid, auction_item)
+        logger.info(f"Refunded: {refunded}. Bid '{top_bid.memo}' ({top_bid.id}).")
+    except Exception as e:
+        logger.warning(
+            "Failed to refund bid for auction item "
+            f"'{auction_item.name}' ({auction_item.id}): {e}"
+        )
 
 
 async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
@@ -220,44 +235,48 @@ async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
         logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
         return False
 
-    if bid.ln_address:
-        print("### refund to ln address")
-        # if success return True
+    payment_request = await _fetch_refund_payment_request(bid)
 
-    # todo: extract refund to user wallet
+    await pay_invoice(
+        wallet_id=auction_room.wallet,
+        payment_request=payment_request,
+        extra={"tag": "auction_house", "is_refund": True},
+    )
+    logger.info(f"Refund paid. Bid {bid.memo} ({bid.id}).")
+    return True
+
+
+async def _fetch_refund_payment_request(bid: Bid) -> str:
+    if bid.ln_address:
+        try:
+            return await _ln_address_payment_request(bid)
+        except Exception as e:
+            logger.warning(
+                f"Error fetching LN invoice for bid '{bid.memo}' ({bid.id}): {e}"
+            )
+
     wallets = await get_wallets(bid.user_id)
     if len(wallets) == 0:
-        logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
-        return False
+        raise ValueError(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
 
     user_wallet = wallets[0]
 
-    memo = (
-        f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
-        f"Auction item: '{auction_room.name}/{auction_item.name}'. "
-        f"Memo: {bid.memo}. "
-        f"Id: {bid.id}."
-    )
     refund_payment: Payment = await create_invoice(
         wallet_id=user_wallet.id,
         amount=bid.amount_sat,
         extra={"tag": "auction_house", "is_refund": True},
-        memo=memo,
+        memo=f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
+        f"Bid: {bid.memo} ({bid.id}).",
     )
 
-    await pay_invoice(
-        wallet_id=auction_room.wallet,
-        payment_request=refund_payment.bolt11,
-        extra={"tag": "auction_house", "is_refund": True},
-    )
-    logger.info(f"Refund paid. {memo}")
-    return True
+    return refund_payment.bolt11
 
 
-async def _fetch_ln_address_invoice(ln_address: str) -> str:
-    name_domain = ln_address.split("@")
+async def _ln_address_payment_request(bid: Bid) -> str:
+    assert bid.ln_address, f"Missing Lightning Address for bid {bid.id}."
+    name_domain = bid.ln_address.split("@")
     if len(name_domain) != 2 and len(name_domain[1].split(".")) < 2:
-        raise ValueError(f"Invalid Lightning Address '{ln_address}'.")
+        raise ValueError(f"Invalid Lightning Address '{bid.ln_address}'.")
 
     name, domain = name_domain
     url = f"https://{domain}/.well-known/lnurlp/{name}"
@@ -268,12 +287,46 @@ async def _fetch_ln_address_invoice(ln_address: str) -> str:
         r.raise_for_status()
 
         data = r.json()
-        print("#### data", data)
+        callback_url = data.get("callback")
+        assert callback_url, f"Missing callback URL for {bid.ln_address}."
+        check_callback_url(callback_url)
+
+        min_sendable = data.get("minSendable")
+        assert min_sendable, f"Missing min_sendable for {bid.ln_address}."
+        assert min_sendable <= bid.amount_sat, f"Amount too low for {bid.ln_address}."
+
+        max_sendable = data.get("maxSendable")
+        assert max_sendable, f"Missing max_sendable for {bid.ln_address}."
+        assert max_sendable >= bid.amount_sat, f"Amount too high for {bid.ln_address}."
+
+        amount_msat = bid.amount_sat * 1000
+        r = await client.get(
+            callback_url,
+            params={
+                "amount": amount_msat,
+                "comment": f"Refund for {bid.memo} ({bid.auction_item_id}/{bid.id}).",
+            },
+            timeout=5,
+        )
+        r.raise_for_status()
+
+        data = r.json()
+        if not data.get("pr"):
+            raise ValueError(
+                f"Missing payment request in callback response for {bid.ln_address}."
+            )
+        invoice = bolt11.decode(data["pr"])
+        if invoice.amount_msat != amount_msat:
+            raise ValueError(
+                "Amount mismatch in invoice for"
+                f" {bid.ln_address} ({bid.auction_item_id}/{bid.id})."
+            )
+
+    return data["pr"]
 
 
 async def _accept_bid(bid: Bid):
     bid.paid = True
     await update_bid(bid)
-    # todo: refund previous top bid
     await update_top_bid(bid.auction_item_id, bid.id)
     await update_auction_item_top_price(bid.auction_item_id, bid.amount)
