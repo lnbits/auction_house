@@ -248,14 +248,19 @@ async def get_bids(auction_item_id: str) -> list[PublicBid]:
 
 async def get_bids_paginated(
     auction_item_id: str,
+    user_id: Optional[str] = None,
     filters: Optional[Filters[BidFilters]] = None,
 ) -> Page[PublicBid]:
+    where = [" auction_item_id = :auction_item_id", "paid = true"]
+    values = {"auction_item_id": auction_item_id}
+    if user_id:
+        where.append(" user_id = :user_id")
+        values["user_id"] = user_id
+
     return await db.fetch_page(
-        """
-        SELECT * FROM auction_house.bids
-        WHERE auction_item_id = :auction_item_id AND paid = true
-        """,
-        values={"auction_item_id": auction_item_id},
+        "SELECT * FROM auction_house.bids",
+        where=where,
+        values=values,
         filters=filters,
         model=PublicBid,
     )

@@ -14,6 +14,7 @@ window.app = Vue.createApp({
       bidPrice: 0,
       lnAddress: "",
       bidMemo: "",
+      onlyMyBids: false,
       showBidRequestQrCode: false,
       itemFormDialog: {
         show: false,
@@ -89,7 +90,7 @@ window.app = Vue.createApp({
         const auctionItemId = this.bidForm.data.id;
         const { data } = await LNbits.api.request(
           "GET",
-          `/auction_house/api/v1/bids/${auctionItemId}/paginated?${params}`,
+          `/auction_house/api/v1/bids/${auctionItemId}/paginated?only_mine=${this.onlyMyBids}&${params}`,
         );
 
         this.bidsList = data.data;

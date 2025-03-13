@@ -147,6 +147,7 @@ class PublicBid(BaseModel):
     amount_sat: int
     currency: str
     higher_bid_made: bool = False
+    is_mine: bool = Field(default=False, no_database=True)
     created_at: datetime
 
 
