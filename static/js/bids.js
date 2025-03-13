@@ -29,12 +29,22 @@ window.app = Vue.createApp({
       bidsTable: {
         columns: [
           {
+            name: "paid",
+            align: "left",
+            label: "",
+            field: "paid",
+            sortable: false,
+            format: (_, row) =>
+              row.paid === true ? (row.higher_bid_made ? "✔" : "✅") : "❌",
+          },
+          {
             name: "id",
             align: "left",
             label: "Id",
             field: "id",
             sortable: true,
           },
+
           {
             name: "memo",
             align: "left",

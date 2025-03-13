@@ -145,6 +145,7 @@ class PublicBid(BaseModel):
     memo: str
     amount: float
     amount_sat: int
+    paid: bool = False
     currency: str
     higher_bid_made: bool = False
     created_at: datetime
@@ -152,7 +153,6 @@ class PublicBid(BaseModel):
 
 class Bid(PublicBid):
     user_id: str
-    paid: bool = False
     ln_address: str | None = None
     payment_hash: str
     expires_at: datetime
