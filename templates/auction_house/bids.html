@@ -133,13 +133,26 @@ from "macros.jinja" import window_vars with context %} {% block page %}
             <h5 class="q-mt-sm">Bids</h5>
           </div>
           <div class="col-6">
-            <q-toggle
-              @click="getBidsPaginated()"
-              v-model="onlyMyBids"
-              label="Only My Bids"
-              size="md"
-              class="float-right"
-            />
+            <div>
+              <q-toggle
+                v-if="bidForm.isUserRoomOwner"
+                @click="getBidsPaginated()"
+                v-model="showUnpaidBids"
+                label="Show Unpaid Bids"
+                size="md"
+                class="float-right"
+              />
+            </div>
+            <div>
+              <q-toggle
+                v-if="bidForm.isUserAuthenticated"
+                @click="getBidsPaginated()"
+                v-model="onlyMyBids"
+                label="Only My Bids"
+                size="md"
+                class="float-right"
+              />
+            </div>
           </div>
 
           <div class="col-12">
@@ -218,6 +231,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 <script>
   const auction_item = JSON.parse({{auction_item | tojson | safe}})
   const is_user_authenticated = JSON.parse({{ is_user_authenticated | tojson | safe }})
+  const is_user_room_owner = JSON.parse({{ is_user_room_owner | tojson | safe }})
 </script>
 <script src="{{ static_url_for('auction_house/static', 'js/bids.js') }}"></script>
 {% endblock %}

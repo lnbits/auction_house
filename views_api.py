@@ -174,6 +174,7 @@ async def api_place_bid(
 async def api_get_user_bids_paginated(
     auction_item_id: str,
     only_mine: bool = False,
+    include_unpaid: bool = False,
     user_id: Optional[str] = Depends(optional_user_id),
     filters: Filters = Depends(bid_filters),
 ) -> Page[PublicBid]:
@@ -181,10 +182,17 @@ async def api_get_user_bids_paginated(
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+
     for_user_id = user_id if only_mine else None
+    include_unpaid = include_unpaid and (user_id == auction_room.user_id)
     page = await get_bids_paginated(
-        auction_item_id=auction_item_id, user_id=for_user_id, filters=filters
+        auction_item_id=auction_item_id,
+        user_id=for_user_id,
+        include_unpaid=include_unpaid,
+        filters=filters,
     )
-    # for bid in page.data:
-    #     bid.is_mine = bid.user_id == user_id
+
     return page

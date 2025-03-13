@@ -249,13 +249,16 @@ async def get_bids(auction_item_id: str) -> list[PublicBid]:
 async def get_bids_paginated(
     auction_item_id: str,
     user_id: Optional[str] = None,
+    include_unpaid: Optional[bool] = None,
     filters: Optional[Filters[BidFilters]] = None,
 ) -> Page[PublicBid]:
-    where = [" auction_item_id = :auction_item_id", "paid = true"]
+    where = ["auction_item_id = :auction_item_id"]
     values = {"auction_item_id": auction_item_id}
     if user_id:
         where.append(" user_id = :user_id")
         values["user_id"] = user_id
+    if not include_unpaid:
+        where.append("paid = true")
 
     return await db.fetch_page(
         "SELECT * FROM auction_house.bids",

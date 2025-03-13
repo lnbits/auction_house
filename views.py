@@ -9,6 +9,7 @@ from lnbits.helpers import template_renderer
 
 from .crud import (
     get_auction_room,
+    get_auction_room_by_id,
     get_auction_room_public_data,
 )
 from .services import get_auction_item
@@ -80,11 +81,16 @@ async def bids_list(
     auction_item = await get_auction_item(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item does not exist.")
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+
     return auction_house_renderer().TemplateResponse(
         "auction_house/bids.html",
         {
             "request": request,
             "is_user_authenticated": user_id is not None,
+            "is_user_room_owner": user_id == auction_room.user_id,
             "auction_item": auction_item.json(),
         },
     )
