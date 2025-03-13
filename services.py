@@ -177,9 +177,10 @@ async def new_bid_made(payment: Payment) -> bool:
         )
         return False
 
+    # race condition between two bids
     if await _must_refund_bid_payment(bid, auction_item):
         logger.info(f"Refunding. {bid_details}")
-        refunded = await _refund_payment(bid, auction_item)
+        refunded = await _refund_payment(bid, auction_item.auction_room_id)
         logger.info(f"Refunded: {refunded}. {bid_details}")
         return False
 
@@ -198,7 +199,7 @@ async def _refund_previous_winner(auction_item: PublicAuctionItem):
         if not top_bid:
             return
         logger.info(f"Refunding previous winner bid '{top_bid.memo}' ({top_bid.id}).")
-        refunded = await _refund_payment(top_bid, auction_item)
+        refunded = await _refund_payment(top_bid, auction_item.auction_room_id)
         logger.info(f"Refunded: {refunded}. Bid '{top_bid.memo}' ({top_bid.id}).")
     except Exception as e:
         logger.warning(
@@ -229,47 +230,70 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
     return False
 
 
-async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
-    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
+    auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
         return False
 
-    payment_request = await _fetch_refund_payment_request(bid)
-
-    await pay_invoice(
-        wallet_id=auction_room.wallet,
-        payment_request=payment_request,
-        extra={"tag": "auction_house", "is_refund": True},
-    )
-    logger.info(f"Refund paid. Bid {bid.memo} ({bid.id}).")
-    return True
-
-
-async def _fetch_refund_payment_request(bid: Bid) -> str:
+    refunded = False
     if bid.ln_address:
-        try:
-            return await _ln_address_payment_request(bid)
-        except Exception as e:
-            logger.warning(
-                f"Error fetching LN invoice for bid '{bid.memo}' ({bid.id}): {e}"
-            )
+        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet)
 
-    wallets = await get_wallets(bid.user_id)
-    if len(wallets) == 0:
-        raise ValueError(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
+    if not refunded:
+        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet)
 
-    user_wallet = wallets[0]
+    return refunded
 
-    refund_payment: Payment = await create_invoice(
-        wallet_id=user_wallet.id,
-        amount=bid.amount_sat,
-        extra={"tag": "auction_house", "is_refund": True},
-        memo=f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
-        f"Bid: {bid.memo} ({bid.id}).",
-    )
 
-    return refund_payment.bolt11
+async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bool:
+    try:
+        payment_request = await _ln_address_payment_request(bid)
+        await pay_invoice(
+            wallet_id=refund_from_wallet,
+            payment_request=payment_request,
+            extra={"tag": "auction_house", "is_refund": True},
+        )
+        logger.info(f"Refund paid to {bid.ln_address}. Bid {bid.memo} ({bid.id}).")
+        return True
+    except Exception as e:
+        logger.warning(
+            f"Failed to refund bid '{bid.memo}' ({bid.id}) "
+            f"Lightning Address {bid.ln_address}: {e}"
+        )
+        return False
+
+
+async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> bool:
+    try:
+        wallets = await get_wallets(bid.user_id)
+        if len(wallets) == 0:
+            logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
+            return False
+
+        user_wallet = wallets[0]
+
+        refund_payment: Payment = await create_invoice(
+            wallet_id=user_wallet.id,
+            amount=bid.amount_sat,
+            extra={"tag": "auction_house", "is_refund": True},
+            memo=f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
+            f"Bid: {bid.memo} ({bid.id}).",
+        )
+
+        await pay_invoice(
+            wallet_id=refund_from_wallet,
+            payment_request=refund_payment.bolt11,
+            extra={"tag": "auction_house", "is_refund": True},
+        )
+        logger.info(f"Refund paid to user wallet. Bid {bid.memo} ({bid.id}).")
+
+        return True
+    except Exception as e:
+        logger.warning(
+            f"Failed to refund bid '{bid.memo}' ({bid.id}) to user wallet: {e}"
+        )
+        return False
 
 
 async def _ln_address_payment_request(bid: Bid) -> str:
