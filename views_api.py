@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
@@ -6,6 +7,7 @@ from lnbits.core.models import SimpleStatus, User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
     check_user_exists,
+    optional_user_id,
     parse_filters,
 )
 from lnbits.helpers import generate_filter_params_openapi
@@ -18,7 +20,6 @@ from .crud import (
     get_auction_items_for_user,
     get_auction_room,
     get_auction_room_by_id,
-    get_bids_for_user_paginated,
     get_bids_paginated,
     update_auction_room,
 )
@@ -121,7 +122,7 @@ async def api_create_auction_item(
 
 
 @auction_house_api_router.get(
-    "/api/v1/{auction_room_id}/items/paginated",
+    "/api/v1/items/{auction_room_id}/paginated",
     name="Auction Items List",
     summary="get paginated list of auction items",
     response_description="list of auction items",
@@ -158,7 +159,7 @@ async def api_place_bid(
     data: BidRequest,
     user_id: str = Depends(check_user_id),
 ) -> BidResponse:
-
+    data.validate_data()
     return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
 
 
@@ -172,28 +173,26 @@ async def api_place_bid(
 )
 async def api_get_user_bids_paginated(
     auction_item_id: str,
+    only_mine: bool = False,
+    include_unpaid: bool = False,
+    user_id: Optional[str] = Depends(optional_user_id),
     filters: Filters = Depends(bid_filters),
 ) -> Page[PublicBid]:
     auction_item = await get_auction_item_by_id(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
-    page = await get_bids_paginated(auction_item_id=auction_item_id, filters=filters)
-    return page
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
+    for_user_id = user_id if only_mine else None
+    include_unpaid = include_unpaid and (user_id == auction_room.user_id)
+    page = await get_bids_paginated(
+        auction_item_id=auction_item_id,
+        user_id=for_user_id,
+        include_unpaid=include_unpaid,
+        filters=filters,
+    )
 
-@auction_house_api_router.get(
-    "/api/v1/user/bids/paginated",
-    name="Bids List",
-    summary="get paginated list of bids for the user",
-    response_description="list of bids",
-    openapi_extra=generate_filter_params_openapi(BidFilters),
-    response_model=Page[PublicAuctionItem],
-)
-async def api_get_bids_paginated(
-    user_id: str = Depends(check_user_id),
-    filters: Filters = Depends(bid_filters),
-) -> Page[PublicBid]:
-
-    page = await get_bids_for_user_paginated(user_id=user_id, filters=filters)
     return page

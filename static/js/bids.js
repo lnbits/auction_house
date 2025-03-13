@@ -12,7 +12,10 @@ window.app = Vue.createApp({
       },
       bidRequest: null,
       bidPrice: 0,
+      lnAddress: "",
       bidMemo: "",
+      onlyMyBids: false,
+      showUnpaidBids: false,
       showBidRequestQrCode: false,
       itemFormDialog: {
         show: false,
@@ -26,12 +29,22 @@ window.app = Vue.createApp({
       bidsTable: {
         columns: [
           {
+            name: "paid",
+            align: "left",
+            label: "",
+            field: "paid",
+            sortable: false,
+            format: (_, row) =>
+              row.paid === true ? (row.higher_bid_made ? "✔" : "✅") : "❌",
+          },
+          {
             name: "id",
             align: "left",
             label: "Id",
             field: "id",
             sortable: true,
           },
+
           {
             name: "memo",
             align: "left",
@@ -77,6 +90,7 @@ window.app = Vue.createApp({
       bidForm: {
         show: false,
         isUserAuthenticated: is_user_authenticated,
+        isUserRoomOwner: is_user_room_owner,
         data: auction_item,
       },
     };
@@ -88,7 +102,9 @@ window.app = Vue.createApp({
         const auctionItemId = this.bidForm.data.id;
         const { data } = await LNbits.api.request(
           "GET",
-          `/auction_house/api/v1/bids/${auctionItemId}/paginated?${params}`,
+          `/auction_house/api/v1/bids/${auctionItemId}` +
+            `/paginated?only_mine=${this.onlyMyBids}` +
+            `&include_unpaid=${this.showUnpaidBids}&${params}`,
         );
 
         this.bidsList = data.data;
@@ -132,6 +148,7 @@ window.app = Vue.createApp({
           null,
           {
             amount: this.bidPrice,
+            ln_address: this.lnAddress,
             memo: this.bidMemo,
           },
         );

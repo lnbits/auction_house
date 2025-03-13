@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from lnbits.db import FilterModel
+from lnbits.helpers import is_valid_email_address
 from pydantic import BaseModel, Field
 
 
@@ -22,13 +23,14 @@ class CreateAuctionRoomData(BaseModel):
     min_bid_up_percentage: float = 5
 
     def validate_data(self):
-        assert self.days > 0, "Auction Room days must be positive."
-        assert self.room_percentage > 0, "Auction Room percentage must be positive."
-        assert self.min_bid_up_percentage > 0, "Auction Room bid up must be positive."
-        assert self.type in [
-            "auction",
-            "fixed_price",
-        ], "Auction Room type must be 'auction' or 'fixed_price'."
+        if self.days <= 0:
+            raise ValueError("Auction Room days must be positive.")
+        if self.room_percentage <= 0:
+            raise ValueError("Auction Room percentage must be positive.")
+        if self.min_bid_up_percentage <= 0:
+            raise ValueError("Auction Room bid up must be positive.")
+        if self.type not in ["auction", "fixed_price"]:
+            raise ValueError("Auction Room type must be 'auction' or 'fixed_price'.")
 
 
 class EditAuctionRoomData(CreateAuctionRoomData):
@@ -119,7 +121,16 @@ class AuctionItemFilters(FilterModel):
 
 class BidRequest(BaseModel):
     memo: str
+    ln_address: str | None = None
     amount: float
+
+    def validate_data(self):
+        if self.amount <= 0:
+            raise ValueError("Bid amount must be positive.")
+        if not self.memo.strip():
+            raise ValueError("Memo is required.")
+        if self.ln_address and not is_valid_email_address(self.ln_address):
+            raise ValueError("Lightning Address is not valid.")
 
 
 class BidResponse(BaseModel):
@@ -134,6 +145,7 @@ class PublicBid(BaseModel):
     memo: str
     amount: float
     amount_sat: int
+    paid: bool = False
     currency: str
     higher_bid_made: bool = False
     created_at: datetime
@@ -141,7 +153,7 @@ class PublicBid(BaseModel):
 
 class Bid(PublicBid):
     user_id: str
-    paid: bool = False
+    ln_address: str | None = None
     payment_hash: str
     expires_at: datetime
 

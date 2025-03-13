@@ -83,12 +83,12 @@ window.app = Vue.createApp({
       try {
         const params = LNbits.utils.prepareFilterQuery(this.itemsTable, props);
         const auctionRoomId = this.auctionRoomForm.data.id;
-        const { data, total } = await LNbits.api.request(
+        const { data } = await LNbits.api.request(
           "GET",
-          `/auction_house/api/v1/${auctionRoomId}/items/paginated?${params}`,
+          `/auction_house/api/v1/items/${auctionRoomId}/paginated?${params}`,
         );
-
         this.auctionItems = data.data;
+        this.itemsTable.pagination.rowsNumber = data.total;
       } catch (error) {
         LNbits.utils.notifyApiError(error);
       }

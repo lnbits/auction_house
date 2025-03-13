@@ -221,7 +221,7 @@ async def update_top_bid(auction_item_id: str, bid_id: str) -> None:
     )
 
 
-async def get_top_bid(auction_item_id: str) -> Optional[PublicBid]:
+async def get_top_bid(auction_item_id: str) -> Optional[Bid]:
     return await db.fetchone(
         """
             SELECT * FROM auction_house.bids
@@ -230,7 +230,7 @@ async def get_top_bid(auction_item_id: str) -> Optional[PublicBid]:
                 AND higher_bid_made = false
         """,
         {"auction_item_id": auction_item_id},
-        PublicBid,
+        Bid,
     )
 
 
@@ -248,14 +248,22 @@ async def get_bids(auction_item_id: str) -> list[PublicBid]:
 
 async def get_bids_paginated(
     auction_item_id: str,
+    user_id: Optional[str] = None,
+    include_unpaid: Optional[bool] = None,
     filters: Optional[Filters[BidFilters]] = None,
 ) -> Page[PublicBid]:
+    where = ["auction_item_id = :auction_item_id"]
+    values = {"auction_item_id": auction_item_id}
+    if user_id:
+        where.append(" user_id = :user_id")
+        values["user_id"] = user_id
+    if not include_unpaid:
+        where.append("paid = true")
+
     return await db.fetch_page(
-        """
-        SELECT * FROM auction_house.bids
-        WHERE auction_item_id = :auction_item_id AND paid = true
-        """,
-        values={"auction_item_id": auction_item_id},
+        "SELECT * FROM auction_house.bids",
+        where=where,
+        values=values,
         filters=filters,
         model=PublicBid,
     )

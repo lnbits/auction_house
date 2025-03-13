@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bolt11
+import httpx
 from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.db import Filters, Page
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import check_callback_url, urlsafe_short_hash
 from loguru import logger
 
 from .crud import (
@@ -128,16 +130,22 @@ async def place_bid(
         memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}. "
         f"Amount: {data.amount} {auction_room.currency}",
     )
-
+    currency = auction_room.currency
+    memo = (
+        f"[{auction_item.current_price} {currency}"
+        " -> "
+        f"{data.amount} {currency}] {data.memo}"
+    )
     bid = Bid(
         id=urlsafe_short_hash(),
         user_id=user_id,
         auction_item_id=auction_item.id,
-        currency=auction_room.currency,
+        currency=currency,
         payment_hash=payment.payment_hash,
         amount=data.amount,
         amount_sat=payment.sat,
-        memo=data.memo or "",
+        memo=memo,
+        ln_address=data.ln_address,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
@@ -174,20 +182,35 @@ async def new_bid_made(payment: Payment) -> bool:
         )
         return False
 
+    # race condition between two bids
     if await _must_refund_bid_payment(bid, auction_item):
         logger.info(f"Refunding. {bid_details}")
-        refunded = await _refund_payment(bid, auction_item)
+        refunded = await _refund_payment(bid, auction_item.auction_room_id)
         logger.info(f"Refunded: {refunded}. {bid_details}")
-        return True
-
-    assert auction_item
+        return False
 
     # todo: more checks
+    await _refund_previous_winner(auction_item)
     await _accept_bid(bid)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
     return True
+
+
+async def _refund_previous_winner(auction_item: PublicAuctionItem):
+    try:
+        top_bid = await get_top_bid(auction_item.id)
+        if not top_bid:
+            return
+        logger.info(f"Refunding previous winner bid '{top_bid.memo}' ({top_bid.id}).")
+        refunded = await _refund_payment(top_bid, auction_item.auction_room_id)
+        logger.info(f"Refunded: {refunded}. Bid '{top_bid.memo}' ({top_bid.id}).")
+    except Exception as e:
+        logger.warning(
+            "Failed to refund bid for auction item "
+            f"'{auction_item.name}' ({auction_item.id}): {e}"
+        )
 
 
 async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
@@ -212,39 +235,123 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
     return False
 
 
-async def _refund_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
-    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
+    auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
         return False
 
-    wallets = await get_wallets(bid.user_id)
-    if len(wallets) == 0:
-        logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
+    refunded = False
+    if bid.ln_address:
+        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet)
+
+    if not refunded:
+        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet)
+
+    return refunded
+
+
+async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bool:
+    try:
+        payment_request = await _ln_address_payment_request(bid)
+        await pay_invoice(
+            wallet_id=refund_from_wallet,
+            payment_request=payment_request,
+            extra={"tag": "auction_house", "is_refund": True},
+        )
+        logger.info(f"Refund paid to {bid.ln_address}. Bid {bid.memo} ({bid.id}).")
+        return True
+    except Exception as e:
+        logger.warning(
+            f"Failed to refund bid '{bid.memo}' ({bid.id}) "
+            f"Lightning Address {bid.ln_address}: {e}"
+        )
         return False
 
-    user_wallet = wallets[0]
 
-    memo = (
-        f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
-        f"Auction item: '{auction_room.name}/{auction_item.name}'. "
-        f"Memo: {bid.memo}. "
-        f"Id: {bid.id}."
-    )
-    refund_payment: Payment = await create_invoice(
-        wallet_id=user_wallet.id,
-        amount=bid.amount_sat,
-        extra={"tag": "auction_house", "is_refund": True},
-        memo=memo,
-    )
+async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> bool:
+    try:
+        wallets = await get_wallets(bid.user_id)
+        if len(wallets) == 0:
+            logger.warning(f"No wallet found for bid '{bid.memo}' ({bid.id}).")
+            return False
 
-    await pay_invoice(
-        wallet_id=auction_room.wallet,
-        payment_request=refund_payment.bolt11,
-        extra={"tag": "auction_house", "is_refund": True},
-    )
-    logger.info(f"Refund paid. {memo}")
-    return True
+        user_wallet = wallets[0]
+
+        refund_payment: Payment = await create_invoice(
+            wallet_id=user_wallet.id,
+            amount=bid.amount_sat,
+            extra={"tag": "auction_house", "is_refund": True},
+            memo=f"Refund amount: {bid.amount} {bid.currency} ({bid.amount_sat} sat). "
+            f"Bid: {bid.memo} ({bid.id}).",
+        )
+
+        await pay_invoice(
+            wallet_id=refund_from_wallet,
+            payment_request=refund_payment.bolt11,
+            extra={"tag": "auction_house", "is_refund": True},
+        )
+        logger.info(f"Refund paid to user wallet. Bid {bid.memo} ({bid.id}).")
+
+        return True
+    except Exception as e:
+        logger.warning(
+            f"Failed to refund bid '{bid.memo}' ({bid.id}) to user wallet: {e}"
+        )
+        return False
+
+
+async def _ln_address_payment_request(bid: Bid) -> str:
+    assert bid.ln_address, f"Missing Lightning Address for bid {bid.id}."
+    name_domain = bid.ln_address.split("@")
+    if len(name_domain) != 2 and len(name_domain[1].split(".")) < 2:
+        raise ValueError(f"Invalid Lightning Address '{bid.ln_address}'.")
+
+    name, domain = name_domain
+    url = f"https://{domain}/.well-known/lnurlp/{name}"
+    check_callback_url(url)
+
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        r = await client.get(url, timeout=5)
+        r.raise_for_status()
+
+        data = r.json()
+        callback_url = data.get("callback")
+        assert callback_url, f"Missing callback URL for {bid.ln_address}."
+        check_callback_url(callback_url)
+
+        min_sendable = data.get("minSendable")
+        assert min_sendable, f"Missing min_sendable for {bid.ln_address}."
+        assert min_sendable <= bid.amount_sat, f"Amount too low for {bid.ln_address}."
+
+        max_sendable = data.get("maxSendable")
+        assert max_sendable, f"Missing max_sendable for {bid.ln_address}."
+        assert max_sendable >= bid.amount_sat, f"Amount too high for {bid.ln_address}."
+
+        amount_msat = bid.amount_sat * 1000
+        r = await client.get(
+            callback_url,
+            params={
+                "amount": amount_msat,
+                "comment": f"Refund for {bid.memo} ({bid.auction_item_id}/{bid.id}).",
+            },
+            timeout=5,
+        )
+        r.raise_for_status()
+
+        data = r.json()
+        if not data.get("pr"):
+            raise ValueError(
+                f"Missing payment request in callback response for {bid.ln_address}."
+            )
+        invoice = bolt11.decode(data["pr"])
+        if invoice.amount_msat != amount_msat:
+            raise ValueError(
+                "Amount mismatch in invoice for"
+                f" {bid.ln_address} ({bid.auction_item_id}/{bid.id})."
+            )
+
+    return data["pr"]
 
 
 async def _accept_bid(bid: Bid):
