@@ -153,6 +153,17 @@ async def update_auction_item_top_price(
     )
 
 
+async def close_auction(auction_item_id: str) -> None:
+    await db.execute(
+        """
+        UPDATE auction_house.auction_items
+        SET active = false
+        WHERE id = :auction_item_id
+        """,
+        {"auction_item_id": auction_item_id},
+    )
+
+
 async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
     return await db.fetchall(
         """

@@ -22,7 +22,7 @@ window.app = Vue.createApp({
         data: {
           name: "",
           description: "",
-          starting_price: 0,
+          ask_price: 0,
         },
       },
 
@@ -91,6 +91,7 @@ window.app = Vue.createApp({
         show: false,
         isUserAuthenticated: is_user_authenticated,
         isUserRoomOwner: is_user_room_owner,
+        isAuctionType: is_auction_type,
         data: auction_item,
       },
     };
@@ -194,7 +195,7 @@ window.app = Vue.createApp({
       this.itemFormDialog.data = {
         name: "",
         description: "",
-        starting_price: 0,
+        ask_price: 0,
       };
     },
     initTimeLeft: function (item) {
@@ -202,7 +203,7 @@ window.app = Vue.createApp({
         item.time_left_seconds -= 1;
         const duration = moment.utc(item.time_left_seconds * 1000);
         this.timeLeft = {
-          days: duration.format("DDD"),
+          days: +duration.format("DDD") - 1,
           hours: duration.format("HH"),
           minutes: duration.format("mm"),
           seconds: duration.format("ss"),

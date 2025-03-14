@@ -96,6 +96,7 @@ page %}
               hint="Percentage that the room gets when the auction is done."
             ></q-input>
             <q-input
+              v-if="auctionRoomForm.data.type === 'auction'"
               filled
               dense
               v-model="auctionRoomForm.data.min_bid_up_percentage"

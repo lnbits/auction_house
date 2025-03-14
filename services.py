@@ -11,6 +11,7 @@ from lnbits.helpers import check_callback_url, urlsafe_short_hash
 from loguru import logger
 
 from .crud import (
+    close_auction,
     create_auction_item,
     create_bid,
     get_active_auction_items,
@@ -44,7 +45,7 @@ async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
 async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
 ) -> PublicAuctionItem:
-    assert data.starting_price > 0, "Starting price must be positive."
+    assert data.ask_price > 0, "Starting price must be positive."
     expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
     data.name = data.name.strip()
     item = AuctionItem(
@@ -100,7 +101,7 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
         if item.current_price == 0:
-            item.next_min_bid = item.starting_price
+            item.next_min_bid = item.ask_price
         else:
             item.next_min_bid = round(
                 item.current_price * (1 + auction_room.min_bid_up_percentage / 100), 2
@@ -209,6 +210,11 @@ async def new_bid_made(payment: Payment) -> bool:
         )
         return False
 
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
+        return False
+
     # race condition between two bids
     if await _must_refund_bid_payment(bid, auction_item):
         logger.info(f"Refunding. {bid_details}")
@@ -218,7 +224,10 @@ async def new_bid_made(payment: Payment) -> bool:
 
     # todo: more checks
     await _refund_previous_winner(auction_item)
-    await _accept_bid(bid)
+    if auction_room.is_auction:
+        await _accept_bid(bid)  # todo: should be try-catch?
+    elif auction_room.is_fixed_price:
+        await _accept_buy(bid)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
@@ -229,6 +238,10 @@ async def _refund_previous_winner(auction_item: PublicAuctionItem):
     try:
         top_bid = await get_top_bid(auction_item.id)
         if not top_bid:
+            logger.info(
+                "First bid. "
+                f"Nothing to refund for item '{auction_item.name}' ({auction_item.id})."
+            )
             return
         logger.info(f"Refunding previous winner bid '{top_bid.memo}' ({top_bid.id}).")
         refunded = await _refund_payment(top_bid, auction_item.auction_room_id)
@@ -382,7 +395,15 @@ async def _ln_address_payment_request(bid: Bid) -> str:
 
 
 async def _accept_bid(bid: Bid):
+    # todo: should be try-catch?
     bid.paid = True
     await update_bid(bid)
     await update_top_bid(bid.auction_item_id, bid.id)
     await update_auction_item_top_price(bid.auction_item_id, bid.amount)
+
+
+async def _accept_buy(bid: Bid):
+    # todo: should be try-catch?
+    bid.paid = True
+    await update_bid(bid)
+    await close_auction(bid.auction_item_id)
