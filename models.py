@@ -55,6 +55,14 @@ class PublicAuctionRoom(BaseModel):
     room_percentage: float = 10
     min_bid_up_percentage: float = 5
 
+    @property
+    def is_auction(self):
+        return self.type == "auction"
+
+    @property
+    def is_fixed_price(self):
+        return self.type == "fixed_price"
+
 
 class AuctionRoom(PublicAuctionRoom):
     user_id: str

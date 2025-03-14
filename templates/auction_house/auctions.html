@@ -100,7 +100,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                       unelevated
                       dense
                       size="md"
-                      :label="isAuctionType ? 'Check Bids' : 'Buy Now'"
+                      :label="isAuctionType ? 'Check Bids' : props.row.active ? 'Buy Now' : 'Details'"
                       color="secondary"
                       type="a"
                       :href="'/auction_house/bids/' + props.row.id"

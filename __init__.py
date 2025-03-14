@@ -35,8 +35,12 @@ def auction_house_stop():
 def auction_house_start():
     from lnbits.tasks import create_permanent_unique_task
 
-    task1 = create_permanent_unique_task("ext_auction_house", wait_for_paid_invoices)
-    task2 = create_permanent_unique_task("ext_auction_house", run_by_the_minute_task)
+    task1 = create_permanent_unique_task(
+        "ext_auction_house_invoice", wait_for_paid_invoices
+    )
+    task2 = create_permanent_unique_task(
+        "ext_auction_house_minute", run_by_the_minute_task
+    )
     scheduled_tasks.append(task1)
     scheduled_tasks.append(task2)
 
