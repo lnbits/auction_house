@@ -110,14 +110,21 @@ async def update_auction_room(
 
 async def get_auction_items_paginated(
     auction_room_id: str,
+    user_id: Optional[str] = None,
+    include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[PublicAuctionItem]:
+    where = ["auction_room_id = :auction_room_id"]
+    values = {"auction_room_id": auction_room_id}
+    if user_id:
+        where.append("user_id = :user_id")
+        values["user_id"] = user_id
+    if not include_inactive:
+        where.append("active = true")
     return await db.fetch_page(
-        """
-        SELECT * FROM auction_house.auction_items
-        WHERE auction_room_id = :auction_room_id
-        """,
-        values={"auction_room_id": auction_room_id},
+        "SELECT * FROM auction_house.auction_items",
+        where=where,
+        values=values,
         filters=filters,
         model=PublicAuctionItem,
     )

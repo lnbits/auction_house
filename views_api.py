@@ -131,13 +131,22 @@ async def api_create_auction_item(
 )
 async def api_get_auction_items_paginated(
     auction_room_id: str,
+    include_inactive: Optional[bool] = None,
+    only_mine: Optional[bool] = None,
+    user_id: Optional[str] = Depends(optional_user_id),
     filters: Filters = Depends(auction_items_filters),
 ) -> Page[PublicAuctionItem]:
     auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
-    page = await get_auction_room_items_paginated(auction_room, filters)
+    for_user_id = user_id if only_mine else None
+    page = await get_auction_room_items_paginated(
+        auction_room=auction_room,
+        include_inactive=include_inactive,
+        user_id=for_user_id,
+        filters=filters,
+    )
     return page
 
 

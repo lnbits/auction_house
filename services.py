@@ -58,11 +58,16 @@ async def add_auction_item(
 
 async def get_auction_room_items_paginated(
     auction_room: AuctionRoom,
+    user_id: Optional[str] = None,
+    include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[PublicAuctionItem]:
 
     page = await get_auction_items_paginated(
-        auction_room_id=auction_room.id, filters=filters
+        auction_room_id=auction_room.id,
+        include_inactive=include_inactive,
+        user_id=user_id,
+        filters=filters,
     )
     for item in page.data:
         await get_auction_item_details(item)
