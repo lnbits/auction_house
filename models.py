@@ -21,27 +21,26 @@ class CreateAuctionRoomData(BaseModel):
     days: int = 7
     room_percentage: float = 10
     min_bid_up_percentage: float = 5
+    is_open_room: bool = False
 
     def validate_data(self):
         if self.days <= 0:
             raise ValueError("Auction Room days must be positive.")
-
         if self.type not in ["auction", "fixed_price"]:
             raise ValueError("Auction Room type must be 'auction' or 'fixed_price'.")
+        if self.room_percentage <= 0:
+            raise ValueError("Auction Room percentage must be positive.")
 
         if self.type == "fixed_price":
             self.days = 365
-            self.room_percentage = 0
             self.min_bid_up_percentage = 0
         else:
-            if self.room_percentage <= 0:
-                raise ValueError("Auction Room percentage must be positive.")
             if self.min_bid_up_percentage <= 0:
                 raise ValueError("Auction Room bid up must be positive.")
 
+
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
-    is_open_room: bool = False
 
 
 class PublicAuctionRoom(BaseModel):

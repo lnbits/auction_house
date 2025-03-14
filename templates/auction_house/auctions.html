@@ -97,33 +97,16 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                 <q-tr :props="props">
                   <q-td auto-width>
                     <q-btn
-                      v-if="auctionRoomForm.data.type === 'auction'"
                       unelevated
                       dense
                       size="md"
-                      label="Check Bids"
+                      :label="isAuctionType ? 'Check Bids' : 'Buy Now'"
                       color="secondary"
                       type="a"
                       :href="'/auction_house/bids/' + props.row.id"
                       target="_blank"
                       class="q-mr-sm"
                     ></q-btn>
-                    <div
-                      v-else-if="auctionRoomForm.data.type === 'fixed_price'"
-                    >
-                      <q-btn
-                        v-if="auctionRoomForm.isUserAuthenticated"
-                        unelevated
-                        dense
-                        size="md"
-                        label="Buy Now"
-                        color="secondary"
-                        class="q-mr-sm"
-                      ></q-btn>
-                      <q-btn color="gray" outline disable v-else
-                        >Login to Buy</q-btn
-                      >
-                    </div>
                   </q-td>
                   <q-td
                     v-for="col in props.cols"
@@ -172,7 +155,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           min="0"
           type="number"
           label="Ask Price"
-          :hint="auctionRoomForm.data.type === 'auction' ? 'Starting price for bidding for this item': 'How much you want to sell this item for (fixed price).'"
+          :hint="isAuctionType ? 'Starting price for bidding for this item': 'How much you want to sell this item for (fixed price).'"
         >
         </q-input>
 

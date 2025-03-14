@@ -14,6 +14,7 @@ window.app = Vue.createApp({
       },
       onlyMyItems: false,
       showInactiveItems: false,
+      isAuctionType: false,
       itemsTable: {
         columns: [
           {
@@ -152,5 +153,6 @@ window.app = Vue.createApp({
   },
   created() {
     this.getAuctionItemsPaginated();
+    this.isAuctionType = this.auctionRoomForm.data.type === "auction";
   },
 });

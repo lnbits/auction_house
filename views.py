@@ -60,7 +60,7 @@ async def auctions_list(
     auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room does not exist.")
-    public_auction_room = (PublicAuctionRoom(**auction_room.dict()).json(),)
+    public_auction_room = PublicAuctionRoom(**auction_room.dict()).json()
     return auction_house_renderer().TemplateResponse(
         "auction_house/auctions.html",
         {
@@ -93,6 +93,7 @@ async def bids_list(
             "request": request,
             "is_user_authenticated": user_id is not None,
             "is_user_room_owner": user_id == auction_room.user_id,
+            "is_auction_type": auction_room.type == "auction",
             "auction_item": auction_item.json(),
         },
     )
