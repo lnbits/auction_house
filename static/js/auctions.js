@@ -12,8 +12,18 @@ window.app = Vue.createApp({
           starting_price: 0,
         },
       },
+      onlyMyItems: false,
+      showInactiveItems: false,
       itemsTable: {
         columns: [
+          {
+            name: "active",
+            align: "left",
+            label: "",
+            field: "active",
+            sortable: false,
+            format: (_, row) => (row.active === true ? "🟢" : "⚪"),
+          },
           {
             name: "name",
             align: "left",
@@ -63,6 +73,13 @@ window.app = Vue.createApp({
             format: (val) => LNbits.utils.formatDateString(val),
             sortable: true,
           },
+          {
+            name: "id",
+            align: "left",
+            label: "ID",
+            field: "id",
+            sortable: true,
+          },
         ],
         pagination: {
           rowsPerPage: 10,
@@ -74,6 +91,7 @@ window.app = Vue.createApp({
       auctionRoomForm: {
         show: false,
         isUserAuthenticated: is_user_authenticated,
+        isUserRoomOwner: is_user_room_owner,
         data: auction_room,
       },
     };
@@ -85,7 +103,9 @@ window.app = Vue.createApp({
         const auctionRoomId = this.auctionRoomForm.data.id;
         const { data } = await LNbits.api.request(
           "GET",
-          `/auction_house/api/v1/items/${auctionRoomId}/paginated?${params}`,
+          `/auction_house/api/v1/items/${auctionRoomId}` +
+            `/paginated?only_mine=${this.onlyMyItems}` +
+            `&include_inactive=${this.showInactiveItems}&${params}`,
         );
         this.auctionItems = data.data;
         this.itemsTable.pagination.rowsNumber = data.total;

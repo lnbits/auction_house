@@ -110,14 +110,21 @@ async def update_auction_room(
 
 async def get_auction_items_paginated(
     auction_room_id: str,
+    user_id: Optional[str] = None,
+    include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[PublicAuctionItem]:
+    where = ["auction_room_id = :auction_room_id"]
+    values = {"auction_room_id": auction_room_id}
+    if user_id:
+        where.append("user_id = :user_id")
+        values["user_id"] = user_id
+    if not include_inactive:
+        where.append("active = true")
     return await db.fetch_page(
-        """
-        SELECT * FROM auction_house.auction_items
-        WHERE auction_room_id = :auction_room_id
-        """,
-        values={"auction_room_id": auction_room_id},
+        "SELECT * FROM auction_house.auction_items",
+        where=where,
+        values=values,
         filters=filters,
         model=PublicAuctionItem,
     )
@@ -126,6 +133,11 @@ async def get_auction_items_paginated(
 async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
     await db.insert("auction_house.auction_items", data)
     return PublicAuctionItem(**data.dict())
+
+
+async def update_auction_item(data: AuctionItem) -> AuctionItem:
+    await db.update("auction_house.auction_items", data)
+    return data
 
 
 async def update_auction_item_top_price(
@@ -149,6 +161,16 @@ async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
         """,
         {"auction_room_id": auction_room_id},
         PublicAuctionItem,
+    )
+
+
+async def get_active_auction_items() -> list[AuctionItem]:
+    return await db.fetchall(
+        """
+            SELECT * FROM auction_house.auction_items
+            WHERE active = true
+        """,
+        model=AuctionItem,
     )
 
 

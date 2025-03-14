@@ -13,12 +13,14 @@ from loguru import logger
 from .crud import (
     create_auction_item,
     create_bid,
+    get_active_auction_items,
     get_auction_item_by_id,
     get_auction_items_paginated,
     get_auction_room_by_id,
     get_auction_rooms,
     get_bid_by_payment_hash,
     get_top_bid,
+    update_auction_item,
     update_auction_item_top_price,
     update_bid,
     update_top_bid,
@@ -58,11 +60,16 @@ async def add_auction_item(
 
 async def get_auction_room_items_paginated(
     auction_room: AuctionRoom,
+    user_id: Optional[str] = None,
+    include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[PublicAuctionItem]:
 
     page = await get_auction_items_paginated(
-        auction_room_id=auction_room.id, filters=filters
+        auction_room_id=auction_room.id,
+        include_inactive=include_inactive,
+        user_id=user_id,
+        filters=filters,
     )
     for item in page.data:
         await get_auction_item_details(item)
@@ -103,6 +110,26 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
         item.active = False
 
     return item
+
+
+async def checked_expired_auctions():
+    auction_items = await get_active_auction_items()
+    for item in auction_items:
+        time_left = item.expires_at - datetime.now(timezone.utc)
+        if time_left.total_seconds() > 0:
+            continue
+        try:
+            await close_auction_item(item)
+        except Exception as e:
+            logger.error(f"Error closing auction item {item.id}: {e}")
+
+
+async def close_auction_item(item: AuctionItem) -> bool:
+    item.active = False
+    await update_auction_item(item)
+    print("### closing auction item" + item.name)
+    # todo: transfer asset here
+    return True
 
 
 async def place_bid(
