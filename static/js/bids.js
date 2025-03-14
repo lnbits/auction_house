@@ -22,7 +22,7 @@ window.app = Vue.createApp({
         data: {
           name: "",
           description: "",
-          starting_price: 0,
+          ask_price: 0,
         },
       },
 
@@ -194,7 +194,7 @@ window.app = Vue.createApp({
       this.itemFormDialog.data = {
         name: "",
         description: "",
-        starting_price: 0,
+        ask_price: 0,
       };
     },
     initTimeLeft: function (item) {

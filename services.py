@@ -44,7 +44,7 @@ async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
 async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
 ) -> PublicAuctionItem:
-    assert data.starting_price > 0, "Starting price must be positive."
+    assert data.ask_price > 0, "Starting price must be positive."
     expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
     data.name = data.name.strip()
     item = AuctionItem(
@@ -100,7 +100,7 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
         if item.current_price == 0:
-            item.next_min_bid = item.starting_price
+            item.next_min_bid = item.ask_price
         else:
             item.next_min_bid = round(
                 item.current_price * (1 + auction_room.min_bid_up_percentage / 100), 2

@@ -9,7 +9,7 @@ window.app = Vue.createApp({
         data: {
           name: "",
           description: "",
-          starting_price: 0,
+          ask_price: 0,
         },
       },
       onlyMyItems: false,
@@ -40,13 +40,13 @@ window.app = Vue.createApp({
             format: (val) => (val || "").substring(0, 50),
           },
           {
-            name: "starting_price",
+            name: "ask_price",
             align: "left",
-            label: "Sarting Price",
-            field: "starting_price",
+            label: "Ask Price",
+            field: "ask_price",
             sortable: true,
             format: (_, row) =>
-              LNbits.utils.formatCurrency(row.starting_price, row.currency),
+              LNbits.utils.formatCurrency(row.ask_price, row.currency),
           },
           {
             name: "current_price",
@@ -138,7 +138,7 @@ window.app = Vue.createApp({
       this.itemFormDialog.data = {
         name: "",
         description: "",
-        starting_price: 0,
+        ask_price: 0,
       };
     },
     formatCurrency(amount, currency) {

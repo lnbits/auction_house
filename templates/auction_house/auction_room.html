@@ -85,6 +85,7 @@ page %}
               hint="Number of days the items in the auction room will be active."
             ></q-input>
             <q-input
+              v-if="auctionRoomForm.data.type === 'auction'"
               filled
               dense
               v-model="auctionRoomForm.data.room_percentage"
@@ -96,6 +97,7 @@ page %}
               hint="Percentage that the room gets when the auction is done."
             ></q-input>
             <q-input
+              v-if="auctionRoomForm.data.type === 'auction'"
               filled
               dense
               v-model="auctionRoomForm.data.min_bid_up_percentage"

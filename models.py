@@ -25,17 +25,19 @@ class CreateAuctionRoomData(BaseModel):
     def validate_data(self):
         if self.days <= 0:
             raise ValueError("Auction Room days must be positive.")
-        if self.room_percentage <= 0:
-            raise ValueError("Auction Room percentage must be positive.")
-        if self.min_bid_up_percentage <= 0:
-            raise ValueError("Auction Room bid up must be positive.")
+
         if self.type not in ["auction", "fixed_price"]:
             raise ValueError("Auction Room type must be 'auction' or 'fixed_price'.")
+
         if self.type == "fixed_price":
-            self.days = 0
+            self.days = 365
             self.room_percentage = 0
             self.min_bid_up_percentage = 0
-
+        else:
+            if self.room_percentage <= 0:
+                raise ValueError("Auction Room percentage must be positive.")
+            if self.min_bid_up_percentage <= 0:
+                raise ValueError("Auction Room bid up must be positive.")
 
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
@@ -66,7 +68,7 @@ class AuctionRoom(PublicAuctionRoom):
 class CreateAuctionItem(BaseModel):
     name: str
     description: Optional[str] = None
-    starting_price: float = 0
+    ask_price: float = 0
     transfer_code: str
 
 
@@ -76,7 +78,7 @@ class PublicAuctionItem(BaseModel):
     name: str
     active: bool = True
     description: Optional[str] = None
-    starting_price: float = 0
+    ask_price: float = 0
     current_price: float = 0
     created_at: datetime
     expires_at: datetime
@@ -104,7 +106,7 @@ class AuctionItemFilters(FilterModel):
         "name",
         "created_at",
         "expires_at",
-        "starting_price",
+        "ask_price",
         "current_price",
     ]
 
@@ -112,12 +114,12 @@ class AuctionItemFilters(FilterModel):
         "name",
         "created_at",
         "expires_at",
-        "starting_price",
+        "ask_price",
         "current_price",
     ]
 
     name: str | None
-    starting_price: float | None
+    ask_price: float | None
     current_price: float | None
     created_at: datetime | None
     expires_at: datetime | None

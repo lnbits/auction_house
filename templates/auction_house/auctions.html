@@ -168,13 +168,14 @@ from "macros.jinja" import window_vars with context %} {% block page %}
         <q-input
           filled
           dense
-          v-model="itemFormDialog.data.starting_price"
+          v-model="itemFormDialog.data.ask_price"
           min="0"
           type="number"
-          label="Starting Price"
-          hint="Starting price for bidding for this item"
+          label="Ask Price"
+          :hint="auctionRoomForm.data.type === 'auction' ? 'Starting price for bidding for this item': 'How much you want to sell this item for (fixed price).'"
         >
         </q-input>
+
         <q-input
           filled
           dense
