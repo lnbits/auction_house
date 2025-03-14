@@ -17,6 +17,14 @@ window.app = Vue.createApp({
       itemsTable: {
         columns: [
           {
+            name: "active",
+            align: "left",
+            label: "",
+            field: "active",
+            sortable: false,
+            format: (_, row) => (row.active === true ? "🟢" : "⚪"),
+          },
+          {
             name: "name",
             align: "left",
             label: "Name",
