@@ -31,6 +31,10 @@ class CreateAuctionRoomData(BaseModel):
             raise ValueError("Auction Room bid up must be positive.")
         if self.type not in ["auction", "fixed_price"]:
             raise ValueError("Auction Room type must be 'auction' or 'fixed_price'.")
+        if self.type == "fixed_price":
+            self.days = 0
+            self.room_percentage = 0
+            self.min_bid_up_percentage = 0
 
 
 class EditAuctionRoomData(CreateAuctionRoomData):

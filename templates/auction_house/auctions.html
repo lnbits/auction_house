@@ -39,7 +39,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                 unelevated
                 color="primary"
                 class="float-right"
-                >Add Auction Item</q-btn
+                >Add Item</q-btn
               >
               <q-btn color="gray" outline disable class="float-right" v-else
                 >Login to add your item</q-btn
@@ -97,6 +97,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                 <q-tr :props="props">
                   <q-td auto-width>
                     <q-btn
+                      v-if="auctionRoomForm.data.type === 'auction'"
                       unelevated
                       dense
                       size="md"
@@ -107,6 +108,22 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                       target="_blank"
                       class="q-mr-sm"
                     ></q-btn>
+                    <div
+                      v-else-if="auctionRoomForm.data.type === 'fixed_price'"
+                    >
+                      <q-btn
+                        v-if="auctionRoomForm.isUserAuthenticated"
+                        unelevated
+                        dense
+                        size="md"
+                        label="Buy Now"
+                        color="secondary"
+                        class="q-mr-sm"
+                      ></q-btn>
+                      <q-btn color="gray" outline disable v-else
+                        >Login to Buy</q-btn
+                      >
+                    </div>
                   </q-td>
                   <q-td
                     v-for="col in props.cols"
@@ -168,8 +185,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
 
         <div class="row q-mt-lg">
           <q-btn unelevated color="primary" type="submit">
-            <!-- :disable="itemFormDialog.data.auction_room_id == null || itemFormDialog.data.pubkey == null || itemFormDialog.data.local_part == null" -->
-            <span> Add Auction Item</span></q-btn
+            <span> Add Item</span></q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
