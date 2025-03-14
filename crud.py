@@ -135,6 +135,11 @@ async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
     return PublicAuctionItem(**data.dict())
 
 
+async def update_auction_item(data: AuctionItem) -> AuctionItem:
+    await db.update("auction_house.auction_items", data)
+    return data
+
+
 async def update_auction_item_top_price(
     auction_item_id: str, current_price: float
 ) -> None:
@@ -156,6 +161,16 @@ async def get_auction_items(auction_room_id: str) -> list[PublicAuctionItem]:
         """,
         {"auction_room_id": auction_room_id},
         PublicAuctionItem,
+    )
+
+
+async def get_active_auction_items() -> list[AuctionItem]:
+    return await db.fetchall(
+        """
+            SELECT * FROM auction_house.auction_items
+            WHERE active = true
+        """,
+        model=AuctionItem,
     )
 
 

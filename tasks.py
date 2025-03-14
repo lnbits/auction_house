@@ -4,7 +4,7 @@ from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 from loguru import logger
 
-from .services import new_bid_made
+from .services import checked_expired_auctions, new_bid_made
 
 
 async def wait_for_paid_invoices():
@@ -13,10 +13,22 @@ async def wait_for_paid_invoices():
 
     while True:
         payment = await invoice_queue.get()
-        await on_invoice_paid(payment)
+        await _on_invoice_paid(payment)
 
 
-async def on_invoice_paid(payment: Payment) -> None:
+async def run_by_the_minute_task():
+    minute_counter = 0
+    while True:
+        try:
+            await checked_expired_auctions()
+        except Exception as ex:
+            logger.error(ex)
+
+        minute_counter += 1
+        await asyncio.sleep(60)
+
+
+async def _on_invoice_paid(payment: Payment) -> None:
     if not payment.extra or payment.extra.get("tag") != "auction_house":
         return
     if payment.extra.get("is_refund", False):

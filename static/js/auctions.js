@@ -91,6 +91,7 @@ window.app = Vue.createApp({
       auctionRoomForm: {
         show: false,
         isUserAuthenticated: is_user_authenticated,
+        isUserRoomOwner: is_user_room_owner,
         data: auction_room,
       },
     };

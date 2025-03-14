@@ -10,8 +10,8 @@ from lnbits.helpers import template_renderer
 from .crud import (
     get_auction_room,
     get_auction_room_by_id,
-    get_auction_room_public_data,
 )
+from .models import PublicAuctionRoom
 from .services import get_auction_item
 
 auction_house_generic_router: APIRouter = APIRouter()
@@ -57,7 +57,7 @@ async def auctions_list(
     auction_room_id: str,
     user_id: Optional[str] = Depends(optional_user_id),
 ):
-    auction_room = await get_auction_room_public_data(auction_room_id)
+    auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room does not exist.")
     return auction_house_renderer().TemplateResponse(
@@ -65,7 +65,8 @@ async def auctions_list(
         {
             "request": request,
             "is_user_authenticated": user_id is not None,
-            "auction_room": auction_room.json(),
+            "is_user_room_owner": user_id == auction_room.user_id,
+            "auction_room": PublicAuctionRoom(**auction_room.dict()).json(),
         },
     )
 

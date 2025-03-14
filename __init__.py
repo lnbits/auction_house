@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from loguru import logger
 
 from .crud import db
-from .tasks import wait_for_paid_invoices
+from .tasks import run_by_the_minute_task, wait_for_paid_invoices
 from .views import auction_house_generic_router
 from .views_api import auction_house_api_router
 
@@ -35,8 +35,10 @@ def auction_house_stop():
 def auction_house_start():
     from lnbits.tasks import create_permanent_unique_task
 
-    task = create_permanent_unique_task("ext_auction_house", wait_for_paid_invoices)
-    scheduled_tasks.append(task)
+    task1 = create_permanent_unique_task("ext_auction_house", wait_for_paid_invoices)
+    task2 = create_permanent_unique_task("ext_auction_house", run_by_the_minute_task)
+    scheduled_tasks.append(task1)
+    scheduled_tasks.append(task2)
 
 
 __all__ = [
