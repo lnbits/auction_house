@@ -70,12 +70,16 @@ window.app = Vue.createApp({
       this.formDialog.show = false;
       this.auctionRoomTab = "webhooks";
       this.formDialog.data = {
+        name: "",
+        description: "",
+        wallet: "",
         currency: "sat",
         type: null,
-        days: 0,
-        room_percentage: 0,
-        min_bid_up_percentage: 0,
       };
+    },
+    showFormDialog: function () {
+      this.resetFormDialog();
+      this.formDialog.show = true;
     },
 
     getAuctionRooms: async function () {

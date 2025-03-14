@@ -39,12 +39,12 @@ page %}
 
       <q-tab-panels class="bg-transparent" v-model="auctionRoomTab">
         <q-tab-panel name="overview">
-          <!-- <q-card class="q-pa-lg"> -->
           <div class="q-gutter-md">
             <q-select
               filled
               dense
               emit-value
+              map-options
               v-model="auctionRoomForm.data.wallet"
               :options="g.user.walletOptions"
               label="Wallet *"
