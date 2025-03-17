@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
@@ -19,6 +19,7 @@ from .crud import (
     get_auction_item_by_name,
     get_auction_room,
     get_auction_room_by_id,
+    get_auction_room_public_data,
     get_bids_paginated,
     update_auction_room,
 )
@@ -35,6 +36,7 @@ from .models import (
     CreateAuctionRoomData,
     EditAuctionRoomData,
     PublicAuctionItem,
+    PublicAuctionRoom,
     PublicBid,
 )
 from .services import (
@@ -51,7 +53,7 @@ bid_filters = parse_filters(BidFilters)
 ############################# AUCTION ROOMS #############################
 
 
-@auction_house_api_router.get("/api/v1/auction_rooms")
+@auction_house_api_router.get("/api/v1/auction_room")
 async def api_get_auction_rooms(
     user: User = Depends(check_user_exists),
 ) -> list[AuctionRoom]:
@@ -60,11 +62,16 @@ async def api_get_auction_rooms(
 
 @auction_house_api_router.get("/api/v1/auction_room/{auction_room_id}")
 async def api_get_auction_room(
-    auction_room_id: str, user: User = Depends(check_user_exists)
+    auction_room_id: str,
+    user_id: Optional[str] = Depends(optional_user_id),
 ):
-    auction_room = await get_auction_room(
-        user_id=user.id, auction_room_id=auction_room_id
-    )
+    auction_room: Optional[Union[AuctionRoom, PublicAuctionRoom]] = None
+    if user_id:
+        auction_room = await get_auction_room(
+            user_id=user_id, auction_room_id=auction_room_id
+        )
+    else:
+        auction_room = await get_auction_room_public_data(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
     return auction_room

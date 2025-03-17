@@ -49,10 +49,7 @@ class PublicAuctionRoom(BaseModel):
     description: str
     currency: str
     type: str = "auction"  # [auction, fixed_price]
-    days: int = 7
-    # is the room open for everyone who is logged in to add items
-    is_open_room: bool = False
-    room_percentage: float = 10
+
     min_bid_up_percentage: float = 5
 
     @property
@@ -68,6 +65,10 @@ class AuctionRoom(PublicAuctionRoom):
     user_id: str
     created_at: datetime
     wallet: str
+    room_percentage: float = 10
+    days: int = 7
+    # is the room open for everyone who is logged in to add items
+    is_open_room: bool = False
 
     extra: AuctionRoomConfig
 
