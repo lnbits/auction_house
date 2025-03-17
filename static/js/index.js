@@ -32,7 +32,13 @@ window.app = Vue.createApp({
             label: "Currency",
             field: "currency",
           },
-          { name: "type", align: "left", label: "Type", field: "type" },
+          {
+            name: "type",
+            align: "left",
+            label: "Type",
+            field: "type",
+            format: (val) => (val === "auction" ? "🔨" : "💰"),
+          },
           { name: "days", align: "left", label: "Days", field: "days" },
           {
             name: "room_percentage",
