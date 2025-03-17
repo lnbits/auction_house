@@ -17,7 +17,6 @@ from .crud import (
     delete_auction_room,
     get_auction_item_by_id,
     get_auction_item_by_name,
-    get_auction_items_for_user,
     get_auction_room,
     get_auction_room_by_id,
     get_bids_paginated,
@@ -48,6 +47,8 @@ from .services import (
 auction_house_api_router: APIRouter = APIRouter()
 auction_items_filters = parse_filters(AuctionItemFilters)
 bid_filters = parse_filters(BidFilters)
+
+############################# AUCTION ROOMS #############################
 
 
 @auction_house_api_router.get("/api/v1/auction_rooms")
@@ -150,11 +151,8 @@ async def api_get_auction_items_paginated(
     return page
 
 
-@auction_house_api_router.get("/api/v1/items")
-async def api_get_user_auction_items(
-    user_id: str = Depends(check_user_id),
-) -> list[PublicAuctionItem]:
-    return await get_auction_items_for_user(user_id=user_id)
+# todo: cancel sell item at any time
+# cancel auction item if no bids
 
 
 ############################# BIDS #############################
