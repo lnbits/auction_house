@@ -102,7 +102,7 @@ async def api_auction_room_delete(
 
 
 @auction_house_api_router.post(
-    "/api/v1/{auction_room_id}/items", status_code=HTTPStatus.CREATED
+    "/api/v1/items/{auction_room_id}", status_code=HTTPStatus.CREATED
 )
 async def api_create_auction_item(
     auction_room_id: str,
