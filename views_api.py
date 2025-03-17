@@ -17,9 +17,7 @@ from .crud import (
     delete_auction_room,
     get_auction_item_by_id,
     get_auction_item_by_name,
-    get_auction_room,
     get_auction_room_by_id,
-    get_auction_room_public_data,
     get_bids_paginated,
     update_auction_room,
 )
@@ -64,17 +62,18 @@ async def api_get_auction_rooms(
 async def api_get_auction_room(
     auction_room_id: str,
     user_id: Optional[str] = Depends(optional_user_id),
-):
+) -> Optional[Union[AuctionRoom, PublicAuctionRoom]]:
+
     auction_room: Optional[Union[AuctionRoom, PublicAuctionRoom]] = None
-    if user_id:
-        auction_room = await get_auction_room(
-            user_id=user_id, auction_room_id=auction_room_id
-        )
-    else:
-        auction_room = await get_auction_room_public_data(auction_room_id)
+    auction_room = await get_auction_room_by_id(auction_room_id)
+
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
-    return auction_room
+
+    if user_id == auction_room.user_id:
+        return auction_room
+
+    return PublicAuctionRoom(**auction_room.dict())
 
 
 @auction_house_api_router.post("/api/v1/auction_room", status_code=HTTPStatus.CREATED)
