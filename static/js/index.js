@@ -92,7 +92,7 @@ window.app = Vue.createApp({
       try {
         const { data } = await LNbits.api.request(
           "GET",
-          "/auction_house/api/v1/auction_rooms",
+          "/auction_house/api/v1/auction_room",
         );
 
         this.auctionRooms = data;

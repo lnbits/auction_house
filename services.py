@@ -45,7 +45,7 @@ async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
 async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
 ) -> PublicAuctionItem:
-    assert data.ask_price > 0, "Starting price must be positive."
+    assert data.ask_price > 0, "Ask price must be positive."
     expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
     data.name = data.name.strip()
     item = AuctionItem(
