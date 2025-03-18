@@ -167,12 +167,7 @@ class Bid(PublicBid):
 
 
 class BidFilters(FilterModel):
-    __search_fields__ = [
-        "memo",
-        "created_at",
-        "amount",
-        "amount_sat",
-    ]
+    __search_fields__ = ["memo"]
 
     __sort_fields__ = [
         "memo",
