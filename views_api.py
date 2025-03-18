@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
+
 from lnbits.core.models import SimpleStatus, User
 from lnbits.db import Filters, Page
 from lnbits.decorators import (
@@ -39,6 +40,7 @@ from .models import (
 )
 from .services import (
     add_auction_item,
+    get_auction_item_details,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
     place_bid,
@@ -63,7 +65,6 @@ async def api_get_auction_room(
     auction_room_id: str,
     user_id: Optional[str] = Depends(optional_user_id),
 ) -> Optional[Union[AuctionRoom, PublicAuctionRoom]]:
-
     auction_room: Optional[Union[AuctionRoom, PublicAuctionRoom]] = None
     auction_room = await get_auction_room_by_id(auction_room_id)
 
@@ -155,6 +156,24 @@ async def api_get_auction_items_paginated(
         filters=filters,
     )
     return page
+
+
+@auction_house_api_router.get(
+    "/api/v1/items/{auction_item_id}",
+    name="Auction Item",
+    summary="get auction item by id",
+    response_description="auction item",
+    response_model=PublicAuctionItem,
+)
+async def api_get_auction_item(
+    auction_item_id: str,
+    user_id: Optional[str] = Depends(optional_user_id),
+) -> PublicAuctionItem:
+    auction_item = await get_auction_item_by_id(auction_item_id)
+    if not auction_item:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
+
+    return await get_auction_item_details(auction_item)
 
 
 # todo: cancel sell item at any time
