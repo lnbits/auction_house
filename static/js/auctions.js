@@ -87,6 +87,7 @@ window.app = Vue.createApp({
           page: 1,
           rowsNumber: 10,
         },
+        search: "",
       },
 
       auctionRoomForm: {
@@ -96,6 +97,13 @@ window.app = Vue.createApp({
         data: auction_room,
       },
     };
+  },
+  watch: {
+    "itemsTable.search": {
+      handler() {
+        this.getAuctionItemsPaginated();
+      },
+    },
   },
   methods: {
     getAuctionItemsPaginated: async function (props) {

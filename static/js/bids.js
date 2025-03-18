@@ -86,6 +86,7 @@ window.app = Vue.createApp({
           descending: true,
           rowsNumber: 10,
         },
+        search: "",
       },
       bidForm: {
         show: false,
@@ -95,6 +96,13 @@ window.app = Vue.createApp({
         data: auction_item,
       },
     };
+  },
+  watch: {
+    "bidsTable.search": {
+      handler() {
+        this.getBidsPaginated();
+      },
+    },
   },
   methods: {
     getBidsPaginated: async function (props) {

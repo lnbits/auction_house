@@ -17,21 +17,15 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           </div>
         </div>
         <div class="row">
-          <div class="col-12">
+          <div class="col-md-8 col-sm-12">
             <h6 class="q-mt-none q-mb-none">
               <span v-text="auctionRoomForm.data.description"></span>
             </h6>
           </div>
-        </div>
-      </q-card-section>
-    </q-card>
-    <q-card class="q-mt-lg">
-      <q-card-section>
-        <div class="row">
-          <div class="col-6">
+          <div class="col-md-4 col-sm-12">
             <div
               v-if="auctionRoomForm.isUserRoomOwner || auctionRoomForm.data.is_open_room"
-              class="float-left"
+              class="float-right"
             >
               <q-btn
                 v-if="auctionRoomForm.isUserAuthenticated"
@@ -45,6 +39,34 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                 >Login to add your item</q-btn
               >
             </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <div class="row q-mb-lg">
+          <div class="col-6">
+            <q-input
+              filled
+              dense
+              v-model.trim="itemsTable.search"
+              label="Search auction items"
+              placeholder="Search auction items"
+            >
+              <template v-slot:before>
+                <q-icon name="search"> </q-icon>
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  v-if="itemsTable.search"
+                  name="close"
+                  @click="itemsTable.search = ''"
+                  class="cursor-pointer"
+                >
+                </q-icon>
+              </template>
+            </q-input>
           </div>
           <div class="col-6">
             <div>
@@ -67,7 +89,8 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               />
             </div>
           </div>
-
+        </div>
+        <div class="row">
           <div class="col-12">
             <q-table
               dense
