@@ -3,12 +3,13 @@ from typing import Optional
 
 import bolt11
 import httpx
+from loguru import logger
+
 from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.db import Filters, Page
 from lnbits.helpers import check_callback_url, urlsafe_short_hash
-from loguru import logger
 
 from .crud import (
     close_auction,
@@ -65,7 +66,6 @@ async def get_auction_room_items_paginated(
     include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[PublicAuctionItem]:
-
     page = await get_auction_items_paginated(
         auction_room_id=auction_room.id,
         include_inactive=include_inactive,
@@ -99,7 +99,7 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
         item.current_price_sat = top_bid.amount_sat
         item.current_price = top_bid.amount
 
-    time_left = item.expires_at - datetime.now(timezone.utc)
+    time_left = item.expires_at.astimezone(timezone.utc) - datetime.now(timezone.utc)
     item.time_left_seconds = max(0, int(time_left.total_seconds()))
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
@@ -119,7 +119,9 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
 async def checked_expired_auctions():
     auction_items = await get_active_auction_items()
     for item in auction_items:
-        time_left = item.expires_at - datetime.now(timezone.utc)
+        time_left = item.expires_at.astimezone(timezone.utc) - datetime.now(
+            timezone.utc
+        )
         if time_left.total_seconds() > 0:
             continue
         try:
@@ -257,7 +259,6 @@ async def _refund_previous_winner(auction_item: PublicAuctionItem):
 
 
 async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) -> bool:
-
     if not auction_item.active:
         logger.warning(
             f"Payment received for closed auction:  {bid.auction_item_id}"
