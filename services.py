@@ -78,12 +78,15 @@ async def get_auction_room_items_paginated(
     return page
 
 
-async def get_auction_item(item_id: str) -> Optional[PublicAuctionItem]:
+async def get_auction_item(
+    item_id: str,
+) -> Optional[AuctionItem]:
     item = await get_auction_item_by_id(item_id)
     if not item:
         return None
 
-    return await get_auction_item_details(item)
+    public_item = await get_auction_item_details(item)
+    return AuctionItem(**{**item.dict(), **public_item.dict()})
 
 
 async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem:
