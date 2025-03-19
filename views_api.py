@@ -121,6 +121,11 @@ async def api_create_auction_item(
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
+    if not auction_room.is_open_room and user_id != auction_room.user_id:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "This room is not open for everyone to add items."
+        )
+
     auction_item = await get_auction_item_by_name(auction_room_id, data.name)
     if auction_item:
         raise HTTPException(

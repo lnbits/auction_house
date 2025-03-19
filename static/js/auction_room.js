@@ -9,6 +9,7 @@ window.app = Vue.createApp({
         data: auction_room,
       },
       auctionRoomTab: "overview",
+      webhookTab: "lockTab",
     };
   },
   methods: {

@@ -8,8 +8,17 @@ from lnbits.helpers import is_valid_email_address
 from pydantic import BaseModel, Field
 
 
+class Webhook(BaseModel):
+    method: str = "GET"
+    url: str = ""
+    headers: str = ""
+    data: str = ""
+
+
 class AuctionRoomConfig(BaseModel):
-    bla: bool = True
+    lock_webhook: Webhook = Webhook()
+    unlock_webhook: Webhook = Webhook()
+    transfer_webhook: Webhook = Webhook()
 
 
 class CreateAuctionRoomData(BaseModel):
@@ -41,6 +50,7 @@ class CreateAuctionRoomData(BaseModel):
 
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
+    extra: AuctionRoomConfig
 
 
 class PublicAuctionRoom(BaseModel):
