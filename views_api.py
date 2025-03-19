@@ -25,6 +25,7 @@ from .helpers import (
     check_user_id,
 )
 from .models import (
+    AuctionItem,
     AuctionItemFilters,
     AuctionRoom,
     BidFilters,
@@ -39,6 +40,7 @@ from .models import (
 )
 from .services import (
     add_auction_item,
+    get_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
     place_bid,
@@ -155,6 +157,28 @@ async def api_get_auction_items_paginated(
         filters=filters,
     )
     return page
+
+
+@auction_house_api_router.get(
+    "/api/v1/items/{auction_item_id}",
+    name="Get Auction Item",
+    summary="Get the auction item with this is. "
+    "If the user is the owner, return the full item, otherwise return a public item",
+    response_description="An auction item or 404 if not found",
+    response_model=PublicAuctionItem,
+)
+async def api_get_auction_item(
+    auction_item_id: str,
+    user_id: Optional[str] = Depends(optional_user_id),
+) -> Union[AuctionItem, PublicAuctionItem]:
+
+    auction_item = await get_auction_item(auction_item_id)
+    if not auction_item:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
+
+    if auction_item.user_id == user_id:
+        return auction_item
+    return PublicAuctionItem(**auction_item.dict())
 
 
 # todo: cancel sell item at any time

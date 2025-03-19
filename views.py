@@ -11,7 +11,7 @@ from .crud import (
     get_auction_room,
     get_auction_room_by_id,
 )
-from .models import PublicAuctionRoom
+from .models import PublicAuctionItem, PublicAuctionRoom
 from .services import get_auction_item
 
 auction_house_generic_router: APIRouter = APIRouter()
@@ -94,6 +94,6 @@ async def bids_list(
             "is_user_authenticated": user_id is not None,
             "is_user_room_owner": user_id == auction_room.user_id,
             "is_auction_type": auction_room.type == "auction",
-            "auction_item": auction_item.json(),
+            "auction_item": PublicAuctionItem(**auction_item.dict()).json(),
         },
     )
