@@ -130,9 +130,8 @@ async def get_auction_items_paginated(
     )
 
 
-async def create_auction_item(data: AuctionItem) -> PublicAuctionItem:
+async def create_auction_item(data: AuctionItem):
     await db.insert("auction_house.auction_items", data)
-    return PublicAuctionItem(**data.dict())
 
 
 async def update_auction_item(data: AuctionItem) -> AuctionItem:

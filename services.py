@@ -44,7 +44,7 @@ async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
 
 async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
-) -> PublicAuctionItem:
+) -> AuctionItem:
     assert data.ask_price > 0, "Ask price must be positive."
     expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
     data.name = data.name.strip()
@@ -56,7 +56,39 @@ async def add_auction_item(
         expires_at=expires_at,
         **data.dict(),
     )
-    return await create_auction_item(item)
+    lock_code = await lock_auction_item(auction_room, data.transfer_code)
+    item.extra.lock_code = lock_code
+    await create_auction_item(item)
+
+    return item
+
+
+async def lock_auction_item(
+    auction_room: AuctionRoom, transfer_code: str
+) -> Optional[str]:
+    wh = auction_room.extra.lock_webhook
+    if not wh.url:
+        logger.warning(f"No lock webhook for auction room {auction_room.id}.")
+        return None
+
+    async with httpx.AsyncClient() as client:
+        check_callback_url(wh.url)
+        res = await client.request(
+            wh.method, wh.url, json=wh.data_json(transfer_code=transfer_code), timeout=5
+        )
+        if res.status_code != 200:
+            logger.warning(
+                f"Lock webhook failed. "
+                f"Expected return code '200' but got '{res.status_code}'."
+            )
+            raise ValueError("Lock webhook failed. ")
+
+        data = res.json()
+        print("### data: " + str(data))
+        lock_code = data.get("lock_code", None)
+        if not lock_code:
+            raise ValueError("Lock webhook did not return a lock code.")
+        return lock_code
 
 
 async def get_auction_room_items_paginated(
@@ -167,8 +199,6 @@ async def place_bid(
         f"Amount: {data.amount} {auction_room.currency}",
     )
     currency = auction_room.currency
-    memo = f"[{data.amount} {currency}] {data.memo}"
-
     bid = Bid(
         id=urlsafe_short_hash(),
         user_id=user_id,
@@ -177,7 +207,7 @@ async def place_bid(
         payment_hash=payment.payment_hash,
         amount=data.amount,
         amount_sat=payment.sat,
-        memo=memo,
+        memo=data.memo,
         ln_address=data.ln_address,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
@@ -234,6 +264,8 @@ async def new_bid_made(payment: Payment) -> bool:
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
 
+    # await _transfer_item(auction_item)
+
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
     return True
@@ -266,6 +298,7 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
         )
         return True
 
+    # todo: fiat exchange rate fluctuations returs false positive
     if bid.amount < auction_item.next_min_bid:
         logger.warning(
             f"Payment received for bid too low. "

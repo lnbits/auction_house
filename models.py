@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
+from string import Template
 from typing import Optional
 
 from lnbits.db import FilterModel
@@ -13,6 +15,15 @@ class Webhook(BaseModel):
     url: str = ""
     headers: str = ""
     data: str = ""
+
+    def data_json(self, **kwargs) -> Optional[dict]:
+        if not self.data:
+            return None
+        try:
+            t = Template(self.data)
+            return json.loads(t.substitute(**kwargs))
+        except Exception as e:
+            raise ValueError(f"Invalid JSON data for webhook: {e}") from e
 
 
 class AuctionRoomConfig(BaseModel):
@@ -109,6 +120,7 @@ class PublicAuctionItem(BaseModel):
 
 class AuctionItemExtra(BaseModel):
     currency: Optional[str] = None
+    lock_code: Optional[str] = None
 
 
 class AuctionItem(PublicAuctionItem):
