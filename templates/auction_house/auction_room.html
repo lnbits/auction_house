@@ -73,17 +73,45 @@ page %}
               label="Description"
               placeholder="Description of the auction room"
             ></q-input>
-            <q-input
-              filled
-              dense
-              v-model="auctionRoomForm.data.days"
-              type="number"
-              min="0"
-              step="1"
-              label="Days"
-              placeholder="Number of days"
-              hint="Number of days the items in the auction room will be active."
-            ></q-input>
+            <div class="row">
+              <div class="col-md-4">
+                <q-input
+                  filled
+                  dense
+                  v-model="auctionRoomForm.data.extra.duration.days"
+                  type="number"
+                  min="0"
+                  step="1"
+                  label="Days"
+                  placeholder="Number of days"
+                  hint="Number of days the items in the auction room will be active."
+                  class="q-pr-lg"
+                ></q-input>
+              </div>
+              <div class="col-md-4">
+                <q-input
+                  filled
+                  dense
+                  v-model="auctionRoomForm.data.extra.duration.hours"
+                  type="number"
+                  step="1"
+                  label="Hours"
+                  placeholder="Number of hours"
+                  class="q-pr-lg"
+                ></q-input>
+              </div>
+              <div class="col-md-4">
+                <q-input
+                  filled
+                  dense
+                  v-model="auctionRoomForm.data.extra.duration.minutes"
+                  type="number"
+                  step="1"
+                  label="Minutes"
+                  placeholder="Number of minutes"
+                ></q-input>
+              </div>
+            </div>
             <q-input
               filled
               dense

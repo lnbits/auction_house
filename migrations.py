@@ -14,7 +14,6 @@ async def m001_auction_rooms(db: Database):
             description TEXT,
 
             currency TEXT NOT NULL,
-            days INTEGER NOT NULL,
             room_percentage REAL NOT NULL,
             min_bid_up_percentage REAL NOT NULL,
             is_open_room BOOLEAN NOT NULL DEFAULT false,

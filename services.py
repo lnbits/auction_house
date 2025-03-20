@@ -46,7 +46,7 @@ async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
 ) -> AuctionItem:
     assert data.ask_price > 0, "Ask price must be positive."
-    expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
+    expires_at = datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta()
     data.name = data.name.strip()
     item = AuctionItem(
         id=urlsafe_short_hash(),
