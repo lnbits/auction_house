@@ -171,10 +171,11 @@ async def close_auction_item(item: AuctionItem):
     if not top_bid:
         logger.info(f"No bids for item {item.name} ({item.id}). Unlocking.")
         await unlock_auction_item(item)
-        return None
+    else:
+        logger.info(f"Preparing to transfer {item.name} ({item.id}).")
+        await transfer_auction_item(item, top_bid.user_id)
 
-    logger.info(f"Preparing to transfer {item.name} ({item.id}).")
-    await transfer_auction_item(item)
+    await close_auction(item.id)
 
     return None
 
@@ -199,7 +200,7 @@ async def unlock_auction_item(item: AuctionItem):
     return None
 
 
-async def transfer_auction_item(item: AuctionItem):
+async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
@@ -210,7 +211,8 @@ async def transfer_auction_item(item: AuctionItem):
         return None
 
     transfer_data = await call_webhook_for_auction_item(
-        wh, placeholders={"lock_code": item.extra.lock_code}
+        wh,
+        placeholders={"lock_code": item.extra.lock_code, "new_owner_id": new_owner_id},
     )
     success = transfer_data.get("success", False)
     if not success:
@@ -315,6 +317,7 @@ async def new_bid_made(payment: Payment) -> bool:
         await _accept_bid(bid)  # todo: should be try-catch?
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
+        await close_auction_item(auction_item)
 
     # await _transfer_item(auction_item)
 
@@ -492,7 +495,5 @@ async def _accept_bid(bid: Bid):
 
 
 async def _accept_buy(bid: Bid):
-    # todo: should be try-catch?
     bid.paid = True
     await update_bid(bid)
-    await close_auction(bid.auction_item_id)
