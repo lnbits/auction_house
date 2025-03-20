@@ -3,13 +3,12 @@ from typing import Optional
 
 import bolt11
 import httpx
-from loguru import logger
-
 from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.db import Filters, Page
 from lnbits.helpers import check_callback_url, urlsafe_short_hash
+from loguru import logger
 
 from .crud import (
     close_auction,
@@ -155,6 +154,10 @@ async def place_bid(
             f"Bid amount too low. Next min bid: {auction_item.next_min_bid}"
         )
 
+    top_bid = await get_top_bid(auction_item_id)
+    if top_bid and top_bid.user_id == user_id:
+        raise ValueError("You are already the top bidder.")
+
     payment: Payment = await create_invoice(
         wallet_id=auction_room.wallet,
         amount=data.amount,
@@ -164,11 +167,8 @@ async def place_bid(
         f"Amount: {data.amount} {auction_room.currency}",
     )
     currency = auction_room.currency
-    memo = (
-        f"[{auction_item.current_price} {currency}"
-        " -> "
-        f"{data.amount} {currency}] {data.memo}"
-    )
+    memo = f"[{data.amount} {currency}] {data.memo}"
+
     bid = Bid(
         id=urlsafe_short_hash(),
         user_id=user_id,
