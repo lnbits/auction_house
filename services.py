@@ -136,7 +136,7 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
         if item.current_price == 0:
-            item.next_min_bid = item.ask_price
+            item.next_min_bid = round(item.ask_price, 2)
         else:
             item.next_min_bid = round(
                 item.current_price * (1 + auction_room.min_bid_up_percentage / 100), 2
