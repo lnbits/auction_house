@@ -73,17 +73,45 @@ page %}
               label="Description"
               placeholder="Description of the auction room"
             ></q-input>
-            <q-input
-              filled
-              dense
-              v-model="auctionRoomForm.data.days"
-              type="number"
-              min="0"
-              step="1"
-              label="Days"
-              placeholder="Number of days"
-              hint="Number of days the items in the auction room will be active."
-            ></q-input>
+            <div class="row">
+              <div class="col-md-4">
+                <q-input
+                  filled
+                  dense
+                  v-model="auctionRoomForm.data.extra.duration.days"
+                  type="number"
+                  min="0"
+                  step="1"
+                  label="Days"
+                  placeholder="Number of days"
+                  hint="Number of days the items in the auction room will be active."
+                  class="q-pr-lg"
+                ></q-input>
+              </div>
+              <div class="col-md-4">
+                <q-input
+                  filled
+                  dense
+                  v-model="auctionRoomForm.data.extra.duration.hours"
+                  type="number"
+                  step="1"
+                  label="Hours"
+                  placeholder="Number of hours"
+                  class="q-pr-lg"
+                ></q-input>
+              </div>
+              <div class="col-md-4">
+                <q-input
+                  filled
+                  dense
+                  v-model="auctionRoomForm.data.extra.duration.minutes"
+                  type="number"
+                  step="1"
+                  label="Minutes"
+                  placeholder="Number of minutes"
+                ></q-input>
+              </div>
+            </div>
             <q-input
               filled
               dense
@@ -126,7 +154,260 @@ page %}
             </q-list>
           </div>
         </q-tab-panel>
-        <q-tab-panel name="webhooks"> </q-tab-panel>
+        <q-tab-panel name="webhooks">
+          <q-separator></q-separator>
+          <ul>
+            <li>
+              Webhooks are used to connect to a 3rd party system in order to
+              lock/unlock or transfer an item
+            </li>
+            <li>
+              <q-btn flat dense @click="prefillWebhooks()">Click Here</q-btn> to
+              prefill the webhook with some sample values
+            </li>
+          </ul>
+          <q-separator></q-separator>
+          <q-splitter>
+            <template v-slot:before>
+              <q-tabs
+                v-model="webhookTab"
+                vertical
+                active-color="primary"
+                align="justify"
+              >
+                <q-tab name="lockTab" label="Lock"></q-tab>
+                <q-tab name="unlockTab" label="Unlock"></q-tab>
+                <q-tab name="transeferTab" label="Transfer"></q-tab>
+              </q-tabs>
+            </template>
+            <template v-slot:after>
+              <q-tab-panels class="bg-transparent" v-model="webhookTab">
+                <q-tab-panel name="lockTab">
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <ul>
+                        <li>
+                          This webhook will be called when an user tries to add
+                          an item to this room
+                        </li>
+                        <li>
+                          If no URL is provided then the item will be added
+                          without any checks
+                        </li>
+                        <li>
+                          If an URL is provided then that URL will be called to
+                          lock the digital item on the 3rd party system
+                        </li>
+                        <li>
+                          If the URL returns a 200 status code then the item
+                          will be added to the room
+                        </li>
+                        <li>
+                          Otherwhise the item will not be added to the room
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-3">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        v-model="auctionRoomForm.data.extra.lock_webhook.method"
+                        :options="['GET', 'PUT', 'POST', 'DELETE']"
+                        label="Method"
+                        class="q-mr-lg"
+                      ></q-select>
+                    </div>
+                    <div class="col-9">
+                      <q-input
+                        filled
+                        dense
+                        v-model.trim="auctionRoomForm.data.extra.lock_webhook.url"
+                        label="URL"
+                        hint="Lock URL"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <q-input
+                        filled
+                        v-model.trim="auctionRoomForm.data.extra.lock_webhook.headers"
+                        dense
+                        type="textarea"
+                        rows="5"
+                        label="Headers"
+                        hint="HTTP headers as JSON"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <q-input
+                        filled
+                        dense
+                        v-model.trim="auctionRoomForm.data.extra.lock_webhook.data"
+                        type="textarea"
+                        rows="15"
+                        label="Body"
+                        hint="HTTP Body as JSON"
+                      ></q-input>
+                    </div>
+                  </div>
+                </q-tab-panel>
+                <q-tab-panel name="unlockTab">
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <ul>
+                        <li>
+                          This webhook will be called when an auction ends, but
+                          no bids were made
+                        </li>
+                        <li>
+                          There is one placehokder that can be used in the
+                          <code>URL</code>, <code>body</code> or
+                          <code>header</code>:
+                          <ul>
+                            <li>
+                              <code>lock_code</code> the code obtained when the
+                              item was added to the room
+                            </li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-3">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        v-model="auctionRoomForm.data.extra.unlock_webhook.method"
+                        :options="['GET', 'PUT', 'POST', 'DELETE']"
+                        label="Method"
+                        class="q-mr-lg"
+                      ></q-select>
+                    </div>
+                    <div class="col-9">
+                      <q-input
+                        filled
+                        dense
+                        v-model.trim="auctionRoomForm.data.extra.unlock_webhook.url"
+                        label="URL"
+                        hint="Lock URL"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <q-input
+                        filled
+                        v-model.trim="auctionRoomForm.data.extra.unlock_webhook.headers"
+                        dense
+                        type="textarea"
+                        rows="5"
+                        label="Headers"
+                        hint="HTTP headers as JSON"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <q-input
+                        filled
+                        dense
+                        v-model.trim="auctionRoomForm.data.extra.unlock_webhook.data"
+                        type="textarea"
+                        rows="15"
+                        label="Body"
+                        hint="HTTP Body as JSON"
+                      ></q-input>
+                    </div>
+                  </div>
+                </q-tab-panel>
+                <q-tab-panel name="transeferTab">
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <ul>
+                        <li>
+                          This webhook will be called when an auction ends with
+                          an winner
+                        </li>
+                        <li>
+                          There are two placehokders that can be used in the
+                          <code>URL</code>, <code>body</code> or
+                          <code>header</code>:
+                          <ul>
+                            <li>
+                              <code>lock_code</code> the code obtained when the
+                              item was added to the room
+                            </li>
+                            <li>
+                              <code>new_owner_id</code> the id of the new owner.
+                              This value is provided by the user when it places
+                              a bid.
+                            </li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-3">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        v-model="auctionRoomForm.data.extra.transfer_webhook.method"
+                        :options="['GET', 'PUT', 'POST', 'DELETE']"
+                        label="Method"
+                        class="q-mr-lg"
+                      ></q-select>
+                    </div>
+                    <div class="col-9">
+                      <q-input
+                        filled
+                        dense
+                        v-model.trim="auctionRoomForm.data.extra.transfer_webhook.url"
+                        label="URL"
+                        hint="Lock URL"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <q-input
+                        filled
+                        v-model.trim="auctionRoomForm.data.extra.transfer_webhook.headers"
+                        dense
+                        type="textarea"
+                        rows="5"
+                        label="Headers"
+                        hint="HTTP headers as JSON"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col">
+                      <q-input
+                        filled
+                        dense
+                        v-model.trim="auctionRoomForm.data.extra.transfer_webhook.data"
+                        type="textarea"
+                        rows="15"
+                        label="Body"
+                        hint="HTTP Body as JSON"
+                      ></q-input>
+                    </div>
+                  </div>
+                </q-tab-panel>
+              </q-tab-panels>
+            </template>
+          </q-splitter>
+        </q-tab-panel>
       </q-tab-panels>
     </q-card>
   </div>

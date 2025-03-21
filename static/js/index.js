@@ -63,12 +63,6 @@ window.app = Vue.createApp({
         show: false,
         data: {},
       },
-      auctionRoomTab: null,
-
-      qrCodeDialog: {
-        show: false,
-        data: {},
-      },
     };
   },
   methods: {

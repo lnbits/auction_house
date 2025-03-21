@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
+from string import Template
 from typing import Optional
 
 from lnbits.db import FilterModel
@@ -8,8 +10,36 @@ from lnbits.helpers import is_valid_email_address
 from pydantic import BaseModel, Field
 
 
+class Webhook(BaseModel):
+    method: str = "GET"
+    url: str = ""
+    headers: str = ""
+    data: str = ""
+
+    def data_json(self, **kwargs) -> Optional[dict]:
+        if not self.data:
+            return None
+        try:
+            t = Template(self.data)
+            return json.loads(t.substitute(**kwargs))
+        except Exception as e:
+            raise ValueError(f"Invalid JSON data for webhook: {e}") from e
+
+
+class AuctionDuration(BaseModel):
+    days: int = 7
+    hours: int = 0
+    minutes: int = 0
+
+    def to_timedelta(self) -> timedelta:
+        return timedelta(days=self.days, hours=self.hours, minutes=self.minutes)
+
+
 class AuctionRoomConfig(BaseModel):
-    bla: bool = True
+    duration: AuctionDuration = AuctionDuration()
+    lock_webhook: Webhook = Webhook()
+    unlock_webhook: Webhook = Webhook()
+    transfer_webhook: Webhook = Webhook()
 
 
 class CreateAuctionRoomData(BaseModel):
@@ -18,21 +48,17 @@ class CreateAuctionRoomData(BaseModel):
     name: str
     description: str
     type: str = "auction"  # [auction, fixed_price]
-    days: int = 7
     room_percentage: float = 10
     min_bid_up_percentage: float = 5
     is_open_room: bool = False
 
     def validate_data(self):
-        if self.days <= 0:
-            raise ValueError("Auction Room days must be positive.")
         if self.type not in ["auction", "fixed_price"]:
             raise ValueError("Auction Room type must be 'auction' or 'fixed_price'.")
         if self.room_percentage <= 0:
             raise ValueError("Auction Room percentage must be positive.")
 
         if self.type == "fixed_price":
-            self.days = 365
             self.min_bid_up_percentage = 0
         else:
             if self.min_bid_up_percentage <= 0:
@@ -41,6 +67,14 @@ class CreateAuctionRoomData(BaseModel):
 
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
+    extra: AuctionRoomConfig
+
+    def validate_data(self):
+        super().validate_data()
+        if self.extra.duration.to_timedelta().total_seconds() <= 0:
+            raise ValueError("Auction Room duration must be positive.")
+        if self.type == "fixed_price":
+            self.extra.duration.days = 365
 
 
 class PublicAuctionRoom(BaseModel):
@@ -66,7 +100,6 @@ class AuctionRoom(PublicAuctionRoom):
     created_at: datetime
     wallet: str
     room_percentage: float = 10
-    days: int = 7
     # is the room open for everyone who is logged in to add items
     is_open_room: bool = False
 
@@ -99,6 +132,7 @@ class PublicAuctionItem(BaseModel):
 
 class AuctionItemExtra(BaseModel):
     currency: Optional[str] = None
+    lock_code: Optional[str] = None
 
 
 class AuctionItem(PublicAuctionItem):

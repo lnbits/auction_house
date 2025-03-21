@@ -1,15 +1,14 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 
 import bolt11
 import httpx
-from loguru import logger
-
 from lnbits.core.crud import get_wallets
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.db import Filters, Page
 from lnbits.helpers import check_callback_url, urlsafe_short_hash
+from loguru import logger
 
 from .crud import (
     close_auction,
@@ -36,6 +35,7 @@ from .models import (
     BidResponse,
     CreateAuctionItem,
     PublicAuctionItem,
+    Webhook,
 )
 
 
@@ -45,9 +45,9 @@ async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
 
 async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
-) -> PublicAuctionItem:
+) -> AuctionItem:
     assert data.ask_price > 0, "Ask price must be positive."
-    expires_at = datetime.now(timezone.utc) + timedelta(days=auction_room.days)
+    expires_at = datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta()
     data.name = data.name.strip()
     item = AuctionItem(
         id=urlsafe_short_hash(),
@@ -57,7 +57,39 @@ async def add_auction_item(
         expires_at=expires_at,
         **data.dict(),
     )
-    return await create_auction_item(item)
+
+    wh = auction_room.extra.lock_webhook
+    if not wh.url:
+        logger.warning(f"No lock webhook for auction room {auction_room.id}.")
+    else:
+        lock_data = await call_webhook_for_auction_item(
+            wh, placeholders={"transfer_code": data.transfer_code}
+        )
+        lock_code = lock_data.get("lock_code", None)
+        if not lock_code:
+            raise ValueError("Lock Webhook did not return a code.")
+        item.extra.lock_code = lock_code
+
+    await create_auction_item(item)
+    return item
+
+
+async def call_webhook_for_auction_item(
+    wh: Webhook, placeholders: dict[str, Any]
+) -> dict[str, Any]:
+    async with httpx.AsyncClient() as client:
+        check_callback_url(wh.url)
+        res = await client.request(
+            wh.method, wh.url, json=wh.data_json(**placeholders), timeout=5
+        )
+        if res.status_code != 200:
+            logger.warning(
+                f"Webhook failed. "
+                f"Expected return code '200' but got '{res.status_code}'."
+            )
+            raise ValueError("Webhook failed.")
+
+        return res.json()
 
 
 async def get_auction_room_items_paginated(
@@ -130,12 +162,65 @@ async def checked_expired_auctions():
             logger.error(f"Error closing auction item {item.id}: {e}")
 
 
-async def close_auction_item(item: AuctionItem) -> bool:
+async def close_auction_item(item: AuctionItem):
+    logger.info(f"Closing auction item {item.name} ({item.id}).")
     item.active = False
     await update_auction_item(item)
-    print("### closing auction item" + item.name)
-    # todo: transfer asset here
-    return True
+
+    top_bid = await get_top_bid(item.id)
+    if not top_bid:
+        logger.info(f"No bids for item {item.name} ({item.id}). Unlocking.")
+        await unlock_auction_item(item)
+    else:
+        logger.info(f"Preparing to transfer {item.name} ({item.id}).")
+        await transfer_auction_item(item, top_bid.user_id)
+
+    await close_auction(item.id)
+
+    return None
+
+
+async def unlock_auction_item(item: AuctionItem):
+    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    if not auction_room:
+        raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
+
+    wh = auction_room.extra.lock_webhook
+    if not wh.url:
+        logger.warning(f"No unlock webhook for item {item.name} ({item.id}).")
+        return None
+
+    unlock_data = await call_webhook_for_auction_item(
+        wh, placeholders={"lock_code": item.extra.lock_code}
+    )
+    success = unlock_data.get("success", False)
+    if not success:
+        logger.warning(f"Failed to unlock item {item.name} ({item.id}): {unlock_data}.")
+        raise ValueError(f"Failed to unlock item {item.name} ({item.id}).")
+    return None
+
+
+async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
+    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    if not auction_room:
+        raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
+
+    wh = auction_room.extra.transfer_webhook
+    if not wh.url:
+        logger.warning(f"No transfer webhook for item {item.name} ({item.id}).")
+        return None
+
+    transfer_data = await call_webhook_for_auction_item(
+        wh,
+        placeholders={"lock_code": item.extra.lock_code, "new_owner_id": new_owner_id},
+    )
+    success = transfer_data.get("success", False)
+    if not success:
+        logger.warning(
+            f"Failed to unlock item {item.name} ({item.id}): {transfer_data}."
+        )
+        raise ValueError(f"Failed to unlock item {item.name} ({item.id}).")
+    return None
 
 
 async def place_bid(
@@ -155,6 +240,10 @@ async def place_bid(
             f"Bid amount too low. Next min bid: {auction_item.next_min_bid}"
         )
 
+    top_bid = await get_top_bid(auction_item_id)
+    if top_bid and top_bid.user_id == user_id:
+        raise ValueError("You are already the top bidder.")
+
     payment: Payment = await create_invoice(
         wallet_id=auction_room.wallet,
         amount=data.amount,
@@ -164,11 +253,6 @@ async def place_bid(
         f"Amount: {data.amount} {auction_room.currency}",
     )
     currency = auction_room.currency
-    memo = (
-        f"[{auction_item.current_price} {currency}"
-        " -> "
-        f"{data.amount} {currency}] {data.memo}"
-    )
     bid = Bid(
         id=urlsafe_short_hash(),
         user_id=user_id,
@@ -177,7 +261,7 @@ async def place_bid(
         payment_hash=payment.payment_hash,
         amount=data.amount,
         amount_sat=payment.sat,
-        memo=memo,
+        memo=data.memo[:200],
         ln_address=data.ln_address,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
@@ -213,6 +297,7 @@ async def new_bid_made(payment: Payment) -> bool:
             "Payment received for unknown auction item: "
             f"{bid.auction_item_id}. {bid_details}"
         )
+        # todo: refund bid if possible
         return False
 
     auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
@@ -227,12 +312,12 @@ async def new_bid_made(payment: Payment) -> bool:
         logger.info(f"Refunded: {refunded}. {bid_details}")
         return False
 
-    # todo: more checks
     await _refund_previous_winner(auction_item)
     if auction_room.is_auction:
-        await _accept_bid(bid)  # todo: should be try-catch?
+        await _accept_bid(bid)
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
+        await close_auction_item(auction_item)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
@@ -266,7 +351,8 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
         )
         return True
 
-    if bid.amount < auction_item.next_min_bid:
+    top_bid = await get_top_bid(auction_item.id)
+    if top_bid and bid.amount <= top_bid.amount:
         logger.warning(
             f"Payment received for bid too low. "
             f"Bid: {bid.memo} ({bid.id}). "
@@ -407,7 +493,5 @@ async def _accept_bid(bid: Bid):
 
 
 async def _accept_buy(bid: Bid):
-    # todo: should be try-catch?
     bid.paid = True
     await update_bid(bid)
-    await close_auction(bid.auction_item_id)
