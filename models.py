@@ -85,6 +85,7 @@ class PublicAuctionRoom(BaseModel):
     type: str = "auction"  # [auction, fixed_price]
 
     min_bid_up_percentage: float = 5
+    room_percentage: float = 10
 
     @property
     def is_auction(self):
@@ -99,7 +100,6 @@ class AuctionRoom(PublicAuctionRoom):
     user_id: str
     created_at: datetime
     wallet: str
-    room_percentage: float = 10
     # is the room open for everyone who is logged in to add items
     is_open_room: bool = False
 
