@@ -214,6 +214,7 @@ async def get_auction_item_by_name(
         SELECT * FROM auction_house.auction_items
             WHERE auction_room_id = :auction_room_id
                 AND name = :name
+                AND active = true
         ORDER BY created_at DESC
         """,
         {"name": name, "auction_room_id": auction_room_id},
