@@ -40,26 +40,6 @@ class AuctionRoomConfig(BaseModel):
     lock_webhook: Webhook = Webhook()
     unlock_webhook: Webhook = Webhook()
     transfer_webhook: Webhook = Webhook()
-    # lock_webhook: Webhook = Webhook(
-    #     method="PUT",
-    #     url="http://localhost:5000/nostrnip5/api/v1/domain/XXXXXXXXXX/address/lock",
-    #     data="""{"transfer_code": "${transfer_code}"}""",
-    # )
-    # unlock_webhook: Webhook = Webhook(
-    #     method="PUT",
-    #     url="http://localhost:5000/nostrnip5/api/v1/domain/XXXXXXXXXX/address/unlock",
-    #     data="""{"lock_code": "${lock_code}"}""",
-    # )
-    # transfer_webhook: Webhook = Webhook(
-    #     method="PUT",
-    #     url="http://localhost:5000/nostrnip5/api/v1/domain/XXXXXXXXXX/address/transfer",
-    #     data="""
-    #         {
-    #             "lock_code": "${lock_code}",
-    #             "new_owner_id": "${new_owner_id}"
-    #         }
-    #         """,
-    # )
 
 
 class CreateAuctionRoomData(BaseModel):
@@ -79,7 +59,6 @@ class CreateAuctionRoomData(BaseModel):
             raise ValueError("Auction Room percentage must be positive.")
 
         if self.type == "fixed_price":
-            # self.dayss = 365
             self.min_bid_up_percentage = 0
         else:
             if self.min_bid_up_percentage <= 0:
