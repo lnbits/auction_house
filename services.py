@@ -261,7 +261,7 @@ async def place_bid(
         payment_hash=payment.payment_hash,
         amount=data.amount,
         amount_sat=payment.sat,
-        memo=data.memo,
+        memo=data.memo[:200],
         ln_address=data.ln_address,
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
@@ -297,6 +297,7 @@ async def new_bid_made(payment: Payment) -> bool:
             "Payment received for unknown auction item: "
             f"{bid.auction_item_id}. {bid_details}"
         )
+        # todo: refund bid if possible
         return False
 
     auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
@@ -353,8 +354,8 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
         )
         return True
 
-    # todo: fiat exchange rate fluctuations returs false positive
-    if bid.amount < auction_item.next_min_bid:
+    top_bid = await get_top_bid(auction_item.id)
+    if top_bid and bid.amount <= top_bid.amount:
         logger.warning(
             f"Payment received for bid too low. "
             f"Bid: {bid.memo} ({bid.id}). "
