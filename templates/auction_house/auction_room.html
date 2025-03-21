@@ -156,6 +156,17 @@ page %}
         </q-tab-panel>
         <q-tab-panel name="webhooks">
           <q-separator></q-separator>
+          <ul>
+            <li>
+              Webhooks are used to connect to a 3rd party system in order to
+              lock/unlock or transfer an item
+            </li>
+            <li>
+              <q-btn flat dense @click="prefillWebhooks()">Click Here</q-btn> to
+              prefill the webhook with some sample values
+            </li>
+          </ul>
+          <q-separator></q-separator>
           <q-splitter>
             <template v-slot:before>
               <q-tabs
