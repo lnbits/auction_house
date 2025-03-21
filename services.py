@@ -312,15 +312,12 @@ async def new_bid_made(payment: Payment) -> bool:
         logger.info(f"Refunded: {refunded}. {bid_details}")
         return False
 
-    # todo: more checks
     await _refund_previous_winner(auction_item)
     if auction_room.is_auction:
-        await _accept_bid(bid)  # todo: should be try-catch?
+        await _accept_bid(bid)
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
         await close_auction_item(auction_item)
-
-    # await _transfer_item(auction_item)
 
     logger.debug(f"Bid accepted for '{auction_item.name}' {bid_details}")
 
