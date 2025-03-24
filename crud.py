@@ -113,7 +113,7 @@ async def get_auction_items_paginated(
     user_id: Optional[str] = None,
     include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
-) -> Page[PublicAuctionItem]:
+) -> Page[AuctionItem]:
     where = ["auction_room_id = :auction_room_id"]
     values = {"auction_room_id": auction_room_id}
     if user_id:
@@ -126,7 +126,7 @@ async def get_auction_items_paginated(
         where=where,
         values=values,
         filters=filters,
-        model=PublicAuctionItem,
+        model=AuctionItem,
     )
 
 
@@ -284,7 +284,7 @@ async def get_bids_paginated(
     user_id: Optional[str] = None,
     include_unpaid: Optional[bool] = None,
     filters: Optional[Filters[BidFilters]] = None,
-) -> Page[PublicBid]:
+) -> Page[Bid]:
     where = ["auction_item_id = :auction_item_id"]
     values = {"auction_item_id": auction_item_id}
     if user_id:
@@ -298,7 +298,7 @@ async def get_bids_paginated(
         where=where,
         values=values,
         filters=filters,
-        model=PublicBid,
+        model=Bid,
     )
 
 

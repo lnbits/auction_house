@@ -161,7 +161,7 @@ async def api_get_auction_items_paginated(
         user_id=for_user_id,
         filters=filters,
     )
-    return page
+    return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)
 
 
 @auction_house_api_router.get(
@@ -236,5 +236,4 @@ async def api_get_user_bids_paginated(
         include_unpaid=include_unpaid,
         filters=filters,
     )
-
-    return page
+    return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)

@@ -133,6 +133,7 @@ class PublicAuctionItem(BaseModel):
     currency: str = Field(default="sat", no_database=True)
     next_min_bid: float = Field(default=0, no_database=True)
     time_left_seconds: int = Field(default=0, no_database=True)
+    is_mine: bool = Field(default=False, no_database=True)
 
 
 class AuctionItemExtra(BaseModel):
@@ -145,6 +146,11 @@ class AuctionItem(PublicAuctionItem):
     # code required to check that the user is the owner of the item
     transfer_code: str
     extra: AuctionItemExtra = AuctionItemExtra()
+
+    def to_public(self, user_id: Optional[str] = None) -> PublicAuctionItem:
+        if self.user_id == user_id:
+            self.is_mine = True
+        return PublicAuctionItem(**self.dict())
 
 
 class AuctionItemFilters(FilterModel):
@@ -196,6 +202,7 @@ class PublicBid(BaseModel):
     currency: str
     higher_bid_made: bool = False
     created_at: datetime
+    is_mine: bool = Field(default=False, no_database=True)
 
 
 class Bid(PublicBid):
@@ -203,6 +210,11 @@ class Bid(PublicBid):
     ln_address: str | None = None
     payment_hash: str
     expires_at: datetime
+
+    def to_public(self, user_id: Optional[str] = None) -> PublicBid:
+        if self.user_id == user_id:
+            self.is_mine = True
+        return PublicBid(**self.dict())
 
 
 class BidFilters(FilterModel):
