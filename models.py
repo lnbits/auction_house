@@ -83,6 +83,7 @@ class PublicAuctionRoom(BaseModel):
     description: str
     currency: str
     type: str = "auction"  # [auction, fixed_price]
+    duration_seconds: int = Field(default=0, no_database=True)
 
     min_bid_up_percentage: float = 5
     room_percentage: float = 10
@@ -104,6 +105,10 @@ class AuctionRoom(PublicAuctionRoom):
     is_open_room: bool = False
 
     extra: AuctionRoomConfig
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.duration_seconds = int(self.extra.duration.to_timedelta().total_seconds())
 
 
 class CreateAuctionItem(BaseModel):
