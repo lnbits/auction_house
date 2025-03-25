@@ -213,12 +213,14 @@ async def _pay_fee_for_ended_auction(
             wallet_id=to_walet_id,
             amount=amount_sat,
             extra={"tag": "auction_house", "is_fee": True},
-            memo=f"Fee Payment. Item: {item.name} ({item.auction_room_id}/{item.id}).",
+            memo="Room fee Payment."
+            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
         )
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment.bolt11,
-            description=f"Fee Payment. Item: {item.name} ({item.auction_room_id}/{item.id}).",
+            description="Room fee Payment."
+            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
             extra={"tag": "auction_house", "is_fee": True},
         )
         item.extra.is_fee_paid = True
@@ -270,8 +272,8 @@ async def _pay_owner_to_ln_address(
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment_request,
-            description=f"Payment to {item.extra.owner_ln_address}"
-            f" for owner of {item.name} ({item.id}).",
+            description=f"Payment to owner {item.extra.owner_ln_address}"
+            f" for {item.name} ({item.id}).",
             extra={"tag": "auction_house", "is_owner_payment": True},
         )
     except Exception as e:
