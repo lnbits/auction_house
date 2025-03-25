@@ -43,7 +43,8 @@ class AuctionRoomConfig(BaseModel):
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet: str
+    wallet_id: str
+    fee_wallet_id: Optional[str] = None
     currency: str
     name: str
     description: str
@@ -100,7 +101,8 @@ class PublicAuctionRoom(BaseModel):
 class AuctionRoom(PublicAuctionRoom):
     user_id: str
     created_at: datetime
-    wallet: str
+    wallet_id: str
+    fee_wallet_id: str
     # is the room open for everyone who is logged in to add items
     is_open_room: bool = False
 
@@ -114,6 +116,7 @@ class AuctionRoom(PublicAuctionRoom):
 class CreateAuctionItem(BaseModel):
     name: str
     description: Optional[str] = None
+    ln_address: Optional[str] = None
     ask_price: float = 0
     transfer_code: str
 
@@ -139,6 +142,9 @@ class PublicAuctionItem(BaseModel):
 class AuctionItemExtra(BaseModel):
     currency: Optional[str] = None
     lock_code: Optional[str] = None
+    is_fee_paid: bool = False
+    is_owner_paid: bool = False
+    owner_ln_address: Optional[str] = None
 
 
 class AuctionItem(PublicAuctionItem):

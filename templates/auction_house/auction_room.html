@@ -14,7 +14,7 @@ page %}
         color="primary"
         @click="saveAuctionRoom"
         class="float-right"
-        :disable="auctionRoomForm.data.wallet == null || auctionRoomForm.data.currency == null"
+        :disable="auctionRoomForm.data.wallet_id == null || auctionRoomForm.data.currency == null"
         >Update Auction Room</q-btn
       >
     </div>
@@ -40,23 +40,6 @@ page %}
       <q-tab-panels class="bg-transparent" v-model="auctionRoomTab">
         <q-tab-panel name="overview">
           <div class="q-gutter-md">
-            <q-select
-              filled
-              dense
-              emit-value
-              map-options
-              v-model="auctionRoomForm.data.wallet"
-              :options="g.user.walletOptions"
-              label="Wallet *"
-            ></q-select>
-            <q-select
-              filled
-              dense
-              emit-value
-              v-model="auctionRoomForm.data.currency"
-              :options="currencyOptions"
-              label="Currency *"
-            ></q-select>
             <q-input
               filled
               dense
@@ -73,6 +56,26 @@ page %}
               label="Description"
               placeholder="Description of the auction room"
             ></q-input>
+            <q-select
+              filled
+              dense
+              emit-value
+              v-model="auctionRoomForm.data.currency"
+              :options="currencyOptions"
+              label="Currency *"
+            ></q-select>
+
+            <q-select
+              filled
+              dense
+              emit-value
+              map-options
+              v-model="auctionRoomForm.data.wallet_id"
+              :options="g.user.walletOptions"
+              label="Wallet *"
+              hint="Wallet where the bids will be paid and refunded from"
+            ></q-select>
+
             <div class="row">
               <div class="col-md-4">
                 <q-input
@@ -123,6 +126,16 @@ page %}
               placeholder="Room fee percentage"
               hint="Percentage that the room gets when the auction is done."
             ></q-input>
+            <q-select
+              filled
+              dense
+              emit-value
+              map-options
+              v-model="auctionRoomForm.data.fee_wallet_id"
+              :options="g.user.walletOptions"
+              label="Fee Wallet *"
+              hint="Wallet where the room fee will be paid to"
+            ></q-select>
             <q-input
               v-if="auctionRoomForm.data.type === 'auction'"
               filled

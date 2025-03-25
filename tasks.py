@@ -36,6 +36,16 @@ async def _on_invoice_paid(payment: Payment) -> None:
             f"Auction House refund received: '{payment.payment_hash}: {payment.memo}'"
         )
         return
+    if payment.extra.get("is_fee", False):
+        logger.debug(
+            f"Auction House fee received: '{payment.payment_hash}: {payment.memo}'"
+        )
+        return
+    if payment.extra.get("is_owner_payment", False):
+        logger.debug(
+            f"Auction House fee received: '{payment.payment_hash}: {payment.memo}'"
+        )
+        return
     logger.debug(
         f"Auction House payment received: '{payment.payment_hash}: {payment.memo}'"
     )

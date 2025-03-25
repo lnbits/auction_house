@@ -57,6 +57,7 @@ async def add_auction_item(
         expires_at=expires_at,
         **data.dict(),
     )
+    item.extra.owner_ln_address = data.ln_address  # todo: is_valid_email_address
 
     wh = auction_room.extra.lock_webhook
     if not wh.url:
@@ -174,10 +175,31 @@ async def close_auction_item(item: AuctionItem):
     else:
         logger.info(f"Preparing to transfer {item.name} ({item.id}).")
         await transfer_auction_item(item, top_bid.user_id)
+        await pay_auction_item(item, top_bid)
 
     await close_auction(item.id)
 
     return None
+
+
+async def pay_auction_item(item: AuctionItem, top_bid: Bid):
+    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    if not auction_room:
+        raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
+
+    to_walet_id = auction_room.fee_wallet_id or auction_room.wallet_id
+    fee_amount_sat = int(top_bid.amount_sat * auction_room.room_percentage / 100)
+    owner_amount_sat = top_bid.amount_sat - fee_amount_sat
+
+    is_fee_paid = await _pay_fee_for_ended_auction(
+        item, auction_room.wallet_id, to_walet_id, fee_amount_sat
+    )
+    logger.info(f"Fee paid: {is_fee_paid}. Item {item.name} ({item.id}).")
+
+    is_owner_paid = await _pay_owner_for_ended_auction(
+        item, auction_room.wallet_id, owner_amount_sat
+    )
+    logger.info(f"Owner paid: {is_owner_paid}. Item {item.name} ({item.id}).")
 
 
 async def unlock_auction_item(item: AuctionItem):
@@ -245,7 +267,7 @@ async def place_bid(
         raise ValueError("You are already the top bidder.")
 
     payment: Payment = await create_invoice(
-        wallet_id=auction_room.wallet,
+        wallet_id=auction_room.wallet_id,
         amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
@@ -373,20 +395,25 @@ async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
 
     refunded = False
     if bid.ln_address:
-        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet)
+        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet_id)
 
     if not refunded:
-        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet)
+        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet_id)
 
     return refunded
 
 
 async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bool:
     try:
-        payment_request = await _ln_address_payment_request(bid)
+        payment_description = f"Refund for {bid.memo} ({bid.auction_item_id}/{bid.id})."
+        assert bid.ln_address, f"Missing Lightning Address. {payment_description}."
+        payment_request = await _ln_address_payment_request(
+            bid.ln_address, bid.amount_sat, payment_description
+        )
         await pay_invoice(
             wallet_id=refund_from_wallet,
             payment_request=payment_request,
+            description=payment_description,
             extra={"tag": "auction_house", "is_refund": True},
         )
         logger.info(f"Refund paid to {bid.ln_address}. Bid {bid.memo} ({bid.id}).")
@@ -419,6 +446,7 @@ async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> b
         await pay_invoice(
             wallet_id=refund_from_wallet,
             payment_request=refund_payment.bolt11,
+            description=f"Refund for {bid.memo} ({bid.id}).",
             extra={"tag": "auction_house", "is_refund": True},
         )
         logger.info(f"Refund paid to user wallet. Bid {bid.memo} ({bid.id}).")
@@ -431,11 +459,12 @@ async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> b
         return False
 
 
-async def _ln_address_payment_request(bid: Bid) -> str:
-    assert bid.ln_address, f"Missing Lightning Address for bid {bid.id}."
-    name_domain = bid.ln_address.split("@")
+async def _ln_address_payment_request(
+    ln_address: str, amount_sat: int, payment_description: str = ""
+) -> str:
+    name_domain = ln_address.split("@")
     if len(name_domain) != 2 and len(name_domain[1].split(".")) < 2:
-        raise ValueError(f"Invalid Lightning Address '{bid.ln_address}'.")
+        raise ValueError(f"Invalid Lightning Address '{ln_address}'.")
 
     name, domain = name_domain
     url = f"https://{domain}/.well-known/lnurlp/{name}"
@@ -447,23 +476,27 @@ async def _ln_address_payment_request(bid: Bid) -> str:
 
         data = r.json()
         callback_url = data.get("callback")
-        assert callback_url, f"Missing callback URL for {bid.ln_address}."
+        assert callback_url, f"Missing callback URL for {ln_address}."
         check_callback_url(callback_url)
 
-        min_sendable = data.get("minSendable")
-        assert min_sendable, f"Missing min_sendable for {bid.ln_address}."
-        assert min_sendable <= bid.amount_sat, f"Amount too low for {bid.ln_address}."
+        min_sendable = int(data.get("minSendable") // 1000)
+        assert min_sendable, f"Missing min_sendable for {ln_address}."
+        assert min_sendable <= amount_sat, (
+            f"Amount too low for {ln_address}." f" Min sendable: {min_sendable}"
+        )
 
-        max_sendable = data.get("maxSendable")
-        assert max_sendable, f"Missing max_sendable for {bid.ln_address}."
-        assert max_sendable >= bid.amount_sat, f"Amount too high for {bid.ln_address}."
+        max_sendable = int(data.get("maxSendable") // 1000)
+        assert max_sendable, f"Missing max_sendable for {ln_address}."
+        assert max_sendable >= amount_sat, (
+            f"Amount too high for {ln_address}." f" Max sendable: {max_sendable}"
+        )
 
-        amount_msat = bid.amount_sat * 1000
+        amount_msat = amount_sat * 1000
         r = await client.get(
             callback_url,
             params={
                 "amount": amount_msat,
-                "comment": f"Refund for {bid.memo} ({bid.auction_item_id}/{bid.id}).",
+                "comment": payment_description,
             },
             timeout=5,
         )
@@ -472,13 +505,13 @@ async def _ln_address_payment_request(bid: Bid) -> str:
         data = r.json()
         if not data.get("pr"):
             raise ValueError(
-                f"Missing payment request in callback response for {bid.ln_address}."
+                f"Missing payment request in callback response for {ln_address}."
             )
         invoice = bolt11.decode(data["pr"])
         if invoice.amount_msat != amount_msat:
             raise ValueError(
                 "Amount mismatch in invoice for"
-                f" {bid.ln_address} ({bid.auction_item_id}/{bid.id})."
+                f" {ln_address} ({payment_description})."
             )
 
     return data["pr"]
@@ -495,3 +528,111 @@ async def _accept_bid(bid: Bid):
 async def _accept_buy(bid: Bid):
     bid.paid = True
     await update_bid(bid)
+
+
+async def _pay_fee_for_ended_auction(
+    item: AuctionItem, from_wallet_id: str, to_walet_id: str, amount_sat: int
+) -> bool:
+    try:
+        if item.extra.is_fee_paid:
+            logger.info(f"Fee already paid for item {item.name} ({item.id}).")
+            return False
+        payment: Payment = await create_invoice(
+            wallet_id=to_walet_id,
+            amount=amount_sat,
+            extra={"tag": "auction_house", "is_fee": True},
+            memo="Room fee Payment."
+            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet_id,
+            payment_request=payment.bolt11,
+            description="Room fee Payment."
+            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
+            extra={"tag": "auction_house", "is_fee": True},
+        )
+        item.extra.is_fee_paid = True
+        await update_auction_item(item)
+    except Exception as e:
+        logger.warning(f"Failed to pay fee for item {item.name} ({item.id}): {e}")
+        return False
+    return True
+
+
+async def _pay_owner_for_ended_auction(
+    item: AuctionItem, from_wallet_id: str, amount_sat: int
+) -> bool:
+    if item.extra.is_owner_paid:
+        logger.info(f"Owner already paid for item {item.name} ({item.id}).")
+        return False
+
+    try:
+        owner_paid = False
+        if item.extra.owner_ln_address:
+            owner_paid = await _pay_owner_to_ln_address(
+                item, from_wallet_id, amount_sat
+            )
+
+        if not owner_paid:
+            owner_paid = await _pay_owner_to_internal_address(
+                item, from_wallet_id, amount_sat
+            )
+
+        if owner_paid:
+            item.extra.is_owner_paid = True
+            await update_auction_item(item)
+    except Exception as e:
+        logger.warning(f"Failed to pay owner for item {item.name} ({item.id}): {e}")
+        return False
+    return True
+
+
+async def _pay_owner_to_ln_address(
+    item: AuctionItem, from_wallet_id: str, amount_sat: int
+) -> bool:
+    try:
+        assert item.extra.owner_ln_address, "Missing Lightning Address."
+        payment_request = await _ln_address_payment_request(
+            item.extra.owner_ln_address,
+            amount_sat,
+            f"Payment for {item.name} ({item.id}).",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet_id,
+            payment_request=payment_request,
+            description=f"Payment to owner {item.extra.owner_ln_address}"
+            f" for {item.name} ({item.id}).",
+            extra={"tag": "auction_house", "is_owner_payment": True},
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to pay owner to ln address {item.extra.owner_ln_address} "
+            f"for item {item.name} ({item.id}): {e}"
+        )
+        return False
+    return True
+
+
+async def _pay_owner_to_internal_address(
+    item: AuctionItem, from_wallet_id: str, amount_sat: int
+):
+    try:
+        wallets = await get_wallets(item.user_id)
+        if len(wallets) == 0:
+            raise ValueError(f"No wallet found for user {item.user_id}.")
+        user_wallet = wallets[0]
+        payment: Payment = await create_invoice(
+            wallet_id=user_wallet.id,
+            amount=amount_sat,
+            extra={"tag": "auction_house", "is_owner_payment": True},
+            memo=f"Payment for {item.name} ({item.id}).",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet_id,
+            payment_request=payment.bolt11,
+            description=f"Payment to user wallet for owner of {item.name} ({item.id}).",
+            extra={"tag": "auction_house", "is_owner_payment": True},
+        )
+    except Exception as e:
+        logger.warning(f"Failed to pay owner for item {item.name} ({item.id}): {e}")
+        return False
