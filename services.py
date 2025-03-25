@@ -202,114 +202,6 @@ async def pay_auction_item(item: AuctionItem, top_bid: Bid):
     logger.info(f"Owner paid: {is_owner_paid}. Item {item.name} ({item.id}).")
 
 
-async def _pay_fee_for_ended_auction(
-    item: AuctionItem, from_wallet_id: str, to_walet_id: str, amount_sat: int
-) -> bool:
-    try:
-        if item.extra.is_fee_paid:
-            logger.info(f"Fee already paid for item {item.name} ({item.id}).")
-            return False
-        payment: Payment = await create_invoice(
-            wallet_id=to_walet_id,
-            amount=amount_sat,
-            extra={"tag": "auction_house", "is_fee": True},
-            memo="Room fee Payment."
-            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
-        )
-        await pay_invoice(
-            wallet_id=from_wallet_id,
-            payment_request=payment.bolt11,
-            description="Room fee Payment."
-            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
-            extra={"tag": "auction_house", "is_fee": True},
-        )
-        item.extra.is_fee_paid = True
-        await update_auction_item(item)
-    except Exception as e:
-        logger.warning(f"Failed to pay fee for item {item.name} ({item.id}): {e}")
-        return False
-    return True
-
-
-async def _pay_owner_for_ended_auction(
-    item: AuctionItem, from_wallet_id: str, amount_sat: int
-) -> bool:
-    if item.extra.is_owner_paid:
-        logger.info(f"Owner already paid for item {item.name} ({item.id}).")
-        return False
-
-    try:
-        owner_paid = False
-        if item.extra.owner_ln_address:
-            owner_paid = await _pay_owner_to_ln_address(
-                item, from_wallet_id, amount_sat
-            )
-
-        if not owner_paid:
-            owner_paid = await _pay_owner_to_internal_address(
-                item, from_wallet_id, amount_sat
-            )
-
-        if owner_paid:
-            item.extra.is_owner_paid = True
-            await update_auction_item(item)
-    except Exception as e:
-        logger.warning(f"Failed to pay owner for item {item.name} ({item.id}): {e}")
-        return False
-    return True
-
-
-async def _pay_owner_to_ln_address(
-    item: AuctionItem, from_wallet_id: str, amount_sat: int
-) -> bool:
-    try:
-        assert item.extra.owner_ln_address, "Missing Lightning Address."
-        payment_request = await _ln_address_payment_request(
-            item.extra.owner_ln_address,
-            amount_sat,
-            f"Payment for {item.name} ({item.id}).",
-        )
-        await pay_invoice(
-            wallet_id=from_wallet_id,
-            payment_request=payment_request,
-            description=f"Payment to owner {item.extra.owner_ln_address}"
-            f" for {item.name} ({item.id}).",
-            extra={"tag": "auction_house", "is_owner_payment": True},
-        )
-    except Exception as e:
-        logger.warning(
-            f"Failed to pay owner to ln address {item.extra.owner_ln_address} "
-            f"for item {item.name} ({item.id}): {e}"
-        )
-        return False
-    return True
-
-
-async def _pay_owner_to_internal_address(
-    item: AuctionItem, from_wallet_id: str, amount_sat: int
-):
-    try:
-        wallets = await get_wallets(item.user_id)
-        if len(wallets) == 0:
-            raise ValueError(f"No wallet found for user {item.user_id}.")
-        user_wallet = wallets[0]
-        payment: Payment = await create_invoice(
-            wallet_id=user_wallet.id,
-            amount=amount_sat,
-            extra={"tag": "auction_house", "is_owner_payment": True},
-            memo=f"Payment for {item.name} ({item.id}).",
-        )
-        await pay_invoice(
-            wallet_id=from_wallet_id,
-            payment_request=payment.bolt11,
-            description=f"Payment to user wallet for owner of {item.name} ({item.id}).",
-            extra={"tag": "auction_house", "is_owner_payment": True},
-        )
-    except Exception as e:
-        logger.warning(f"Failed to pay owner for item {item.name} ({item.id}): {e}")
-        return False
-
-
 async def unlock_auction_item(item: AuctionItem):
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
@@ -636,3 +528,111 @@ async def _accept_bid(bid: Bid):
 async def _accept_buy(bid: Bid):
     bid.paid = True
     await update_bid(bid)
+
+
+async def _pay_fee_for_ended_auction(
+    item: AuctionItem, from_wallet_id: str, to_walet_id: str, amount_sat: int
+) -> bool:
+    try:
+        if item.extra.is_fee_paid:
+            logger.info(f"Fee already paid for item {item.name} ({item.id}).")
+            return False
+        payment: Payment = await create_invoice(
+            wallet_id=to_walet_id,
+            amount=amount_sat,
+            extra={"tag": "auction_house", "is_fee": True},
+            memo="Room fee Payment."
+            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet_id,
+            payment_request=payment.bolt11,
+            description="Room fee Payment."
+            f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
+            extra={"tag": "auction_house", "is_fee": True},
+        )
+        item.extra.is_fee_paid = True
+        await update_auction_item(item)
+    except Exception as e:
+        logger.warning(f"Failed to pay fee for item {item.name} ({item.id}): {e}")
+        return False
+    return True
+
+
+async def _pay_owner_for_ended_auction(
+    item: AuctionItem, from_wallet_id: str, amount_sat: int
+) -> bool:
+    if item.extra.is_owner_paid:
+        logger.info(f"Owner already paid for item {item.name} ({item.id}).")
+        return False
+
+    try:
+        owner_paid = False
+        if item.extra.owner_ln_address:
+            owner_paid = await _pay_owner_to_ln_address(
+                item, from_wallet_id, amount_sat
+            )
+
+        if not owner_paid:
+            owner_paid = await _pay_owner_to_internal_address(
+                item, from_wallet_id, amount_sat
+            )
+
+        if owner_paid:
+            item.extra.is_owner_paid = True
+            await update_auction_item(item)
+    except Exception as e:
+        logger.warning(f"Failed to pay owner for item {item.name} ({item.id}): {e}")
+        return False
+    return True
+
+
+async def _pay_owner_to_ln_address(
+    item: AuctionItem, from_wallet_id: str, amount_sat: int
+) -> bool:
+    try:
+        assert item.extra.owner_ln_address, "Missing Lightning Address."
+        payment_request = await _ln_address_payment_request(
+            item.extra.owner_ln_address,
+            amount_sat,
+            f"Payment for {item.name} ({item.id}).",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet_id,
+            payment_request=payment_request,
+            description=f"Payment to owner {item.extra.owner_ln_address}"
+            f" for {item.name} ({item.id}).",
+            extra={"tag": "auction_house", "is_owner_payment": True},
+        )
+    except Exception as e:
+        logger.warning(
+            f"Failed to pay owner to ln address {item.extra.owner_ln_address} "
+            f"for item {item.name} ({item.id}): {e}"
+        )
+        return False
+    return True
+
+
+async def _pay_owner_to_internal_address(
+    item: AuctionItem, from_wallet_id: str, amount_sat: int
+):
+    try:
+        wallets = await get_wallets(item.user_id)
+        if len(wallets) == 0:
+            raise ValueError(f"No wallet found for user {item.user_id}.")
+        user_wallet = wallets[0]
+        payment: Payment = await create_invoice(
+            wallet_id=user_wallet.id,
+            amount=amount_sat,
+            extra={"tag": "auction_house", "is_owner_payment": True},
+            memo=f"Payment for {item.name} ({item.id}).",
+        )
+        await pay_invoice(
+            wallet_id=from_wallet_id,
+            payment_request=payment.bolt11,
+            description=f"Payment to user wallet for owner of {item.name} ({item.id}).",
+            extra={"tag": "auction_house", "is_owner_payment": True},
+        )
+    except Exception as e:
+        logger.warning(f"Failed to pay owner for item {item.name} ({item.id}): {e}")
+        return False
