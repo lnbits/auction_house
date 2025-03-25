@@ -115,6 +115,7 @@ class AuctionRoom(PublicAuctionRoom):
 class CreateAuctionItem(BaseModel):
     name: str
     description: Optional[str] = None
+    ln_address: Optional[str] = None
     ask_price: float = 0
     transfer_code: str
 
@@ -140,6 +141,9 @@ class PublicAuctionItem(BaseModel):
 class AuctionItemExtra(BaseModel):
     currency: Optional[str] = None
     lock_code: Optional[str] = None
+    is_fee_paid: bool = False
+    is_owner_paid: bool = False
+    owner_ln_address: Optional[str] = None
 
 
 class AuctionItem(PublicAuctionItem):
