@@ -57,7 +57,7 @@ async def add_auction_item(
         expires_at=expires_at,
         **data.dict(),
     )
-    item.extra.owner_ln_address = data.ln_address
+    item.extra.owner_ln_address = data.ln_address  # todo: is_valid_email_address
 
     wh = auction_room.extra.lock_webhook
     if not wh.url:
@@ -218,6 +218,7 @@ async def _pay_fee_for_ended_auction(
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment.bolt11,
+            description=f"Fee Payment. Item: {item.name} ({item.auction_room_id}/{item.id}).",
             extra={"tag": "auction_house", "is_fee": True},
         )
         item.extra.is_fee_paid = True
@@ -260,6 +261,7 @@ async def _pay_owner_to_ln_address(
     item: AuctionItem, from_wallet_id: str, amount_sat: int
 ) -> bool:
     try:
+        assert item.extra.owner_ln_address, "Missing Lightning Address."
         payment_request = await _ln_address_payment_request(
             item.extra.owner_ln_address,
             amount_sat,
@@ -268,6 +270,8 @@ async def _pay_owner_to_ln_address(
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment_request,
+            description=f"Payment to {item.extra.owner_ln_address}"
+            f" for owner of {item.name} ({item.id}).",
             extra={"tag": "auction_house", "is_owner_payment": True},
         )
     except Exception as e:
@@ -296,6 +300,7 @@ async def _pay_owner_to_internal_address(
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment.bolt11,
+            description=f"Payment to user wallet for owner of {item.name} ({item.id}).",
             extra={"tag": "auction_house", "is_owner_payment": True},
         )
     except Exception as e:
@@ -514,6 +519,7 @@ async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bo
         await pay_invoice(
             wallet_id=refund_from_wallet,
             payment_request=payment_request,
+            description=payment_description,
             extra={"tag": "auction_house", "is_refund": True},
         )
         logger.info(f"Refund paid to {bid.ln_address}. Bid {bid.memo} ({bid.id}).")
@@ -546,6 +552,7 @@ async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> b
         await pay_invoice(
             wallet_id=refund_from_wallet,
             payment_request=refund_payment.bolt11,
+            description=f"Refund for {bid.memo} ({bid.id}).",
             extra={"tag": "auction_house", "is_refund": True},
         )
         logger.info(f"Refund paid to user wallet. Bid {bid.memo} ({bid.id}).")
@@ -578,13 +585,17 @@ async def _ln_address_payment_request(
         assert callback_url, f"Missing callback URL for {ln_address}."
         check_callback_url(callback_url)
 
-        min_sendable = data.get("minSendable")
+        min_sendable = int(data.get("minSendable") // 1000)
         assert min_sendable, f"Missing min_sendable for {ln_address}."
-        assert min_sendable <= amount_sat, f"Amount too low for {ln_address}."
+        assert min_sendable <= amount_sat, (
+            f"Amount too low for {ln_address}." f" Min sendable: {min_sendable}"
+        )
 
-        max_sendable = data.get("maxSendable")
+        max_sendable = int(data.get("maxSendable") // 1000)
         assert max_sendable, f"Missing max_sendable for {ln_address}."
-        assert max_sendable >= amount_sat, f"Amount too high for {ln_address}."
+        assert max_sendable >= amount_sat, (
+            f"Amount too high for {ln_address}." f" Max sendable: {max_sendable}"
+        )
 
         amount_msat = amount_sat * 1000
         r = await client.get(

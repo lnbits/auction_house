@@ -44,6 +44,7 @@ class AuctionRoomConfig(BaseModel):
 
 class CreateAuctionRoomData(BaseModel):
     wallet_id: str
+    fee_wallet_id: Optional[str] = None
     currency: str
     name: str
     description: str
