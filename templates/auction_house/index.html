@@ -139,7 +139,7 @@
           dense
           emit-value
           map-options
-          v-model="formDialog.data.wallet"
+          v-model="formDialog.data.wallet_id"
           :options="g.user.walletOptions"
           label="Wallet *"
         ></q-select>
@@ -155,7 +155,7 @@
         <q-btn
           unelevated
           color="primary"
-          :disable="formDialog.data.name == null || formDialog.data.type == null || formDialog.data.wallet == null || formDialog.data.currency == null"
+          :disable="formDialog.data.name == null || formDialog.data.type == null || formDialog.data.wallet_id== null || formDialog.data.currency == null"
           type="submit"
           >Create Auction Room</q-btn
         >

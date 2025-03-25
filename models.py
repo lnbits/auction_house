@@ -43,7 +43,7 @@ class AuctionRoomConfig(BaseModel):
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet: str
+    wallet_id: str
     currency: str
     name: str
     description: str
@@ -100,7 +100,8 @@ class PublicAuctionRoom(BaseModel):
 class AuctionRoom(PublicAuctionRoom):
     user_id: str
     created_at: datetime
-    wallet: str
+    wallet_id: str
+    fee_wallet_id: str
     # is the room open for everyone who is logged in to add items
     is_open_room: bool = False
 

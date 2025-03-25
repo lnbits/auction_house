@@ -174,10 +174,25 @@ async def close_auction_item(item: AuctionItem):
     else:
         logger.info(f"Preparing to transfer {item.name} ({item.id}).")
         await transfer_auction_item(item, top_bid.user_id)
+        await pay_auction_item(item, top_bid)
 
     await close_auction(item.id)
 
     return None
+
+
+async def pay_auction_item(item: AuctionItem, top_bid: Bid):
+    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    if not auction_room:
+        raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
+    # payment: Payment = await create_invoice(
+    #     wallet_id=auction_room.wallet_id,
+    #     amount=item.current_price,
+    #     currency=auction_room.currency,
+    #     extra={"tag": "auction_house"},
+    #     memo=f"Auction Payment. Item: {auction_room.name}/{item.name}. "
+    #     f"Amount: {item.current_price} {auction_room.currency}",
+    # )
 
 
 async def unlock_auction_item(item: AuctionItem):
@@ -245,7 +260,7 @@ async def place_bid(
         raise ValueError("You are already the top bidder.")
 
     payment: Payment = await create_invoice(
-        wallet_id=auction_room.wallet,
+        wallet_id=auction_room.wallet_id,
         amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
@@ -373,10 +388,10 @@ async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
 
     refunded = False
     if bid.ln_address:
-        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet)
+        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet_id)
 
     if not refunded:
-        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet)
+        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet_id)
 
     return refunded
 
