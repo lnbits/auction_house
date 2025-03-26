@@ -12,7 +12,6 @@ from .models import (
     Bid,
     BidFilters,
     CreateAuctionRoomData,
-    EditAuctionRoomData,
     PublicAuctionItem,
     PublicAuctionRoom,
     PublicBid,
@@ -21,18 +20,7 @@ from .models import (
 db = Database("ext_auction_house")
 
 
-async def get_auction_room(user_id: str, auction_room_id: str) -> Optional[AuctionRoom]:
-    return await db.fetchone(
-        """
-            SELECT * FROM auction_house.auction_rooms
-            WHERE id = :id AND user_id = :user_id
-        """,
-        {"id": auction_room_id, "user_id": user_id},
-        AuctionRoom,
-    )
-
-
-async def get_auction_room_by_id(auction_room_id: str) -> Optional[AuctionRoom]:
+async def get_auction_room(auction_room_id: str) -> Optional[AuctionRoom]:
     return await db.fetchone(
         "SELECT * FROM auction_house.auction_rooms WHERE id = :id",
         {"id": auction_room_id},
@@ -58,12 +46,7 @@ async def get_auction_rooms(user_id: str) -> list[AuctionRoom]:
     )
 
 
-async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
-    auction_room = await get_auction_room(
-        user_id=user_id, auction_room_id=auction_room_id
-    )
-    if not auction_room:
-        return False
+async def delete_auction_room(auction_room_id: str) -> bool:
     await db.execute(
         """
         DELETE FROM auction_house.auction_items WHERE auction_room_id = :auction_room_id
@@ -75,7 +58,6 @@ async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
         "DELETE FROM auction_house.auction_rooms WHERE id = :id",
         {"id": auction_room_id},
     )
-
     return True
 
 
@@ -92,20 +74,8 @@ async def create_auction_room(user_id: str, data: CreateAuctionRoomData) -> Auct
     return auction_room
 
 
-async def update_auction_room(
-    user_id: str, data: EditAuctionRoomData
-) -> Optional[AuctionRoom]:
-    auction_room = await get_auction_room(user_id=user_id, auction_room_id=data.id)
-    if not auction_room or auction_room.user_id != user_id:
-        return None
-    if auction_room.type != data.type:
-        raise ValueError("Cannot change auction room type.")
-
-    await db.update(
-        "auction_house.auction_rooms",
-        AuctionRoom(**{**auction_room.dict(), **data.dict()}),
-    )
-
+async def update_auction_room(auction_room: AuctionRoom) -> AuctionRoom:
+    await db.update("auction_house.auction_rooms", auction_room)
     return auction_room
 
 
