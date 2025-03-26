@@ -239,14 +239,14 @@ class BidFilters(FilterModel):
     amount_sat: float | None
 
 
-class AuctionAudit(BaseModel):
+class AuditEntry(BaseModel):
     id: Optional[int] = None
     entry_id: str
     data: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class AuctionAuditFilters(FilterModel):
+class AuditEntryFilters(FilterModel):
     __search_fields__ = ["entry_id", "data"]
 
     __sort_fields__ = ["entry_id", "created_at"]

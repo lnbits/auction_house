@@ -97,3 +97,22 @@ async def bids_list(
             "auction_item": PublicAuctionItem(**auction_item.dict()).json(),
         },
     )
+
+
+@auction_house_generic_router.get(
+    "/audit/auctions/{entry_id}", response_class=HTMLResponse
+)
+async def entry_audit(
+    request: Request,
+    entry_id: str,
+    user: User = Depends(check_user_exists),
+):
+
+    return auction_house_renderer().TemplateResponse(
+        "auction_house/audit.html",
+        {
+            "request": request,
+            "entry_id": entry_id,
+            "is_admin": user.admin,
+        },
+    )
