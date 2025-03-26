@@ -86,7 +86,6 @@ async def api_get_auction_room(
 async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
-    data.validate_data()
     return await create_auction_room(user_id=user.id, data=data)
 
 
@@ -94,7 +93,6 @@ async def api_create_auction_room(
 async def api_update_auction_room(
     data: EditAuctionRoomData, user: User = Depends(check_user_exists)
 ):
-    data.validate_data()
     return await update_auction_room(user_id=user.id, data=data)
 
 
@@ -205,7 +203,6 @@ async def api_place_bid(
     data: BidRequest,
     user_id: str = Depends(check_user_id),
 ) -> BidResponse:
-    data.validate_data()
     return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
 
 

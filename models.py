@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from string import Template
 from typing import Optional
 
 from lnbits.db import FilterModel
 from lnbits.helpers import is_valid_email_address
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+
+
+class AuctionTypes(str, Enum):
+    auction = "auction"
+    fixed_price = "fixed_price"
 
 
 class Webhook(BaseModel):
@@ -48,33 +54,22 @@ class CreateAuctionRoomData(BaseModel):
     currency: str
     name: str
     description: str
-    type: str = "auction"  # [auction, fixed_price]
-    room_percentage: float = 10
-    min_bid_up_percentage: float = 5
+    auction_type: AuctionTypes = AuctionTypes.auction
+    room_percentage: float = Field(default=10, ge=0, le=100)
+    min_bid_up_percentage: float = Field(default=5, ge=0, le=100)
     is_open_room: bool = False
-
-    def validate_data(self):
-        if self.type not in ["auction", "fixed_price"]:
-            raise ValueError("Auction Room type must be 'auction' or 'fixed_price'.")
-        if self.room_percentage <= 0:
-            raise ValueError("Auction Room percentage must be positive.")
-
-        if self.type == "fixed_price":
-            self.min_bid_up_percentage = 0
-        else:
-            if self.min_bid_up_percentage <= 0:
-                raise ValueError("Auction Room bid up must be positive.")
 
 
 class EditAuctionRoomData(CreateAuctionRoomData):
     id: str
     extra: AuctionRoomConfig
 
-    def validate_data(self):
-        super().validate_data()
+    @validator("extra")
+    def validate_extra_data(self):
+        # todo: do some prints here
         if self.extra.duration.to_timedelta().total_seconds() <= 0:
             raise ValueError("Auction Room duration must be positive.")
-        if self.type == "fixed_price":
+        if self.auction_type == AuctionTypes.fixed_price:
             self.extra.duration.days = 365
 
 
@@ -83,7 +78,7 @@ class PublicAuctionRoom(BaseModel):
     name: str
     description: str
     currency: str
-    type: str = "auction"  # [auction, fixed_price]
+    auction_type: AuctionTypes = AuctionTypes.auction
     duration_seconds: int = Field(default=0, no_database=True)
 
     min_bid_up_percentage: float = 5
@@ -91,11 +86,11 @@ class PublicAuctionRoom(BaseModel):
 
     @property
     def is_auction(self):
-        return self.type == "auction"
+        return self.auction_type == AuctionTypes.auction
 
     @property
     def is_fixed_price(self):
-        return self.type == "fixed_price"
+        return self.auction_type == AuctionTypes.fixed_price
 
 
 class AuctionRoom(PublicAuctionRoom):
@@ -116,9 +111,9 @@ class AuctionRoom(PublicAuctionRoom):
 class CreateAuctionItem(BaseModel):
     name: str
     description: Optional[str] = None
-    ln_address: Optional[str] = None
-    ask_price: float = 0
     transfer_code: str
+    ask_price: float = Field(default=0, ge=0)
+    ln_address: Optional[str] = None
 
 
 class PublicAuctionItem(BaseModel):
@@ -127,7 +122,7 @@ class PublicAuctionItem(BaseModel):
     name: str
     active: bool = True
     description: Optional[str] = None
-    ask_price: float = 0
+    ask_price: float = Field(default=0, ge=0)
     current_price: float = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime
@@ -181,12 +176,11 @@ class AuctionItemFilters(FilterModel):
 class BidRequest(BaseModel):
     memo: str
     ln_address: str | None = None
-    amount: float
+    amount: float = Field(default=0, ge=0)
 
-    def validate_data(self):
-        if self.amount <= 0:
-            raise ValueError("Bid amount must be positive.")
-        if not self.memo.strip():
+    @validator("ln_address")
+    def validate_ln_address(self):
+        if not self.memo.strip():  # todo: move out
             raise ValueError("Memo is required.")
         if self.ln_address and not is_valid_email_address(self.ln_address):
             raise ValueError("Lightning Address is not valid.")
