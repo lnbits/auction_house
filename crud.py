@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Optional
 
 from lnbits.db import Database, Filters, Page
@@ -85,7 +84,6 @@ async def create_auction_room(user_id: str, data: CreateAuctionRoomData) -> Auct
     auction_room = AuctionRoom(
         id=urlsafe_short_hash(),
         user_id=user_id,
-        created_at=datetime.now(timezone.utc),
         extra=AuctionRoomConfig(),
         fee_wallet_id=data.wallet_id,
         **data.dict(),
