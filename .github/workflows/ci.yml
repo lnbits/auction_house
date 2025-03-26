@@ -13,7 +13,7 @@ jobs:
     needs: [lint]
     strategy:
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ['3.10', '3.11']
     steps:
       - uses: actions/checkout@v4
       - uses: lnbits/lnbits/.github/actions/prepare@dev
@@ -31,4 +31,4 @@ jobs:
           emoji: false
           click-to-expand: true
           custom-pytest: poetry run pytest
-          report-title: "test (${{ matrix.python-version }})"
+          report-title: 'test (${{ matrix.python-version }})'
