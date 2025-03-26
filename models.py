@@ -215,9 +215,6 @@ class Bid(PublicBid):
     user_id: str
     ln_address: str | None = None
     payment_hash: str
-    expires_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=5)
-    )
 
     def to_public(self, user_id: Optional[str] = None) -> PublicBid:
         if self.user_id == user_id:
