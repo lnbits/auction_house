@@ -82,7 +82,6 @@ async def api_get_auction_room(
 async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
-    data.validate_data()
     return await create_auction_room(user_id=user.id, data=data)
 
 
@@ -90,13 +89,12 @@ async def api_create_auction_room(
 async def api_update_auction_room(
     data: EditAuctionRoomData, user: User = Depends(check_user_exists)
 ) -> AuctionRoom:
-    data.validate_data()
     auction_room = await get_auction_room(data.id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
     if auction_room.user_id != user.id:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not authorized to edit this room.")
-    if auction_room.type != data.type:
+    if auction_room.auction_type != data.auction_type:
         raise HTTPException(HTTPStatus.BAD_REQUEST, "Cannot change auction room")
     for k, v in data.dict().items():
         setattr(auction_room, k, v)
@@ -215,7 +213,6 @@ async def api_place_bid(
     data: BidRequest,
     user_id: str = Depends(check_user_id),
 ) -> Bid:
-    data.validate_data()
     auction_item = await get_auction_item(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
