@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from string import Template
 from typing import Optional
 
@@ -237,3 +237,20 @@ class BidFilters(FilterModel):
     created_at: datetime | None
     amount: float | None
     amount_sat: float | None
+
+
+class AuctionAudit(BaseModel):
+    id: Optional[int] = None
+    entry_id: str
+    data: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class AuctionAuditFilters(FilterModel):
+    __search_fields__ = ["entry_id", "data"]
+
+    __sort_fields__ = ["entry_id", "created_at"]
+
+    entry_id: str | None
+    data: str | None
+    created_at: datetime | None

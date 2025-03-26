@@ -5,6 +5,8 @@ from lnbits.db import Database, Filters, Page
 from lnbits.helpers import urlsafe_short_hash
 
 from .models import (
+    AuctionAudit,
+    AuctionAuditFilters,
     AuctionItem,
     AuctionItemFilters,
     AuctionRoom,
@@ -315,4 +317,25 @@ async def get_bids_for_user_paginated(
         values={"user_id": user_id},
         filters=filters,
         model=PublicBid,
+    )
+
+
+async def create_audit_entry(entry_id: str, data: str) -> AuctionAudit:
+    entry = AuctionAudit(entry_id=entry_id, data=data)
+    await db.insert("auction_house.auction_audit", entry)
+    return entry
+
+
+async def get_audit_entry_paginated(
+    entry_id: str,
+    filters: Optional[Filters[AuctionAuditFilters]] = None,
+) -> Page[AuctionAudit]:
+    return await db.fetch_page(
+        """
+            SELECT * FROM auction_house.auction_audit
+            WHERE entry_id = :entry_id
+        """,
+        values={"entry_id": entry_id},
+        filters=filters,
+        model=AuctionAudit,
     )
