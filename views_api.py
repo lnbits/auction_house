@@ -18,6 +18,7 @@ from .crud import (
     get_auction_item_by_id,
     get_auction_item_by_name,
     get_auction_room_by_id,
+    get_audit_entry_paginated,
     get_bids_paginated,
     update_auction_room,
 )
@@ -28,6 +29,8 @@ from .models import (
     AuctionItem,
     AuctionItemFilters,
     AuctionRoom,
+    AuditEntry,
+    AuditEntryFilters,
     BidFilters,
     BidRequest,
     BidResponse,
@@ -49,6 +52,7 @@ from .services import (
 auction_house_api_router: APIRouter = APIRouter()
 auction_items_filters = parse_filters(AuctionItemFilters)
 bid_filters = parse_filters(BidFilters)
+audit_filters = parse_filters(AuditEntryFilters)
 
 ############################# AUCTION ROOMS #############################
 
@@ -237,3 +241,32 @@ async def api_get_user_bids_paginated(
         filters=filters,
     )
     return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)
+
+
+############################# AUDIT #############################
+
+
+@auction_house_api_router.get(
+    "/api/v1/audit/items/{auction_item_id}/paginated",
+    name="Audit Data",
+    summary="get paginated list of audit entries for an entry",
+    response_description="list of audit entries",
+    openapi_extra=generate_filter_params_openapi(AuditEntryFilters),
+    response_model=Page[AuditEntry],
+)
+async def api_get_audit_paginated(
+    auction_item_id: str,
+    user: User = Depends(check_user_exists),
+    filters: Filters = Depends(audit_filters),
+) -> Page[AuditEntry]:
+
+    item = await get_auction_item_by_id(auction_item_id)
+    if not item:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
+    room = await get_auction_room_by_id(item.auction_room_id)
+    if not room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+
+    if not user.admin and (room.user_id != user.id):
+        raise HTTPException(HTTPStatus.FORBIDDEN, "You are not allowed to view this.")
+    return await get_audit_entry_paginated(entry_id=auction_item_id, filters=filters)

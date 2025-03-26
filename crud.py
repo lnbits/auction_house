@@ -9,6 +9,8 @@ from .models import (
     AuctionItemFilters,
     AuctionRoom,
     AuctionRoomConfig,
+    AuditEntry,
+    AuditEntryFilters,
     Bid,
     BidFilters,
     CreateAuctionRoomData,
@@ -315,4 +317,24 @@ async def get_bids_for_user_paginated(
         values={"user_id": user_id},
         filters=filters,
         model=PublicBid,
+    )
+
+
+async def create_audit_entry(entry_id: str, data: str) -> AuditEntry:
+    entry = AuditEntry(entry_id=entry_id, data=data)
+    await db.insert("auction_house.auction_audit", entry)
+    return entry
+
+
+async def get_audit_entry_paginated(
+    entry_id: str,
+    filters: Optional[Filters[AuditEntryFilters]] = None,
+) -> Page[AuditEntry]:
+    where = ["entry_id = :entry_id"]
+    return await db.fetch_page(
+        "SELECT * FROM auction_house.auction_audit",
+        where=where,
+        values={"entry_id": entry_id},
+        filters=filters,
+        model=AuditEntry,
     )

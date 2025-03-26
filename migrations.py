@@ -75,3 +75,17 @@ async def m002_bids(db: Database):
         );
    """
     )
+
+
+async def m003_auction_audit(db: Database):
+
+    await db.execute(
+        f"""
+       CREATE TABLE auction_house.auction_audit (
+            id {db.serial_primary_key},
+            entry_id TEXT NOT NULL,
+            data TEXT NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        );
+   """
+    )
