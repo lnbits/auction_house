@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import bolt11
@@ -57,7 +57,6 @@ async def add_auction_item(
         id=urlsafe_short_hash(),
         user_id=user_id,
         auction_room_id=auction_room.id,
-        created_at=datetime.now(timezone.utc),
         expires_at=expires_at,
         **data.dict(),
     )
@@ -316,8 +315,6 @@ async def place_bid(
         amount_sat=payment.sat,
         memo=data.memo[:200],
         ln_address=data.ln_address,
-        created_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     await create_bid(bid)
     await db_log(

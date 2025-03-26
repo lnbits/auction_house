@@ -100,7 +100,7 @@ class PublicAuctionRoom(BaseModel):
 
 class AuctionRoom(PublicAuctionRoom):
     user_id: str
-    created_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     wallet_id: str
     fee_wallet_id: str
     # is the room open for everyone who is logged in to add items
@@ -129,7 +129,7 @@ class PublicAuctionItem(BaseModel):
     description: Optional[str] = None
     ask_price: float = 0
     current_price: float = 0
-    created_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime
     current_price_sat: float = Field(default=0, no_database=True)
     bid_count: int = Field(default=0, no_database=True)
@@ -207,7 +207,7 @@ class PublicBid(BaseModel):
     paid: bool = False
     currency: str
     higher_bid_made: bool = False
-    created_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_mine: bool = Field(default=False, no_database=True)
 
 
@@ -215,7 +215,6 @@ class Bid(PublicBid):
     user_id: str
     ln_address: str | None = None
     payment_hash: str
-    expires_at: datetime
 
     def to_public(self, user_id: Optional[str] = None) -> PublicBid:
         if self.user_id == user_id:

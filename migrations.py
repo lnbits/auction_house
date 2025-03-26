@@ -69,7 +69,6 @@ async def m002_bids(db: Database):
             amount_sat INT NOT NULL,
             currency TEXT NOT NULL,
 
-            expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
 
         );
