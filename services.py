@@ -17,7 +17,7 @@ from .crud import (
     get_active_auction_items,
     get_auction_item_by_id,
     get_auction_items_paginated,
-    get_auction_room_by_id,
+    get_auction_room,
     get_auction_rooms,
     get_bid_by_payment_hash,
     get_top_bid,
@@ -32,7 +32,6 @@ from .models import (
     AuctionRoom,
     Bid,
     BidRequest,
-    BidResponse,
     CreateAuctionItem,
     PublicAuctionItem,
     Webhook,
@@ -123,7 +122,7 @@ async def get_auction_item(
 
 
 async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem:
-    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    auction_room = await get_auction_room(item.auction_room_id)
     if not auction_room:
         return item
 
@@ -183,7 +182,7 @@ async def close_auction_item(item: AuctionItem):
 
 
 async def pay_auction_item(item: AuctionItem, top_bid: Bid):
-    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    auction_room = await get_auction_room(item.auction_room_id)
     if not auction_room:
         raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
 
@@ -203,7 +202,7 @@ async def pay_auction_item(item: AuctionItem, top_bid: Bid):
 
 
 async def unlock_auction_item(item: AuctionItem):
-    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    auction_room = await get_auction_room(item.auction_room_id)
     if not auction_room:
         raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
 
@@ -223,7 +222,7 @@ async def unlock_auction_item(item: AuctionItem):
 
 
 async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
-    auction_room = await get_auction_room_by_id(item.auction_room_id)
+    auction_room = await get_auction_room(item.auction_room_id)
     if not auction_room:
         raise ValueError(f"No auction room found for item {item.name} ({item.id}.")
 
@@ -246,33 +245,17 @@ async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
 
 
 async def place_bid(
-    user_id: str, auction_item_id: str, data: BidRequest
-) -> BidResponse:
-    auction_item = await get_auction_item(auction_item_id)
-    if not auction_item:
-        raise ValueError("Auction Item not found.")
-    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
-    if not auction_room:
-        raise ValueError("Auction Room not found.")
-    if auction_item.active is False:
-        raise ValueError("Auction Closed.")
-
-    if auction_item.next_min_bid > data.amount:
-        raise ValueError(
-            f"Bid amount too low. Next min bid: {auction_item.next_min_bid}"
-        )
-
-    top_bid = await get_top_bid(auction_item_id)
-    if top_bid and top_bid.user_id == user_id:
-        raise ValueError("You are already the top bidder.")
-
+    user_id: str, auction_room: AuctionRoom, auction_item: AuctionItem, data: BidRequest
+) -> Bid:
     payment: Payment = await create_invoice(
         wallet_id=auction_room.wallet_id,
         amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
-        memo=f"Auction Bid. Item: {auction_room.name}/{auction_item.name}. "
-        f"Amount: {data.amount} {auction_room.currency}",
+        memo=f"""
+        Auction Bid. Item: {auction_room.name}/{auction_item.name}.
+        Amount: {data.amount} {auction_room.currency}
+        """,
     )
     currency = auction_room.currency
     bid = Bid(
@@ -289,11 +272,7 @@ async def place_bid(
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     await create_bid(bid)
-    return BidResponse(
-        id=bid.id,
-        payment_hash=payment.payment_hash,
-        payment_request=payment.bolt11,
-    )
+    return bid
 
 
 async def new_bid_made(payment: Payment) -> bool:
@@ -322,7 +301,7 @@ async def new_bid_made(payment: Payment) -> bool:
         # todo: refund bid if possible
         return False
 
-    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    auction_room = await get_auction_room(auction_item.auction_room_id)
     if not auction_room:
         logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
         return False
@@ -388,7 +367,7 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
 
 
 async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
-    auction_room = await get_auction_room_by_id(auction_room_id)
+    auction_room = await get_auction_room(auction_room_id)
     if not auction_room:
         logger.warning(f"No auction room found for bid '{bid.memo}' ({bid.id}).")
         return False

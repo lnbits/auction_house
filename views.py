@@ -7,10 +7,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists, optional_user_id
 from lnbits.helpers import template_renderer
 
-from .crud import (
-    get_auction_room,
-    get_auction_room_by_id,
-)
+from .crud import get_auction_room
 from .models import PublicAuctionItem, PublicAuctionRoom
 from .services import get_auction_item
 
@@ -34,11 +31,13 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def auction_room_details(
     request: Request, auction_room_id: str, user: User = Depends(check_user_exists)
 ):
-    auction_room = await get_auction_room(
-        user_id=user.id, auction_room_id=auction_room_id
-    )
+    auction_room = await get_auction_room(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room does not exist.")
+    if auction_room.user_id != user.id:
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "You are not the owner of this auction room."
+        )
     return auction_house_renderer().TemplateResponse(
         "auction_house/auction_room.html",
         {
@@ -57,7 +56,7 @@ async def auctions_list(
     auction_room_id: str,
     user_id: Optional[str] = Depends(optional_user_id),
 ):
-    auction_room = await get_auction_room_by_id(auction_room_id)
+    auction_room = await get_auction_room(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room does not exist.")
     public_auction_room = PublicAuctionRoom(**auction_room.dict()).json()
@@ -83,7 +82,7 @@ async def bids_list(
     auction_item = await get_auction_item(auction_item_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item does not exist.")
-    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    auction_room = await get_auction_room(auction_item.auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 

@@ -17,8 +17,9 @@ from .crud import (
     delete_auction_room,
     get_auction_item_by_id,
     get_auction_item_by_name,
-    get_auction_room_by_id,
+    get_auction_room,
     get_bids_paginated,
+    get_top_bid,
     update_auction_room,
 )
 from .helpers import (
@@ -28,6 +29,7 @@ from .models import (
     AuctionItem,
     AuctionItemFilters,
     AuctionRoom,
+    Bid,
     BidFilters,
     BidRequest,
     BidResponse,
@@ -64,11 +66,9 @@ async def api_get_auction_rooms(
 async def api_get_auction_room(
     auction_room_id: str,
     user_id: Optional[str] = Depends(optional_user_id),
-) -> Optional[Union[AuctionRoom, PublicAuctionRoom]]:
+) -> Union[AuctionRoom, PublicAuctionRoom]:
 
-    auction_room: Optional[Union[AuctionRoom, PublicAuctionRoom]] = None
-    auction_room = await get_auction_room_by_id(auction_room_id)
-
+    auction_room = await get_auction_room(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
@@ -89,9 +89,18 @@ async def api_create_auction_room(
 @auction_house_api_router.put("/api/v1/auction_room")
 async def api_update_auction_room(
     data: EditAuctionRoomData, user: User = Depends(check_user_exists)
-):
+) -> AuctionRoom:
     data.validate_data()
-    return await update_auction_room(user_id=user.id, data=data)
+    auction_room = await get_auction_room(data.id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+    if auction_room.user_id != user.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not authorized to edit this room.")
+    if auction_room.type != data.type:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Cannot change auction room")
+    for k, v in data.dict().items():
+        setattr(auction_room, k, v)
+    return await update_auction_room(auction_room)
 
 
 @auction_house_api_router.delete(
@@ -100,9 +109,13 @@ async def api_update_auction_room(
 async def api_auction_room_delete(
     auction_room_id: str, user: User = Depends(check_user_exists)
 ):
-    deleted = await delete_auction_room(
-        user_id=user.id, auction_room_id=auction_room_id
-    )
+    auction_room = await get_auction_room(auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+    if auction_room.user_id != user.id:
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not authorized to delete this room.")
+
+    deleted = await delete_auction_room(auction_room_id=auction_room_id)
     return SimpleStatus(success=deleted, message="Deleted")
 
 
@@ -117,13 +130,12 @@ async def api_create_auction_item(
     data: CreateAuctionItem,
     user_id: str = Depends(check_user_id),
 ) -> PublicAuctionItem:
-    auction_room = await get_auction_room_by_id(auction_room_id)
+    auction_room = await get_auction_room(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
-
-    if not auction_room.is_open_room and user_id != auction_room.user_id:
+    if not auction_room.is_open_room and auction_room.user_id != user_id:
         raise HTTPException(
-            HTTPStatus.FORBIDDEN, "This room is not open for everyone to add items."
+            HTTPStatus.FORBIDDEN, "Not authorized to add items to this room."
         )
 
     auction_item = await get_auction_item_by_name(auction_room_id, data.name)
@@ -150,7 +162,7 @@ async def api_get_auction_items_paginated(
     user_id: Optional[str] = Depends(optional_user_id),
     filters: Filters = Depends(auction_items_filters),
 ) -> Page[PublicAuctionItem]:
-    auction_room = await get_auction_room_by_id(auction_room_id)
+    auction_room = await get_auction_room(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
@@ -194,15 +206,37 @@ async def api_get_auction_item(
 
 
 @auction_house_api_router.put(
-    "/api/v1/bids/{auction_item_id}", status_code=HTTPStatus.CREATED
+    "/api/v1/bids/{auction_item_id}",
+    status_code=HTTPStatus.CREATED,
+    response_model=BidResponse,
 )
 async def api_place_bid(
     auction_item_id: str,
     data: BidRequest,
     user_id: str = Depends(check_user_id),
-) -> BidResponse:
+) -> Bid:
     data.validate_data()
-    return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
+    auction_item = await get_auction_item(auction_item_id)
+    if not auction_item:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
+    auction_room = await get_auction_room(auction_item.auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+    if auction_item.active is False:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "Auction closed.")
+    if auction_item.next_min_bid > data.amount:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST,
+            f"Bid amount too low. Next min bid: {auction_item.next_min_bid}",
+        )
+    top_bid = await get_top_bid(auction_item_id)
+    if top_bid and top_bid.user_id == user_id:
+        raise HTTPException(
+            HTTPStatus.BAD_REQUEST, "You already have the top bid for this item."
+        )
+    return await place_bid(
+        user_id=user_id, auction_room=auction_room, auction_item=auction_item, data=data
+    )
 
 
 @auction_house_api_router.get(
@@ -224,7 +258,7 @@ async def api_get_user_bids_paginated(
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
-    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    auction_room = await get_auction_room(auction_item.auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
