@@ -47,7 +47,10 @@ async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
 async def add_auction_item(
     auction_room: AuctionRoom, user_id: str, data: CreateAuctionItem
 ) -> AuctionItem:
-    assert data.ask_price > 0, "Ask price must be positive."
+    if data.ask_price <= 0:
+        message = f"Ask price must be positive. Got {data.ask_price}."
+        await db_log(auction_room.id, message)
+        raise ValueError(message)
     expires_at = datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta()
     data.name = data.name.strip()
     item = AuctionItem(
@@ -478,7 +481,7 @@ async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bo
             raise ValueError(message)
 
         payment_request = await _ln_address_payment_request(
-            bid.ln_address, bid.amount_sat, payment_description
+            bid.auction_item_id, bid.ln_address, bid.amount_sat, payment_description
         )
         await pay_invoice(
             wallet_id=refund_from_wallet,
@@ -540,7 +543,7 @@ async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> b
 
 
 async def _ln_address_payment_request(
-    ln_address: str, amount_sat: int, payment_description: str = ""
+    item_id: str, ln_address: str, amount_sat: int, payment_description: str = ""
 ) -> str:
     name_domain = ln_address.split("@")
     if len(name_domain) != 2 and len(name_domain[1].split(".")) < 2:
@@ -556,20 +559,38 @@ async def _ln_address_payment_request(
 
         data = r.json()
         callback_url = data.get("callback")
-        assert callback_url, f"Missing callback URL for {ln_address}."
+        if not callback_url:
+            message = f"Missing callback URL for {ln_address}."
+            await db_log(item_id, message)
+            raise ValueError(message)
+
         check_callback_url(callback_url)
 
         min_sendable = int(data.get("minSendable") // 1000)
-        assert min_sendable, f"Missing min_sendable for {ln_address}."
-        assert min_sendable <= amount_sat, (
-            f"Amount too low for {ln_address}." f" Min sendable: {min_sendable}"
-        )
+        if not min_sendable:
+            message = f"Missing min_sendable for {ln_address}."
+            await db_log(item_id, message)
+            raise ValueError(message)
+
+        if amount_sat < min_sendable:
+            message = (
+                f"Amount too low for {ln_address}." f" Min sendable: {min_sendable}"
+            )
+            await db_log(item_id, message)
+            raise ValueError(message)
 
         max_sendable = int(data.get("maxSendable") // 1000)
-        assert max_sendable, f"Missing max_sendable for {ln_address}."
-        assert max_sendable >= amount_sat, (
-            f"Amount too high for {ln_address}." f" Max sendable: {max_sendable}"
-        )
+        if not max_sendable:
+            message = f"Missing max_sendable for {ln_address}."
+            await db_log(item_id, message)
+            raise ValueError(message)
+
+        if amount_sat > max_sendable:
+            message = (
+                f"Amount too high for {ln_address}." f" Max sendable: {max_sendable}"
+            )
+            await db_log(item_id, message)
+            raise ValueError(message)
 
         amount_msat = amount_sat * 1000
         r = await client.get(
@@ -695,6 +716,7 @@ async def _pay_owner_to_ln_address(
             raise ValueError(message)
 
         payment_request = await _ln_address_payment_request(
+            item.id,
             item.extra.owner_ln_address,
             amount_sat,
             f"Payment for {item.name} ({item.id}).",
