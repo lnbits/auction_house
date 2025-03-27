@@ -85,7 +85,6 @@ async def create_auction_room(user_id: str, data: CreateAuctionRoomData) -> Auct
         id=urlsafe_short_hash(),
         user_id=user_id,
         extra=AuctionRoomConfig(),
-        fee_wallet_id=data.wallet_id,
         **data.dict(),
     )
     await db.insert("auction_house.auction_rooms", auction_room)

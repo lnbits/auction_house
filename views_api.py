@@ -86,6 +86,7 @@ async def api_get_auction_room(
 async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
+    data.fee_wallet_id = data.wallet_id
     data.validate_data()
     return await create_auction_room(user_id=user.id, data=data)
 
