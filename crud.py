@@ -16,6 +16,7 @@ from .models import (
     EditAuctionRoomData,
     PublicAuctionItem,
     PublicAuctionRoom,
+    PublicAuditEntry,
     PublicBid,
 )
 
@@ -317,8 +318,8 @@ async def get_bids_for_user_paginated(
     )
 
 
-async def create_audit_entry(entry_id: str, data: str) -> AuditEntry:
-    entry = AuditEntry(entry_id=entry_id, data=data)
+async def create_audit_entry(entry_id: str, data: str) -> PublicAuditEntry:
+    entry = PublicAuditEntry(entry_id=entry_id, data=data)
     await db.insert("auction_house.auction_audit", entry)
     return entry
 
