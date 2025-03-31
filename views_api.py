@@ -184,11 +184,11 @@ async def api_get_auction_item(
     user_id: Optional[str] = Depends(optional_user_id),
 ) -> Union[AuctionItem, PublicAuctionItem]:
 
-    auction_item = await get_auction_item(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id, user_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
-    auction_item.is_mine = auction_item.user_id == user_id
+    auction_item.user_is_owner = auction_item.user_id == user_id
     if auction_item.user_id == user_id:
         return auction_item
     return auction_item.to_public(user_id)
@@ -208,7 +208,7 @@ async def api_close_auction_item(
     user_id: Optional[str] = Depends(optional_user_id),
 ) -> SimpleStatus:
 
-    auction_item = await get_auction_item(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id, user_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 

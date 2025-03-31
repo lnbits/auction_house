@@ -114,29 +114,33 @@ async def get_auction_room_items_paginated(
         user_id=for_user_id,
         filters=filters,
     )
+    bidded_items_ids = await get_user_bidded_items_ids(user_id) if user_id else None
     for item in page.data:
-        await get_auction_item_details(item, user_id)
+        await get_auction_item_details(item, user_id, auction_room, bidded_items_ids)
 
     return page
 
 
 async def get_auction_item(
     item_id: str,
+    user_id: Optional[str] = None,
 ) -> Optional[AuctionItem]:
     item = await get_auction_item_by_id(item_id)
     if not item:
         return None
 
-    public_item = await get_auction_item_details(item)
+    public_item = await get_auction_item_details(item, user_id)
     return AuctionItem(**{**item.dict(), **public_item.dict()})
 
 
 async def get_auction_item_details(
-    item: PublicAuctionItem, user_id: Optional[str] = None
+    item: PublicAuctionItem,
+    user_id: Optional[str] = None,
+    auction_room: Optional[AuctionRoom] = None,
+    bidded_items_ids: Optional[list[str]] = None,
 ) -> PublicAuctionItem:
-    auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
-        return item
+        auction_room = await get_auction_room_by_id(item.auction_room_id)
 
     top_bid = await get_top_bid(item.id)
     if top_bid:
@@ -144,12 +148,15 @@ async def get_auction_item_details(
         item.current_price = top_bid.amount
         item.user_is_top_bidder = top_bid.user_id == user_id
 
-    if user_id:
+    if user_id and not bidded_items_ids:
         bidded_items_ids = await get_user_bidded_items_ids(user_id)
-        if item.id in bidded_items_ids:
-            item.user_is_participant = True
+    if item.id in (bidded_items_ids or []):
+        item.user_is_participant = True
 
     item.time_left_seconds = max(0, int(item.time_left.total_seconds()))
+
+    if not auction_room:
+        return item
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
         if item.current_price == 0:
@@ -274,7 +281,7 @@ async def place_bid(
     await db_log(
         auction_item_id, f"Placing bid for item {auction_item_id}. Memo: {data.memo}"
     )
-    auction_item = await get_auction_item(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id, user_id)
     if not auction_item:
         message = f"Auction Item not found for id {auction_item_id}."
         await db_log(auction_item_id, message)
