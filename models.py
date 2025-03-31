@@ -160,7 +160,6 @@ class AuctionItem(PublicAuctionItem):
 
 
 class AuctionItemFilters(FilterModel):
-
     __search_fields__ = ["name"]
 
     __sort_fields__ = [
@@ -238,11 +237,14 @@ class BidFilters(FilterModel):
     amount_sat: float | None
 
 
-class AuditEntry(BaseModel):
-    id: Optional[int] = None
+class PublicAuditEntry(BaseModel):
     entry_id: str
     data: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class AuditEntry(PublicAuditEntry):
+    id: Optional[int] = None
 
 
 class AuditEntryFilters(FilterModel):
