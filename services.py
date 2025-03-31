@@ -218,7 +218,7 @@ async def unlock_auction_item(item: AuctionItem):
         await db_log(item.id, message)
         raise ValueError(message)
 
-    wh = auction_room.extra.lock_webhook
+    wh = auction_room.extra.unlock_webhook
     if not wh.url:
         await db_log(item.id, f"No unlock webhook for item {item.name} ({item.id}).")
         return None
