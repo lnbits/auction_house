@@ -138,6 +138,10 @@ class PublicAuctionItem(BaseModel):
     time_left_seconds: int = Field(default=0, no_database=True)
     is_mine: bool = Field(default=False, no_database=True)
 
+    @property
+    def time_left(self) -> timedelta:
+        return self.expires_at.astimezone(timezone.utc) - datetime.now(timezone.utc)
+
 
 class AuctionItemExtra(BaseModel):
     currency: Optional[str] = None

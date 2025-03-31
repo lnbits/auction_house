@@ -130,8 +130,21 @@ from "macros.jinja" import window_vars with context %} {% block page %}
           </div>
           <div class="col-4"></div>
         </div>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
         <div class="row">
-          <div class="col-12">
+          <div class="col-6">
+            <q-btn
+              v-if="bidForm.isUserAuthenticated && (bidForm.isUserRoomOwner || bidForm.isUserItemOwner)"
+              @click="recheckClose"
+              unelevated
+              color="primary"
+            >
+              <span>Close Auction</span>
+            </q-btn>
+          </div>
+          <div class="col-6">
             <q-btn
               v-if="bidForm.isUserAuthenticated"
               @click="placeBid"
@@ -151,7 +164,18 @@ from "macros.jinja" import window_vars with context %} {% block page %}
     </q-card>
     <q-card v-else class="q-mt-lg">
       <q-card-section>
-        <h3>Item not active</h3>
+        <h5>Item not active</h5>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <q-btn
+          v-if="bidForm.isUserAuthenticated"
+          @click="recheckClose"
+          unelevated
+          color="primary"
+        >
+          <span>Check Close</span>
+        </q-btn>
       </q-card-section>
     </q-card>
 
@@ -280,6 +304,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
   const auction_item = JSON.parse({{auction_item | tojson | safe}})
   const is_user_authenticated = JSON.parse({{ is_user_authenticated | tojson | safe }})
   const is_user_room_owner = JSON.parse({{ is_user_room_owner | tojson | safe }})
+  const is_user_item_owner = JSON.parse({{ is_user_item_owner | tojson | safe }})
   const is_auction_type = JSON.parse({{ is_auction_type | tojson | safe }})
 </script>
 <script src="{{ static_url_for('auction_house/static', 'js/bids.js') }}"></script>
