@@ -187,16 +187,18 @@ async def api_get_auction_item(
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
+
+    auction_item.is_mine = auction_item.user_id == user_id
     if auction_item.user_id == user_id:
         return auction_item
-    return PublicAuctionItem(**auction_item.dict())
+    return auction_item.to_public(user_id)
 
 
 @auction_house_api_router.delete(
     "/api/v1/items/{auction_item_id}",
     name="Manually close Auction Item",
     summary="Close the auction for this item manually. "
-    "The auction must be expired to be able to close it."
+    "The auction must be expired or have zero bids to be able to close it."
     "Only the owner of the auction room or an admin can close the auction.",
     response_description="An auction item or 404 if not found",
     response_model=PublicAuctionItem,
@@ -232,9 +234,6 @@ async def api_close_auction_item(
     await close_auction_item(auction_item)
     return SimpleStatus(success=True, message="Auction Closed")
 
-
-# todo: cancel sell item at any time
-# cancel auction item if no bids
 
 
 ############################# BIDS #############################
