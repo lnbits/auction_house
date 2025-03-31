@@ -92,6 +92,7 @@ window.app = Vue.createApp({
         show: false,
         isUserAuthenticated: is_user_authenticated,
         isUserRoomOwner: is_user_room_owner,
+        isUserItemOwner: is_user_item_owner,
         isAuctionType: is_auction_type,
         data: auction_item
       }

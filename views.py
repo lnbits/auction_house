@@ -93,6 +93,7 @@ async def bids_list(
             "request": request,
             "is_user_authenticated": user_id is not None,
             "is_user_room_owner": user_id == auction_room.user_id,
+            "is_user_item_owner": user_id == auction_item.user_id,
             "is_auction_type": auction_room.type == "auction",
             "auction_item": PublicAuctionItem(**auction_item.dict()).json(),
         },
