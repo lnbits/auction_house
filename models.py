@@ -136,7 +136,9 @@ class PublicAuctionItem(BaseModel):
     currency: str = Field(default="sat", no_database=True)
     next_min_bid: float = Field(default=0, no_database=True)
     time_left_seconds: int = Field(default=0, no_database=True)
-    is_mine: bool = Field(default=False, no_database=True)
+    is_mine: bool = Field(default=False, no_database=True)  # user_is_owner
+    user_is_participant: bool = Field(default=False, no_database=True)
+    user_is_top_bidder: bool = Field(default=False, no_database=True)
 
     @property
     def time_left(self) -> timedelta:

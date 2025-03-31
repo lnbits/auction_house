@@ -22,6 +22,7 @@ from .crud import (
     get_auction_rooms,
     get_bid_by_payment_hash,
     get_top_bid,
+    get_user_bidded_items_ids,
     update_auction_item,
     update_auction_item_top_price,
     update_bid,
@@ -102,6 +103,7 @@ async def call_webhook_for_auction_item(
 
 async def get_auction_room_items_paginated(
     auction_room: AuctionRoom,
+    for_user_id: Optional[str] = None,
     user_id: Optional[str] = None,
     include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
@@ -109,11 +111,11 @@ async def get_auction_room_items_paginated(
     page = await get_auction_items_paginated(
         auction_room_id=auction_room.id,
         include_inactive=include_inactive,
-        user_id=user_id,
+        user_id=for_user_id,
         filters=filters,
     )
     for item in page.data:
-        await get_auction_item_details(item)
+        await get_auction_item_details(item, user_id)
 
     return page
 
@@ -129,7 +131,9 @@ async def get_auction_item(
     return AuctionItem(**{**item.dict(), **public_item.dict()})
 
 
-async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem:
+async def get_auction_item_details(
+    item: PublicAuctionItem, user_id: Optional[str] = None
+) -> PublicAuctionItem:
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         return item
@@ -138,6 +142,12 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
     if top_bid:
         item.current_price_sat = top_bid.amount_sat
         item.current_price = top_bid.amount
+        item.user_is_top_bidder = top_bid.user_id == user_id
+
+    if user_id:
+        bidded_items_ids = await get_user_bidded_items_ids(user_id)
+        if item.id in bidded_items_ids:
+            item.user_is_participant = True
 
     item.time_left_seconds = max(0, int(item.time_left.total_seconds()))
     item.currency = auction_room.currency

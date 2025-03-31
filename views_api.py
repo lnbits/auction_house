@@ -164,7 +164,8 @@ async def api_get_auction_items_paginated(
     page = await get_auction_room_items_paginated(
         auction_room=auction_room,
         include_inactive=include_inactive,
-        user_id=for_user_id,
+        for_user_id=for_user_id,
+        user_id=user_id,
         filters=filters,
     )
     return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)

@@ -268,7 +268,7 @@ async def get_top_bid(auction_item_id: str) -> Optional[Bid]:
     )
 
 
-async def get_bids(auction_item_id: str) -> list[PublicBid]:
+async def get_bids(auction_item_id: str) -> list[Bid]:
     return await db.fetchall(
         """
             SELECT * FROM auction_house.bids
@@ -276,8 +276,19 @@ async def get_bids(auction_item_id: str) -> list[PublicBid]:
             ORDER BY amount DESC
         """,
         {"auction_item_id": auction_item_id},
-        PublicBid,
+        Bid,
     )
+
+
+async def get_user_bidded_items_ids(user_id: str) -> list[str]:
+    rows: list[dict] = await db.fetchall(
+        """
+            SELECT auction_item_id FROM auction_house.bids
+            WHERE user_id = :user_id AND paid = true
+        """,
+        {"user_id": user_id},
+    )
+    return [row["auction_item_id"] for row in rows]
 
 
 async def get_bids_paginated(
