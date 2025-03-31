@@ -5,10 +5,9 @@ from datetime import datetime, timedelta, timezone
 from string import Template
 from typing import Optional
 
-from pydantic import BaseModel, Field
-
 from lnbits.db import FilterModel
 from lnbits.helpers import is_valid_email_address
+from pydantic import BaseModel, Field
 
 
 class Webhook(BaseModel):
