@@ -173,6 +173,24 @@ window.app = Vue.createApp({
         LNbits.utils.notifyApiError(error)
       }
     },
+    recheckClose: async function () {
+      try {
+        await LNbits.api.request(
+          'DELETE',
+          `/auction_house/api/v1/items/${auctionItemId}`,
+          null,
+          null
+        )
+
+        this.$q.notify({
+          type: 'positive',
+          message: 'Close request sent!',
+          caption: 'Please check status later.'
+        })
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
     async waitForPayment(paymentHash) {
       try {
         const url = new URL(window.location)

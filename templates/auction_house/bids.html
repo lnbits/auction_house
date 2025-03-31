@@ -151,7 +151,18 @@ from "macros.jinja" import window_vars with context %} {% block page %}
     </q-card>
     <q-card v-else class="q-mt-lg">
       <q-card-section>
-        <h3>Item not active</h3>
+        <h5>Item not active</h5>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <q-btn
+          v-if="bidForm.isUserAuthenticated"
+          @click="recheckClose"
+          unelevated
+          color="primary"
+        >
+          <span>Check Close</span>
+        </q-btn>
       </q-card-section>
     </q-card>
 

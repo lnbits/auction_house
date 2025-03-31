@@ -43,6 +43,7 @@ from .models import (
 )
 from .services import (
     add_auction_item,
+    close_auction_item,
     get_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
@@ -189,6 +190,46 @@ async def api_get_auction_item(
     if auction_item.user_id == user_id:
         return auction_item
     return PublicAuctionItem(**auction_item.dict())
+
+
+@auction_house_api_router.delete(
+    "/api/v1/items/{auction_item_id}",
+    name="Manually close Auction Item",
+    summary="Close the auction for this item manually. "
+    "The auction must be expired to be able to close it."
+    "Only the owner of the auction room or an admin can close the auction.",
+    response_description="An auction item or 404 if not found",
+    response_model=PublicAuctionItem,
+)
+async def api_close_auction_item(
+    auction_item_id: str,
+    user: User = Depends(check_user_exists),
+):
+
+    auction_item = await get_auction_item(auction_item_id)
+    if not auction_item:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
+
+    auction_room = await get_auction_room_by_id(auction_item.auction_room_id)
+    if not auction_room:
+        raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
+
+    if (
+        not user.admin
+        and (auction_room.user_id != user.id)
+        and (auction_item.user_id != user.id)
+    ):
+        raise HTTPException(
+            HTTPStatus.FORBIDDEN, "You are not allowed to close this auction."
+        )
+
+    bids = await get_bids_paginated(auction_item_id=auction_item_id)
+    if bids.total > 0 and auction_item.time_left.total_seconds() > 0:
+        raise HTTPException(
+            HTTPStatus.CONFLICT, "Cannot close active auction with bids."
+        )
+
+    await close_auction_item(auction_item)
 
 
 # todo: cancel sell item at any time

@@ -139,8 +139,7 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
         item.current_price_sat = top_bid.amount_sat
         item.current_price = top_bid.amount
 
-    time_left = item.expires_at.astimezone(timezone.utc) - datetime.now(timezone.utc)
-    item.time_left_seconds = max(0, int(time_left.total_seconds()))
+    item.time_left_seconds = max(0, int(item.time_left.total_seconds()))
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
         if item.current_price == 0:
@@ -159,10 +158,7 @@ async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem
 async def checked_expired_auctions():
     auction_items = await get_active_auction_items()
     for item in auction_items:
-        time_left = item.expires_at.astimezone(timezone.utc) - datetime.now(
-            timezone.utc
-        )
-        if time_left.total_seconds() > 0:
+        if item.time_left.total_seconds() > 0:
             continue
         try:
             await close_auction_item(item)
