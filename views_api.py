@@ -204,7 +204,7 @@ async def api_get_auction_item(
 async def api_close_auction_item(
     auction_item_id: str,
     user: User = Depends(check_user_exists),
-):
+) -> SimpleStatus:
 
     auction_item = await get_auction_item(auction_item_id)
     if not auction_item:
@@ -230,6 +230,7 @@ async def api_close_auction_item(
         )
 
     await close_auction_item(auction_item)
+    return SimpleStatus(success=True, message="Auction Closed")
 
 
 # todo: cancel sell item at any time

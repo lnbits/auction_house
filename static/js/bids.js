@@ -174,6 +174,7 @@ window.app = Vue.createApp({
       }
     },
     recheckClose: async function () {
+      const auctionItemId = this.bidForm.data.id
       try {
         await LNbits.api.request(
           'DELETE',
