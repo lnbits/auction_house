@@ -187,7 +187,6 @@ async def api_get_auction_item(
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
-
     auction_item.is_mine = auction_item.user_id == user_id
     if auction_item.user_id == user_id:
         return auction_item
@@ -199,13 +198,13 @@ async def api_get_auction_item(
     name="Manually close Auction Item",
     summary="Close the auction for this item manually. "
     "The auction must be expired or have zero bids to be able to close it."
-    "Only the owner of the auction room or an admin can close the auction.",
+    "Only the owner of the item or of the auction room can close the auction.",
     response_description="An auction item or 404 if not found",
     response_model=PublicAuctionItem,
 )
 async def api_close_auction_item(
     auction_item_id: str,
-    user: User = Depends(check_user_exists),
+    user_id: Optional[str] = Depends(optional_user_id),
 ) -> SimpleStatus:
 
     auction_item = await get_auction_item(auction_item_id)
@@ -216,11 +215,7 @@ async def api_close_auction_item(
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
-    if (
-        not user.admin
-        and (auction_room.user_id != user.id)
-        and (auction_item.user_id != user.id)
-    ):
+    if (auction_room.user_id != user_id) and (auction_item.user_id != user_id):
         raise HTTPException(
             HTTPStatus.FORBIDDEN, "You are not allowed to close this auction."
         )
@@ -233,7 +228,6 @@ async def api_close_auction_item(
 
     await close_auction_item(auction_item)
     return SimpleStatus(success=True, message="Auction Closed")
-
 
 
 ############################# BIDS #############################
