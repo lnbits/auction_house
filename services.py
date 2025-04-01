@@ -214,17 +214,16 @@ async def pay_auction_item(item: AuctionItem, top_bid: Bid):
         await db_log(item.id, message)
         raise ValueError(message)
 
-    to_walet_id = auction_room.fee_wallet_id or auction_room.wallet_id
     fee_amount_sat = int(top_bid.amount_sat * auction_room.room_percentage / 100)
     owner_amount_sat = top_bid.amount_sat - fee_amount_sat
 
     is_fee_paid = await _pay_fee_for_ended_auction(
-        item, auction_room.wallet_id, to_walet_id, fee_amount_sat
+        item, item.wallet_id, auction_room.fee_wallet_id, fee_amount_sat
     )
     await db_log(item.id, f"Fee paid: {is_fee_paid}. Item {item.name} ({item.id}).")
 
     is_owner_paid = await _pay_owner_for_ended_auction(
-        item, auction_room.wallet_id, owner_amount_sat
+        item, item.wallet_id, owner_amount_sat
     )
     await db_log(item.id, f"Owner paid: {is_owner_paid}. Item {item.name} ({item.id}).")
 
@@ -315,7 +314,7 @@ async def place_bid(
         raise ValueError(message)
 
     payment: Payment = await create_invoice(
-        wallet_id=auction_room.wallet_id,
+        wallet_id=auction_item.wallet_id,
         amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
@@ -384,7 +383,7 @@ async def new_bid_made(payment: Payment) -> bool:
     # race condition between two bids
     if await _must_refund_bid_payment(bid, auction_item):
         await db_log(auction_item.id, f"Refunding. {bid_details}")
-        refunded = await _refund_payment(bid, auction_item.auction_room_id)
+        refunded = await _refund_payment(bid)
         await db_log(auction_item.id, f"Refunded: {refunded}. {bid_details}")
         return False
 
@@ -431,7 +430,7 @@ async def _refund_previous_winner(auction_item: PublicAuctionItem):
             auction_item.id,
             f"Refunding previous winner bid '{top_bid.memo}' ({top_bid.id}).",
         )
-        refunded = await _refund_payment(top_bid, auction_item.auction_room_id)
+        refunded = await _refund_payment(top_bid)
         await db_log(
             auction_item.id,
             f"Refunded: {refunded}. Bid '{top_bid.memo}' ({top_bid.id}).",
@@ -468,9 +467,9 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
     return False
 
 
-async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
-    auction_room = await get_auction_room_by_id(auction_room_id)
-    if not auction_room:
+async def _refund_payment(bid: Bid) -> bool:
+    auction_item = await get_auction_item_by_id(bid.auction_item_id)
+    if not auction_item:
         await db_log(
             bid.auction_item_id,
             f"No auction room found for bid '{bid.memo}' ({bid.id}).",
@@ -479,10 +478,10 @@ async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
 
     refunded = False
     if bid.ln_address:
-        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet_id)
+        refunded = await _refund_payment_to_ln_address(bid, auction_item.wallet_id)
 
     if not refunded:
-        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet_id)
+        refunded = await _refund_payment_to_user_wallet(bid, auction_item.wallet_id)
 
     return refunded
 

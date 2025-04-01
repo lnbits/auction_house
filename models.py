@@ -101,7 +101,6 @@ class PublicAuctionRoom(BaseModel):
 class AuctionRoom(PublicAuctionRoom):
     user_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    wallet_id: str
     fee_wallet_id: str
     # is the room open for everyone who is logged in to add items
     is_open_room: bool = False
@@ -146,7 +145,6 @@ class PublicAuctionItem(BaseModel):
 
 
 class AuctionItemExtra(BaseModel):
-    currency: Optional[str] = None
     lock_code: Optional[str] = None
     is_fee_paid: bool = False
     is_owner_paid: bool = False
@@ -155,6 +153,8 @@ class AuctionItemExtra(BaseModel):
 
 class AuctionItem(PublicAuctionItem):
     user_id: str
+    # wallet where payments will be received
+    wallet_id: str
     # code required to check that the user is the owner of the item
     transfer_code: str
     extra: AuctionItemExtra = AuctionItemExtra()
