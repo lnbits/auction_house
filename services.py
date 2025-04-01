@@ -103,18 +103,23 @@ async def call_webhook_for_auction_item(
 
 async def get_auction_room_items_paginated(
     auction_room: AuctionRoom,
-    for_user_id: Optional[str] = None,
     user_id: Optional[str] = None,
     include_inactive: Optional[bool] = None,
+    user_is_owner: Optional[bool] = None,
+    user_is_participant: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[AuctionItem]:
+    bidded_items_ids = await get_user_bidded_items_ids(user_id) if user_id else []
+
+    owner_user_id = user_id if user_is_owner else None
     page = await get_auction_items_paginated(
         auction_room_id=auction_room.id,
         include_inactive=include_inactive,
-        user_id=for_user_id,
+        user_id=owner_user_id,
+        auction_item_ids=bidded_items_ids if user_is_participant else None,
         filters=filters,
     )
-    bidded_items_ids = await get_user_bidded_items_ids(user_id) if user_id else None
+
     for item in page.data:
         await get_auction_item_details(item, user_id, auction_room, bidded_items_ids)
 
@@ -148,7 +153,7 @@ async def get_auction_item_details(
         item.current_price = top_bid.amount
         item.user_is_top_bidder = top_bid.user_id == user_id
 
-    if user_id and not bidded_items_ids:
+    if user_id and bidded_items_ids is None:
         bidded_items_ids = await get_user_bidded_items_ids(user_id)
     if item.id in (bidded_items_ids or []):
         item.user_is_participant = True

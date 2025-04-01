@@ -13,6 +13,7 @@ window.app = Vue.createApp({
         }
       },
       onlyMyItems: false,
+      showOnlyItemsWithMyBids: false,
       showInactiveItems: false,
       isAuctionType: false,
       itemsTable: {
@@ -113,7 +114,8 @@ window.app = Vue.createApp({
         const {data} = await LNbits.api.request(
           'GET',
           `/auction_house/api/v1/items/${auctionRoomId}` +
-            `/paginated?only_mine=${this.onlyMyItems}` +
+            `/paginated?user_is_owner=${this.onlyMyItems}` +
+            `&user_is_participant=${this.showOnlyItemsWithMyBids}` +
             `&include_inactive=${this.showInactiveItems}&${params}`
         )
         this.auctionItems = data.data

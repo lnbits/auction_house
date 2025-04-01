@@ -46,7 +46,7 @@ from "macros.jinja" import window_vars with context %} {% block page %}
     <q-card class="q-mt-lg">
       <q-card-section>
         <div class="row q-mb-lg">
-          <div class="col-6">
+          <div class="col-4">
             <q-input
               filled
               dense
@@ -68,22 +68,33 @@ from "macros.jinja" import window_vars with context %} {% block page %}
               </template>
             </q-input>
           </div>
-          <div class="col-6">
+          <div class="col-8">
             <div>
               <q-toggle
+                v-if="auctionRoomForm.isUserAuthenticated"
                 @click="getAuctionItemsPaginated()"
-                v-model="showInactiveItems"
-                label="Show Completed"
+                v-model="showOnlyItemsWithMyBids"
+                label="Only Items with My Bids"
                 size="md"
                 class="float-right"
               />
             </div>
+
             <div>
               <q-toggle
                 v-if="auctionRoomForm.isUserAuthenticated"
                 @click="getAuctionItemsPaginated()"
                 v-model="onlyMyItems"
                 label="Only My Items"
+                size="md"
+                class="float-right"
+              />
+            </div>
+            <div>
+              <q-toggle
+                @click="getAuctionItemsPaginated()"
+                v-model="showInactiveItems"
+                label="Show Completed"
                 size="md"
                 class="float-right"
               />
