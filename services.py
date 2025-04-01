@@ -22,6 +22,7 @@ from .crud import (
     get_auction_rooms,
     get_bid_by_payment_hash,
     get_top_bid,
+    get_user_bidded_items_ids,
     update_auction_item,
     update_auction_item_top_price,
     update_bid,
@@ -104,42 +105,63 @@ async def get_auction_room_items_paginated(
     auction_room: AuctionRoom,
     user_id: Optional[str] = None,
     include_inactive: Optional[bool] = None,
+    user_is_owner: Optional[bool] = None,
+    user_is_participant: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[AuctionItem]:
+    bidded_items_ids = await get_user_bidded_items_ids(user_id) if user_id else []
+
+    owner_user_id = user_id if user_is_owner else None
     page = await get_auction_items_paginated(
         auction_room_id=auction_room.id,
         include_inactive=include_inactive,
-        user_id=user_id,
+        user_id=owner_user_id,
+        auction_item_ids=bidded_items_ids if user_is_participant else None,
         filters=filters,
     )
+
     for item in page.data:
-        await get_auction_item_details(item)
+        await get_auction_item_details(item, user_id, auction_room, bidded_items_ids)
 
     return page
 
 
 async def get_auction_item(
     item_id: str,
+    user_id: Optional[str] = None,
 ) -> Optional[AuctionItem]:
     item = await get_auction_item_by_id(item_id)
     if not item:
         return None
 
-    public_item = await get_auction_item_details(item)
+    public_item = await get_auction_item_details(item, user_id)
     return AuctionItem(**{**item.dict(), **public_item.dict()})
 
 
-async def get_auction_item_details(item: PublicAuctionItem) -> PublicAuctionItem:
-    auction_room = await get_auction_room_by_id(item.auction_room_id)
+async def get_auction_item_details(
+    item: PublicAuctionItem,
+    user_id: Optional[str] = None,
+    auction_room: Optional[AuctionRoom] = None,
+    bidded_items_ids: Optional[list[str]] = None,
+) -> PublicAuctionItem:
     if not auction_room:
-        return item
+        auction_room = await get_auction_room_by_id(item.auction_room_id)
 
     top_bid = await get_top_bid(item.id)
     if top_bid:
         item.current_price_sat = top_bid.amount_sat
         item.current_price = top_bid.amount
+        item.user_is_top_bidder = top_bid.user_id == user_id
+
+    if user_id and bidded_items_ids is None:
+        bidded_items_ids = await get_user_bidded_items_ids(user_id)
+    if item.id in (bidded_items_ids or []):
+        item.user_is_participant = True
 
     item.time_left_seconds = max(0, int(item.time_left.total_seconds()))
+
+    if not auction_room:
+        return item
     item.currency = auction_room.currency
     if item.time_left_seconds > 0:
         if item.current_price == 0:
@@ -264,7 +286,7 @@ async def place_bid(
     await db_log(
         auction_item_id, f"Placing bid for item {auction_item_id}. Memo: {data.memo}"
     )
-    auction_item = await get_auction_item(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id, user_id)
     if not auction_item:
         message = f"Auction Item not found for id {auction_item_id}."
         await db_log(auction_item_id, message)

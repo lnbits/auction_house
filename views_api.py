@@ -152,7 +152,8 @@ async def api_create_auction_item(
 async def api_get_auction_items_paginated(
     auction_room_id: str,
     include_inactive: Optional[bool] = None,
-    only_mine: Optional[bool] = None,
+    user_is_owner: Optional[bool] = None,
+    user_is_participant: Optional[bool] = None,
     user_id: Optional[str] = Depends(optional_user_id),
     filters: Filters = Depends(auction_items_filters),
 ) -> Page[PublicAuctionItem]:
@@ -160,11 +161,12 @@ async def api_get_auction_items_paginated(
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room not found.")
 
-    for_user_id = user_id if only_mine else None
     page = await get_auction_room_items_paginated(
         auction_room=auction_room,
         include_inactive=include_inactive,
-        user_id=for_user_id,
+        user_is_owner=user_is_owner,
+        user_is_participant=user_is_participant,
+        user_id=user_id,
         filters=filters,
     )
     return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)
@@ -183,11 +185,11 @@ async def api_get_auction_item(
     user_id: Optional[str] = Depends(optional_user_id),
 ) -> Union[AuctionItem, PublicAuctionItem]:
 
-    auction_item = await get_auction_item(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id, user_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 
-    auction_item.is_mine = auction_item.user_id == user_id
+    auction_item.user_is_owner = auction_item.user_id == user_id
     if auction_item.user_id == user_id:
         return auction_item
     return auction_item.to_public(user_id)
@@ -207,7 +209,7 @@ async def api_close_auction_item(
     user_id: Optional[str] = Depends(optional_user_id),
 ) -> SimpleStatus:
 
-    auction_item = await get_auction_item(auction_item_id)
+    auction_item = await get_auction_item(auction_item_id, user_id)
     if not auction_item:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Item not found.")
 

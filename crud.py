@@ -112,6 +112,7 @@ async def update_auction_room(
 async def get_auction_items_paginated(
     auction_room_id: str,
     user_id: Optional[str] = None,
+    auction_item_ids: Optional[list[str]] = None,
     include_inactive: Optional[bool] = None,
     filters: Optional[Filters[AuctionItemFilters]] = None,
 ) -> Page[AuctionItem]:
@@ -122,6 +123,15 @@ async def get_auction_items_paginated(
         values["user_id"] = user_id
     if not include_inactive:
         where.append("active = true")
+
+    if auction_item_ids:
+        id_clause = []
+        for i, item_id in enumerate(auction_item_ids):
+            auction_item_id = f"auction_item_id__{i}"
+            id_clause.append(f"id = :{auction_item_id}")
+            values[auction_item_id] = item_id
+        where.append(" OR ".join(id_clause))
+
     return await db.fetch_page(
         "SELECT * FROM auction_house.auction_items",
         where=where,
@@ -268,7 +278,7 @@ async def get_top_bid(auction_item_id: str) -> Optional[Bid]:
     )
 
 
-async def get_bids(auction_item_id: str) -> list[PublicBid]:
+async def get_bids(auction_item_id: str) -> list[Bid]:
     return await db.fetchall(
         """
             SELECT * FROM auction_house.bids
@@ -276,8 +286,19 @@ async def get_bids(auction_item_id: str) -> list[PublicBid]:
             ORDER BY amount DESC
         """,
         {"auction_item_id": auction_item_id},
-        PublicBid,
+        Bid,
     )
+
+
+async def get_user_bidded_items_ids(user_id: str) -> list[str]:
+    rows: list[dict] = await db.fetchall(
+        """
+            SELECT DISTINCT auction_item_id FROM auction_house.bids
+            WHERE user_id = :user_id AND paid = true
+        """,
+        {"user_id": user_id},
+    )
+    return [row["auction_item_id"] for row in rows]
 
 
 async def get_bids_paginated(
