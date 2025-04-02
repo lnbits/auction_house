@@ -43,7 +43,6 @@ class AuctionRoomConfig(BaseModel):
 
 
 class CreateAuctionRoomData(BaseModel):
-    wallet_id: str
     fee_wallet_id: Optional[str] = None
     currency: str
     name: str
@@ -146,6 +145,10 @@ class PublicAuctionItem(BaseModel):
 
 class AuctionItemExtra(BaseModel):
     lock_code: Optional[str] = None
+    # code required to check that the user is the owner of the item
+    transfer_code: str
+    # wallet where payments will be received
+    wallet_id: str
     is_fee_paid: bool = False
     is_owner_paid: bool = False
     owner_ln_address: Optional[str] = None
@@ -153,11 +156,7 @@ class AuctionItemExtra(BaseModel):
 
 class AuctionItem(PublicAuctionItem):
     user_id: str
-    # wallet where payments will be received
-    wallet_id: str
-    # code required to check that the user is the owner of the item
-    transfer_code: str
-    extra: AuctionItemExtra = AuctionItemExtra()
+    extra: AuctionItemExtra
 
     def to_public(self, user_id: Optional[str] = None) -> PublicAuctionItem:
         if self.user_id == user_id:

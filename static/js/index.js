@@ -72,7 +72,7 @@ window.app = Vue.createApp({
       this.formDialog.data = {
         name: '',
         description: '',
-        wallet_id: '',
+        fee_wallet_id: '',
         currency: 'sat',
         type: null
       }
@@ -124,7 +124,7 @@ window.app = Vue.createApp({
             .request(
               'DELETE',
               '/auction_house/api/v1/auction_room/' + auction_room_id,
-              _.findWhere(self.g.user.wallets, {id: auction_room.wallet_id})
+              _.findWhere(self.g.user.wallets, {id: auction_room.fee_wallet_id})
                 .adminkey
             )
             .then(function (response) {

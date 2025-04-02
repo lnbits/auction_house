@@ -87,7 +87,6 @@ async def api_get_auction_room(
 async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
-    data.fee_wallet_id = data.wallet_id
     data.validate_data()
     return await create_auction_room(user_id=user.id, data=data)
 
@@ -223,7 +222,11 @@ async def api_close_auction_item(
         )
 
     bids = await get_bids_paginated(auction_item_id=auction_item_id)
-    if bids.total > 0 and auction_item.time_left.total_seconds() > 0:
+    if (
+        auction_item.active
+        and bids.total > 0
+        and auction_item.time_left.total_seconds() > 0
+    ):
         raise HTTPException(
             HTTPStatus.CONFLICT, "Cannot close active auction with bids."
         )
