@@ -1,13 +1,20 @@
+import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 import bolt11
 import httpx
 from lnbits.core.crud import get_wallets
+from lnbits.core.crud.wallets import create_wallet, delete_wallet_by_id
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services.websockets import websocket_updater
 from lnbits.db import Filters, Page
-from lnbits.helpers import check_callback_url, urlsafe_short_hash
+from lnbits.helpers import (
+    check_callback_url,
+    is_valid_email_address,
+    urlsafe_short_hash,
+)
 from loguru import logger
 
 from .crud import (
@@ -30,6 +37,7 @@ from .crud import (
 )
 from .models import (
     AuctionItem,
+    AuctionItemExtra,
     AuctionItemFilters,
     AuctionRoom,
     Bid,
@@ -52,16 +60,28 @@ async def add_auction_item(
         message = f"Ask price must be positive. Got {data.ask_price}."
         await db_log(auction_room.id, message)
         raise ValueError(message)
-    expires_at = datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta()
-    data.name = data.name.strip()
+
+    if data.ln_address and not is_valid_email_address(data.ln_address):
+        message = f"Invalid Lightning Address: {data.ln_address}."
+        await db_log(auction_room.id, message)
+        raise ValueError(message)
+
+    extra = AuctionItemExtra(
+        transfer_code=data.transfer_code,
+        owner_ln_address=data.ln_address,
+        wallet_id="id_only_after_webhook",
+    )
     item = AuctionItem(
         id=urlsafe_short_hash(),
+        name=data.name.strip(),
+        description=data.description,
+        ask_price=data.ask_price,
         user_id=user_id,
         auction_room_id=auction_room.id,
-        expires_at=expires_at,
-        **data.dict(),
+        expires_at=datetime.now(timezone.utc)
+        + auction_room.extra.duration.to_timedelta(),
+        extra=extra,
     )
-    item.extra.owner_ln_address = data.ln_address  # todo: is_valid_email_address
 
     wh = auction_room.extra.lock_webhook
     if not wh.url:
@@ -77,8 +97,15 @@ async def add_auction_item(
         item.extra.lock_code = lock_code
         await db_log(item.id, f"Lock code obtained {item.name} ({item.id}).")
 
+    item_wallet = await create_wallet(
+        user_id=auction_room.user_id, wallet_name=f"AH: {item.name}"
+    )
+    item.extra.wallet_id = item_wallet.id
+
     await create_auction_item(item)
-    await db_log(item.id, f"Added item {item.name} ({item.id}).")
+    await db_log(
+        item.id, f"Added item {item.name} ({item.id})." f" Wallet id: {item_wallet.id}."
+    )
     return item
 
 
@@ -199,11 +226,20 @@ async def close_auction_item(item: AuctionItem):
         await unlock_auction_item(item)
     else:
         await transfer_auction_item(item, top_bid.user_id)
-        await pay_auction_item(item, top_bid)
+        await pay_auction_item(item, top_bid)  # todo; transfer will fail a second time
 
     await close_auction(item.id)
 
+    if item.extra.is_owner_paid:
+        await db_log(
+            item.id,
+            f"Soft deleted wallet '{item.extra.wallet_id}' "
+            f"for  {item.name} ({item.id}).",
+        )
+        await delete_wallet_by_id(item.extra.wallet_id)
+
     await db_log(item.id, f"Closed auction item {item.name} ({item.id}).")
+    await ws_notify(item.id, {"status": "closed"})
 
 
 async def pay_auction_item(item: AuctionItem, top_bid: Bid):
@@ -214,22 +250,24 @@ async def pay_auction_item(item: AuctionItem, top_bid: Bid):
         await db_log(item.id, message)
         raise ValueError(message)
 
-    to_walet_id = auction_room.fee_wallet_id or auction_room.wallet_id
     fee_amount_sat = int(top_bid.amount_sat * auction_room.room_percentage / 100)
     owner_amount_sat = top_bid.amount_sat - fee_amount_sat
 
     is_fee_paid = await _pay_fee_for_ended_auction(
-        item, auction_room.wallet_id, to_walet_id, fee_amount_sat
+        item, item.extra.wallet_id, auction_room.fee_wallet_id, fee_amount_sat
     )
     await db_log(item.id, f"Fee paid: {is_fee_paid}. Item {item.name} ({item.id}).")
 
     is_owner_paid = await _pay_owner_for_ended_auction(
-        item, auction_room.wallet_id, owner_amount_sat
+        item, item.extra.wallet_id, owner_amount_sat
     )
     await db_log(item.id, f"Owner paid: {is_owner_paid}. Item {item.name} ({item.id}).")
 
 
 async def unlock_auction_item(item: AuctionItem):
+    if item.extra.is_unlocked:
+        await db_log(item.id, f"Item {item.name} ({item.id}) already unlocked.")
+        return None
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         message = f"No auction room found for item {item.name} ({item.id}."
@@ -244,17 +282,19 @@ async def unlock_auction_item(item: AuctionItem):
     unlock_data = await call_webhook_for_auction_item(
         item.id, wh, placeholders={"lock_code": item.extra.lock_code}
     )
-    success = unlock_data.get("success", False)
-    if not success:
-        await db_log(
-            item.id, f"Failed to unlock item {item.name} ({item.id}): {unlock_data}."
-        )
-        raise ValueError(f"Failed to unlock item {item.name} ({item.id}).")
-    return None
+    item.extra.is_unlocked = True
+    await update_auction_item(item)
+    await db_log(item.id, f"Unlocked {item.name} ({item.id}). Resp: {unlock_data}.")
 
 
 async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
     await db_log(item.id, f"Transferring {item.name} ({item.id}).")
+    if item.extra.is_transfered_to_new_owner:
+        await db_log(
+            item.id,
+            f"Item {item.name} ({item.id}) already transfered to new owner.",
+        )
+        return None
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         message = f"No auction room found for item {item.name} ({item.id}."
@@ -271,13 +311,11 @@ async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
         wh,
         placeholders={"lock_code": item.extra.lock_code, "new_owner_id": new_owner_id},
     )
-    success = transfer_data.get("success", False)
-    if not success:
-        await db_log(
-            item.id, f"Failed to unlock item {item.name} ({item.id}): {transfer_data}."
-        )
-        raise ValueError(f"Failed to unlock item {item.name} ({item.id}).")
-    await db_log(item.id, f"Transfered {item.name} ({item.id}).")
+
+    item.extra.is_transfered_to_new_owner = True
+    await update_auction_item(item)
+
+    await db_log(item.id, f"Transfered {item.name} ({item.id}). Resp: {transfer_data}")
 
 
 async def place_bid(
@@ -315,7 +353,7 @@ async def place_bid(
         raise ValueError(message)
 
     payment: Payment = await create_invoice(
-        wallet_id=auction_room.wallet_id,
+        wallet_id=auction_item.extra.wallet_id,
         amount=data.amount,
         currency=auction_room.currency,
         extra={"tag": "auction_house"},
@@ -384,7 +422,7 @@ async def new_bid_made(payment: Payment) -> bool:
     # race condition between two bids
     if await _must_refund_bid_payment(bid, auction_item):
         await db_log(auction_item.id, f"Refunding. {bid_details}")
-        refunded = await _refund_payment(bid, auction_item.auction_room_id)
+        refunded = await _refund_payment(bid)
         await db_log(auction_item.id, f"Refunded: {refunded}. {bid_details}")
         return False
 
@@ -398,6 +436,10 @@ async def new_bid_made(payment: Payment) -> bool:
     await db_log(
         auction_item.id, f"Bid accepted for '{auction_item.name}' {bid_details}"
     )
+    await ws_notify(auction_item.id, {"status": "new_bid"})
+    await ws_notify(
+        auction_room.id, {"status": "new_bid", "auction_item_id": auction_item.id}
+    )
 
     return True
 
@@ -408,6 +450,15 @@ async def db_log(entry_id: str, data: str) -> bool:
         await create_audit_entry(entry_id, data)
     except Exception as e:
         logger.warning(f"Failed to log to db: {e}")
+        return False
+    return True
+
+
+async def ws_notify(item_id: str, data: dict) -> bool:
+    try:
+        await websocket_updater(item_id, json.dumps(data))
+    except Exception as e:
+        await db_log(item_id, f"Failed to notify websocket: {e}")
         return False
     return True
 
@@ -431,7 +482,7 @@ async def _refund_previous_winner(auction_item: PublicAuctionItem):
             auction_item.id,
             f"Refunding previous winner bid '{top_bid.memo}' ({top_bid.id}).",
         )
-        refunded = await _refund_payment(top_bid, auction_item.auction_room_id)
+        refunded = await _refund_payment(top_bid)
         await db_log(
             auction_item.id,
             f"Refunded: {refunded}. Bid '{top_bid.memo}' ({top_bid.id}).",
@@ -468,9 +519,9 @@ async def _must_refund_bid_payment(bid: Bid, auction_item: PublicAuctionItem) ->
     return False
 
 
-async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
-    auction_room = await get_auction_room_by_id(auction_room_id)
-    if not auction_room:
+async def _refund_payment(bid: Bid) -> bool:
+    auction_item = await get_auction_item_by_id(bid.auction_item_id)
+    if not auction_item:
         await db_log(
             bid.auction_item_id,
             f"No auction room found for bid '{bid.memo}' ({bid.id}).",
@@ -479,17 +530,21 @@ async def _refund_payment(bid: Bid, auction_room_id: str) -> bool:
 
     refunded = False
     if bid.ln_address:
-        refunded = await _refund_payment_to_ln_address(bid, auction_room.wallet_id)
+        refunded = await _refund_payment_to_ln_address(
+            bid, auction_item.extra.wallet_id
+        )
 
     if not refunded:
-        refunded = await _refund_payment_to_user_wallet(bid, auction_room.wallet_id)
+        refunded = await _refund_payment_to_user_wallet(
+            bid, auction_item.extra.wallet_id
+        )
 
     return refunded
 
 
 async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bool:
     try:
-        payment_description = f"Refund for {bid.memo} ({bid.auction_item_id}/{bid.id})."
+        payment_description = f"Refund. Memo: {bid.memo}. Bid: {bid.id}."
         if not bid.ln_address:
             message = f"Missing Lightning Address. {payment_description}."
             await db_log(bid.auction_item_id, message)
@@ -540,7 +595,7 @@ async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> b
         await pay_invoice(
             wallet_id=refund_from_wallet,
             payment_request=refund_payment.bolt11,
-            description=f"Refund for {bid.memo} ({bid.id}).",
+            description=f"Refund. Memo: '{bid.memo}'. Bid: {bid.id}).",
             extra={"tag": "auction_house", "is_refund": True},
         )
         await db_log(
@@ -661,13 +716,13 @@ async def _pay_fee_for_ended_auction(
             wallet_id=to_walet_id,
             amount=amount_sat,
             extra={"tag": "auction_house", "is_fee": True},
-            memo="Room fee Payment."
+            memo="Auction room fee."
             f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
         )
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment.bolt11,
-            description="Room fee Payment."
+            description="Auction room fee."
             f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
             extra={"tag": "auction_house", "is_fee": True},
         )
@@ -706,14 +761,14 @@ async def _pay_owner_for_ended_auction(
             item.extra.is_owner_paid = True
             await update_auction_item(item)
             await db_log(item.id, f"Owner paid for item {item.name} ({item.id}).")
-        else:
-            await db_log(item.id, f"Owner NOT paid for item  {item.name} ({item.id}).")
+            return True
+
+        await db_log(item.id, f"Owner NOT paid for item  {item.name} ({item.id}).")
     except Exception as e:
         await db_log(
             item.id, f"Failed to pay owner for item {item.name} ({item.id}): {e}"
         )
-        return False
-    return True
+    return False
 
 
 async def _pay_owner_to_ln_address(
@@ -764,7 +819,7 @@ async def _pay_owner_to_internal_wallet(
     try:
         await db_log(
             item.id,
-            "Paying owner to internal wallet" f"for item {item.name} ({item.id}).",
+            f"Paying owner to internal wallet for item {item.name} ({item.id}).",
         )
         wallets = await get_wallets(item.user_id)
         if len(wallets) == 0:
@@ -786,8 +841,9 @@ async def _pay_owner_to_internal_wallet(
             item.id,
             "Paid owner to internal wallet" f"for item {item.name} ({item.id}).",
         )
+        return True
     except Exception as e:
         await db_log(
             item.id, f"Failed to pay owner for item {item.name} ({item.id}): {e}"
         )
-        return False
+    return False

@@ -8,7 +8,6 @@ async def m001_auction_rooms(db: Database):
        CREATE TABLE auction_house.auction_rooms (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
-            wallet_id TEXT NOT NULL,
             fee_wallet_id TEXT NOT NULL,
             type TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -32,7 +31,6 @@ async def m001_auction_rooms(db: Database):
             user_id TEXT NOT NULL,
             auction_room_id TEXT NOT NULL,
             active BOOLEAN NOT NULL DEFAULT true,
-            transfer_code TEXT NOT NULL,
 
             name TEXT NOT NULL,
             description TEXT,

@@ -14,7 +14,7 @@ page %}
         color="primary"
         @click="saveAuctionRoom"
         class="float-right"
-        :disable="auctionRoomForm.data.wallet_id == null || auctionRoomForm.data.currency == null"
+        :disable="auctionRoomForm.data.fee_wallet_id == null || auctionRoomForm.data.currency == null"
         >Update Auction Room</q-btn
       >
     </div>
@@ -70,7 +70,7 @@ page %}
               dense
               emit-value
               map-options
-              v-model="auctionRoomForm.data.wallet_id"
+              v-model="auctionRoomForm.data.fee_wallet_id"
               :options="g.user.walletOptions"
               label="Wallet *"
               hint="Wallet where the bids will be paid and refunded from"

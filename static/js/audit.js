@@ -37,7 +37,9 @@ window.app = Vue.createApp({
           }
         ],
         pagination: {
-          rowsPerPage: 10,
+          sortBy: 'created_at',
+          descending: true,
+          rowsPerPage: 20,
           page: 1,
           rowsNumber: 10
         },
