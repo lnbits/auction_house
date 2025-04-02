@@ -151,6 +151,8 @@ class AuctionItemExtra(BaseModel):
     wallet_id: str
     is_fee_paid: bool = False
     is_owner_paid: bool = False
+    is_transfered_to_new_owner: bool = False
+    is_unlocked: bool = False
     owner_ln_address: Optional[str] = None
 
 

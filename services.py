@@ -255,6 +255,9 @@ async def pay_auction_item(item: AuctionItem, top_bid: Bid):
 
 
 async def unlock_auction_item(item: AuctionItem):
+    if item.extra.is_unlocked:
+        await db_log(item.id, f"Item {item.name} ({item.id}) already unlocked.")
+        return None
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         message = f"No auction room found for item {item.name} ({item.id}."
@@ -269,17 +272,19 @@ async def unlock_auction_item(item: AuctionItem):
     unlock_data = await call_webhook_for_auction_item(
         item.id, wh, placeholders={"lock_code": item.extra.lock_code}
     )
-    success = unlock_data.get("success", False)
-    if not success:
-        await db_log(
-            item.id, f"Failed to unlock item {item.name} ({item.id}): {unlock_data}."
-        )
-        raise ValueError(f"Failed to unlock item {item.name} ({item.id}).")
-    return None
+    item.extra.is_unlocked = True
+    await update_auction_item(item)
+    await db_log(item.id, f"Unlocked {item.name} ({item.id}). Resp: {unlock_data}.")
 
 
 async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
     await db_log(item.id, f"Transferring {item.name} ({item.id}).")
+    if item.extra.is_transfered_to_new_owner:
+        await db_log(
+            item.id,
+            f"Item {item.name} ({item.id}) already transfered to new owner.",
+        )
+        return None
     auction_room = await get_auction_room_by_id(item.auction_room_id)
     if not auction_room:
         message = f"No auction room found for item {item.name} ({item.id}."
@@ -296,13 +301,11 @@ async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
         wh,
         placeholders={"lock_code": item.extra.lock_code, "new_owner_id": new_owner_id},
     )
-    success = transfer_data.get("success", False)
-    if not success:
-        await db_log(
-            item.id, f"Failed to unlock item {item.name} ({item.id}): {transfer_data}."
-        )
-        raise ValueError(f"Failed to unlock item {item.name} ({item.id}).")
-    await db_log(item.id, f"Transfered {item.name} ({item.id}).")
+
+    item.extra.is_transfered_to_new_owner = True
+    await update_auction_item(item)
+
+    await db_log(item.id, f"Transfered {item.name} ({item.id}). Resp: {transfer_data}")
 
 
 async def place_bid(
