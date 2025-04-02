@@ -10,7 +10,7 @@ from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.core.services.websockets import websocket_updater
 from lnbits.db import Filters, Page
-from lnbits.helpers import check_callback_url, urlsafe_short_hash
+from lnbits.helpers import check_callback_url, is_valid_email_address, urlsafe_short_hash
 from loguru import logger
 
 from .crud import (
@@ -56,9 +56,12 @@ async def add_auction_item(
         message = f"Ask price must be positive. Got {data.ask_price}."
         await db_log(auction_room.id, message)
         raise ValueError(message)
-    expires_at = datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta()
-    data.name = data.name.strip()
-    # todo: is_valid_email_address
+
+    if data.ln_address and not is_valid_email_address(data.ln_address):
+        message = f"Invalid Lightning Address: {data.ln_address}."
+        await db_log(auction_room.id, message)
+        raise ValueError(message)
+
     extra = AuctionItemExtra(
         transfer_code=data.transfer_code,
         owner_ln_address=data.ln_address,
@@ -66,12 +69,12 @@ async def add_auction_item(
     )
     item = AuctionItem(
         id=urlsafe_short_hash(),
-        name=data.name,
+        name=data.name.strip(),
         description=data.description,
         ask_price=data.ask_price,
         user_id=user_id,
         auction_room_id=auction_room.id,
-        expires_at=expires_at,
+        expires_at=datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta(),
         extra=extra,
     )
 
@@ -95,7 +98,9 @@ async def add_auction_item(
     item.extra.wallet_id = item_wallet.id
 
     await create_auction_item(item)
-    await db_log(item.id, f"Added item {item.name} ({item.id}).")
+    await db_log(
+        item.id, f"Added item {item.name} ({item.id})." f" Wallet id: {item_wallet.id}."
+    )
     return item
 
 
