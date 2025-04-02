@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -7,6 +8,7 @@ from lnbits.core.crud import get_wallets
 from lnbits.core.crud.wallets import create_wallet, delete_wallet_by_id
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services.websockets import websocket_updater
 from lnbits.db import Filters, Page
 from lnbits.helpers import check_callback_url, urlsafe_short_hash
 from loguru import logger
@@ -227,6 +229,7 @@ async def close_auction_item(item: AuctionItem):
         await delete_wallet_by_id(item.extra.wallet_id)
 
     await db_log(item.id, f"Closed auction item {item.name} ({item.id}).")
+    await ws_notify(item.id, {"status": "closed"})
 
 
 async def pay_auction_item(item: AuctionItem, top_bid: Bid):
@@ -420,6 +423,10 @@ async def new_bid_made(payment: Payment) -> bool:
     await db_log(
         auction_item.id, f"Bid accepted for '{auction_item.name}' {bid_details}"
     )
+    await ws_notify(auction_item.id, {"status": "new_bid"})
+    await ws_notify(
+        auction_room.id, {"status": "new_bid", "auction_item_id": auction_item.id}
+    )
 
     return True
 
@@ -430,6 +437,15 @@ async def db_log(entry_id: str, data: str) -> bool:
         await create_audit_entry(entry_id, data)
     except Exception as e:
         logger.warning(f"Failed to log to db: {e}")
+        return False
+    return True
+
+
+async def ws_notify(item_id: str, data: dict) -> bool:
+    try:
+        await websocket_updater(item_id, json.dumps(data))
+    except Exception as e:
+        await db_log(item_id, f"Failed to notify websocket: {e}")
         return False
     return True
 
