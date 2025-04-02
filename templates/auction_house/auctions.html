@@ -141,6 +141,15 @@ from "macros.jinja" import window_vars with context %} {% block page %}
                       target="_blank"
                       class="q-mr-sm"
                     ></q-btn>
+                    <q-btn
+                      icon="visibility"
+                      v-if="auctionRoomForm.isUserRoomOwner"
+                      type="a"
+                      :href="'/auction_house/audit/auctions/' + props.row.id"
+                      target="_blank"
+                      class="q-mr-sm"
+                    >
+                    </q-btn>
                   </q-td>
                   <q-td
                     v-for="col in props.cols"
