@@ -10,7 +10,11 @@ from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.core.services.websockets import websocket_updater
 from lnbits.db import Filters, Page
-from lnbits.helpers import check_callback_url, is_valid_email_address, urlsafe_short_hash
+from lnbits.helpers import (
+    check_callback_url,
+    is_valid_email_address,
+    urlsafe_short_hash,
+)
 from loguru import logger
 
 from .crud import (
@@ -74,7 +78,8 @@ async def add_auction_item(
         ask_price=data.ask_price,
         user_id=user_id,
         auction_room_id=auction_room.id,
-        expires_at=datetime.now(timezone.utc) + auction_room.extra.duration.to_timedelta(),
+        expires_at=datetime.now(timezone.utc)
+        + auction_room.extra.duration.to_timedelta(),
         extra=extra,
     )
 
