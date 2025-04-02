@@ -214,7 +214,7 @@ async def close_auction_item(item: AuctionItem):
         await unlock_auction_item(item)
     else:
         await transfer_auction_item(item, top_bid.user_id)
-        await pay_auction_item(item, top_bid) # todo; transfer will fail a second time
+        await pay_auction_item(item, top_bid)  # todo; transfer will fail a second time
 
     await close_auction(item.id)
 
@@ -515,7 +515,7 @@ async def _refund_payment(bid: Bid) -> bool:
 
 async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bool:
     try:
-        payment_description = f"Refund for {bid.memo} ({bid.auction_item_id}/{bid.id})."
+        payment_description = f"Refund. Memo: {bid.memo}. Bid: {bid.id}."
         if not bid.ln_address:
             message = f"Missing Lightning Address. {payment_description}."
             await db_log(bid.auction_item_id, message)
@@ -566,7 +566,7 @@ async def _refund_payment_to_user_wallet(bid: Bid, refund_from_wallet: str) -> b
         await pay_invoice(
             wallet_id=refund_from_wallet,
             payment_request=refund_payment.bolt11,
-            description=f"Refund for {bid.memo} ({bid.id}).",
+            description=f"Refund. Memo: '{bid.memo}'. Bid: {bid.id}).",
             extra={"tag": "auction_house", "is_refund": True},
         )
         await db_log(
@@ -687,13 +687,13 @@ async def _pay_fee_for_ended_auction(
             wallet_id=to_walet_id,
             amount=amount_sat,
             extra={"tag": "auction_house", "is_fee": True},
-            memo="Room fee Payment."
+            memo="Auction room fee."
             f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
         )
         await pay_invoice(
             wallet_id=from_wallet_id,
             payment_request=payment.bolt11,
-            description="Room fee Payment."
+            description="Auction room fee."
             f" Item: {item.name} ({item.auction_room_id}/{item.id}).",
             extra={"tag": "auction_house", "is_fee": True},
         )
@@ -740,7 +740,6 @@ async def _pay_owner_for_ended_auction(
             item.id, f"Failed to pay owner for item {item.name} ({item.id}): {e}"
         )
     return False
-
 
 
 async def _pay_owner_to_ln_address(
@@ -791,7 +790,7 @@ async def _pay_owner_to_internal_wallet(
     try:
         await db_log(
             item.id,
-            "Paying owner to internal wallet" f"for item {item.name} ({item.id}).",
+            f"Paying owner to internal wallet for item {item.name} ({item.id}).",
         )
         wallets = await get_wallets(item.user_id)
         if len(wallets) == 0:
