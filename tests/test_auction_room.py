@@ -1,18 +1,10 @@
 import pytest
-
-from ..migrations import m001_auction_rooms, m002_bids
-
-from ..crud import create_auction_room
-from ..models import CreateAuctionRoomData
-from .. import db
+from auction_house.crud import create_auction_room
+from auction_house.models import CreateAuctionRoomData
 
 
 @pytest.mark.asyncio
 async def test_create_auction_room():
-
-    await m001_auction_rooms(db)
-    await m002_bids(db)
-
     data = CreateAuctionRoomData(
         fee_wallet_id="123",
         currency="USD",

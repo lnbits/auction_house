@@ -38,6 +38,8 @@ ignore_missing_imports = "True"
 
 [tool.pytest.ini_options]
 log_cli = false
+pythonpath = [".."]
+asyncio_mode = "auto"
 testpaths = [
   "tests"
 ]
