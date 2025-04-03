@@ -1,5 +1,4 @@
 import pytest
-import json
 from auction_house.crud import (
     create_auction_room,
     get_auction_room,
@@ -27,9 +26,9 @@ async def test_create_auction_rooms():
     data = CreateAuctionRoomData(
         fee_wallet_id="w123",
         currency="USD",
-        type = "fixed_price",
-        name = "room two",
-        description = "test 2 description"
+        type="fixed_price",
+        name="room two",
+        description="test 2 description",
     )
 
     room_two = await create_auction_room(user_id=user_id, data=data)

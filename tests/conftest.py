@@ -1,10 +1,12 @@
 import asyncio
 import os
 
-import pytest
+import auction_house.migrations as ext_migrations
 import pytest_asyncio
 from auction_house.crud import db
-from auction_house.migrations import m001_auction_rooms, m002_bids
+from lnbits.core import migrations as core_migrations
+from lnbits.core.db import db as core_db
+from lnbits.core.helpers import run_migration
 
 print("### conftest.py")
 
@@ -19,13 +21,12 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def init_ext():
-    print("### init_ext", db.path)
+    if os.path.isfile(core_db.path):
+        os.remove(core_db.path)
+    async with core_db.connect() as conn:
+        await run_migration(conn, core_migrations, "core")
+
     if os.path.isfile(db.path):
         os.remove(db.path)
-    await m001_auction_rooms(db)
-    await m002_bids(db)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def foo():
-    print("### fooo")
+    async with db.connect() as conn:
+        await run_migration(conn, ext_migrations, "auction_house")
