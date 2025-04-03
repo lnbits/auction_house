@@ -1,17 +1,21 @@
-import pytest
-import pytest_asyncio
 import asyncio
 import os
+
+import pytest
+import pytest_asyncio
 from auction_house.crud import db
 from auction_house.migrations import m001_auction_rooms, m002_bids
 
 print("### conftest.py")
+
+
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
     """Create an event loop for the entire session (instead of per function)."""
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def init_ext():
