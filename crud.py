@@ -97,7 +97,7 @@ async def update_auction_room(
 ) -> Optional[AuctionRoom]:
     auction_room = await get_auction_room(user_id=user_id, auction_room_id=data.id)
     if not auction_room or auction_room.user_id != user_id:
-        return None
+        raise ValueError("Cannot update auction room.")
     if auction_room.type != data.type:
         raise ValueError("Cannot change auction room type.")
 

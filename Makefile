@@ -33,7 +33,7 @@ checkeditorconfig:
 test:
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
-	poetry run pytest
+	poetry run pytest tests
 
 install-pre-commit-hook:
 	@echo "Installing pre-commit hook to git"

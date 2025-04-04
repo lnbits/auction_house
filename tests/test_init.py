@@ -1,7 +1,10 @@
 import pytest
+from auction_house import (  # type: ignore[import]
+    auction_house_ext,
+    auction_house_start,
+    auction_house_stop,
+)
 from fastapi import APIRouter
-
-from .. import auction_house_ext, auction_house_start, auction_house_stop
 
 
 # just import router and add it to a test router
