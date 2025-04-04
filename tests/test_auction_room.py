@@ -122,7 +122,6 @@ async def test_update_auction_room_type_change():
         fee_wallet_id="w123",
         type="auction",
         description="d1",
-        extra={},
         currency="USD",
     )
     auction_room = await create_auction_room(user_id=user_id, data=create_data)

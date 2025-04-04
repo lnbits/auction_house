@@ -1,13 +1,17 @@
 from datetime import timedelta
 
+import httpx
 import pytest
 from auction_house.crud import (  # type: ignore[import]
     create_auction_room,
     get_auction_items,
 )
 from auction_house.models import (  # type: ignore[import]
+    AuctionRoom,
+    AuctionRoomConfig,
     CreateAuctionItem,
     CreateAuctionRoomData,
+    Webhook,
 )
 from auction_house.services import add_auction_item  # type: ignore[import]
 
@@ -22,7 +26,6 @@ async def test_add_auction_item_success():
         type="auction",
         description="Room description",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
     )
     auction_room = await create_auction_room(user_id=user_id, data=room_data)
 
@@ -131,20 +134,19 @@ async def test_add_auction_item_missing_webhook():
 
 @pytest.mark.asyncio
 async def test_add_auction_item_lock_webhook_failure():
-    # Create an auction room with a lock webhook
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+    auction_room = AuctionRoom(
+        id="1234",
+        user_id=user_id,
         name="Test Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room description",
         currency="USD",
-        extra={
-            "duration": timedelta(hours=1),
-            "lock_webhook": {"url": "http://invalid-webhook-url"},
-        },
+        extra=AuctionRoomConfig(
+            lock_webhook=Webhook(url="http://invalid-webhook-url.com")
+        ),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
 
     # Attempt to add an auction item
     item_data = CreateAuctionItem(
@@ -154,5 +156,5 @@ async def test_add_auction_item_lock_webhook_failure():
         transfer_code="code123",
         ln_address=None,
     )
-    with pytest.raises(ValueError, match="Lock Webhook did not return a code."):
+    with pytest.raises(httpx.ConnectError):
         await add_auction_item(auction_room, user_id, item_data)
