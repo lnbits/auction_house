@@ -230,7 +230,7 @@ async def close_auction_item(item: AuctionItem):
 
     await close_auction(item.id)
 
-    if item.extra.is_owner_paid:
+    if item.extra.is_owner_paid or (not top_bid):
         await db_log(
             item.id,
             f"Soft deleted wallet '{item.extra.wallet_id}' "
