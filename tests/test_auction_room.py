@@ -1,11 +1,14 @@
 import pytest
-from auction_house.crud import (
+from auction_house.crud import (  # type: ignore[import]
     create_auction_room,
     get_auction_room,
     update_auction_room,
 )
-from auction_house.models import CreateAuctionRoomData, EditAuctionRoomData
-from auction_house.services import get_user_auction_rooms
+from auction_house.models import (  # type: ignore[import]
+    CreateAuctionRoomData,
+    EditAuctionRoomData,
+)
+from auction_house.services import get_user_auction_rooms  # type: ignore[import]
 
 
 @pytest.mark.asyncio

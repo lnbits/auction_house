@@ -1,9 +1,15 @@
 from datetime import timedelta
 
 import pytest
-from auction_house.crud import create_auction_room, get_auction_items
-from auction_house.models import CreateAuctionItem, CreateAuctionRoomData
-from auction_house.services import add_auction_item
+from auction_house.crud import (  # type: ignore[import]
+    create_auction_room,
+    get_auction_items,
+)
+from auction_house.models import (  # type: ignore[import]
+    CreateAuctionItem,
+    CreateAuctionRoomData,
+)
+from auction_house.services import add_auction_item  # type: ignore[import]
 
 
 @pytest.mark.asyncio

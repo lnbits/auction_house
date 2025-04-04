@@ -1,10 +1,10 @@
 import asyncio
 import os
 
-import auction_house.migrations as ext_migrations
+import auction_house.migrations as ext_migrations  # type: ignore[import]
 import pytest_asyncio
-from auction_house.crud import db
-from lnbits.core import migrations as core_migrations
+from auction_house.crud import db  # type: ignore[import]
+from lnbits.core import migrations as core_migrations  # type: ignore[import]
 from lnbits.core.db import db as core_db
 from lnbits.core.helpers import run_migration
 
