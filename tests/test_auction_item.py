@@ -129,6 +129,7 @@ async def test_add_auction_item_missing_webhook():
 
     # Assertions
     assert auction_item.id is not None
+    assert auction_item.extra.wallet_id is not None
     assert auction_item.extra.lock_code is None
 
 
