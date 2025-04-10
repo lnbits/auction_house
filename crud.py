@@ -101,9 +101,10 @@ async def update_auction_room(
     if auction_room.type != data.type:
         raise ValueError("Cannot change auction room type.")
 
+    auction_room = AuctionRoom(**{**auction_room.dict(), **data.dict()})
     await db.update(
         "auction_house.auction_rooms",
-        AuctionRoom(**{**auction_room.dict(), **data.dict()}),
+        auction_room,
     )
 
     return auction_room
