@@ -106,8 +106,7 @@ async def add_auction_item(
     await db_log(
         item.id, f"Added item {item.name} ({item.id})." f" Wallet id: {item_wallet.id}."
     )
-    public_item = await get_auction_item_details(item, user_id)
-    return AuctionItem(**{**item.dict(), **public_item.dict()})
+    return await get_auction_item_details(item, user_id)
 
 
 async def call_webhook_for_auction_item(
@@ -162,16 +161,15 @@ async def get_auction_item(
     if not item:
         return None
 
-    public_item = await get_auction_item_details(item, user_id)
-    return AuctionItem(**{**item.dict(), **public_item.dict()})
+    return await get_auction_item_details(item, user_id)
 
 
 async def get_auction_item_details(
-    item: PublicAuctionItem,
+    item: AuctionItem,
     user_id: Optional[str] = None,
     auction_room: Optional[AuctionRoom] = None,
     bidded_items_ids: Optional[list[str]] = None,
-) -> PublicAuctionItem:
+) -> AuctionItem:
     if not auction_room:
         auction_room = await get_auction_room_by_id(item.auction_room_id)
 
@@ -185,6 +183,7 @@ async def get_auction_item_details(
         bidded_items_ids = await get_user_bidded_items_ids(user_id)
     if item.id in (bidded_items_ids or []):
         item.user_is_participant = True
+    item.user_is_owner = item.user_id == user_id
 
     item.time_left_seconds = max(0, int(item.time_left.total_seconds()))
 
