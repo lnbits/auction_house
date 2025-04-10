@@ -281,7 +281,7 @@ async def api_get_user_bids_paginated(
         include_unpaid=include_unpaid,
         filters=filters,
     )
-    return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)
+    return Page(data=[bid.to_public(user_id) for bid in page.data], total=page.total)
 
 
 ############################# AUDIT #############################
