@@ -106,7 +106,8 @@ async def add_auction_item(
     await db_log(
         item.id, f"Added item {item.name} ({item.id})." f" Wallet id: {item_wallet.id}."
     )
-    return item
+    public_item = await get_auction_item_details(item, user_id)
+    return AuctionItem(**{**item.dict(), **public_item.dict()})
 
 
 async def call_webhook_for_auction_item(
