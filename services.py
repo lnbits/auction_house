@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -47,6 +48,8 @@ from .models import (
     PublicAuctionItem,
     Webhook,
 )
+
+bid_lock = asyncio.Lock()
 
 
 async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
@@ -383,11 +386,19 @@ async def place_bid(
     )
 
 
-async def new_bid_made(payment: Payment) -> bool:
+async def queue_place_bid(
+    user_id: str, auction_item_id: str, data: BidRequest
+) -> BidResponse:
+    async with bid_lock:
+        return await place_bid(user_id, auction_item_id, data)
+
+
+async def bid_paid(payment: Payment) -> bool:
     bid = await get_bid_by_payment_hash(payment.payment_hash)
     if not bid:
         logger.warning(f"Payment received for unknown bid: {payment.payment_hash}")
         return False
+
     bid_details = (
         f"Bid {bid.memo} ({bid.id}). "
         f"Amount: {bid.amount_sat} sat. {bid.amount} {bid.currency}. "
@@ -426,8 +437,8 @@ async def new_bid_made(payment: Payment) -> bool:
         await db_log(auction_item.id, f"Refunded: {refunded}. {bid_details}")
         return False
 
-    await _refund_previous_winner(auction_item)
     if auction_room.is_auction:
+        await _refund_previous_winner(auction_item)
         await _accept_bid(bid)
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
@@ -442,6 +453,11 @@ async def new_bid_made(payment: Payment) -> bool:
     )
 
     return True
+
+
+async def queue_bid_paid(payment: Payment) -> bool:
+    async with bid_lock:
+        return await bid_paid(payment)
 
 
 async def db_log(entry_id: str, data: str) -> bool:

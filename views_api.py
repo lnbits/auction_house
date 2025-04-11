@@ -47,7 +47,7 @@ from .services import (
     get_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
-    place_bid,
+    queue_place_bid,
 )
 
 auction_house_api_router: APIRouter = APIRouter()
@@ -247,7 +247,9 @@ async def api_place_bid(
     user_id: str = Depends(check_user_id),
 ) -> BidResponse:
     data.validate_data()
-    return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
+    return await queue_place_bid(
+        user_id=user_id, auction_item_id=auction_item_id, data=data
+    )
 
 
 @auction_house_api_router.get(
