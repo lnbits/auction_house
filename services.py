@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import bolt11
 import httpx
-from lnbits.core.crud import get_wallets
+from lnbits.core.crud import get_wallet, get_wallets
 from lnbits.core.crud.wallets import create_wallet, delete_wallet_by_id
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
@@ -21,6 +21,7 @@ from loguru import logger
 from .crud import (
     close_auction,
     create_auction_item,
+    create_auction_room,
     create_audit_entry,
     create_bid,
     get_active_auction_items,
@@ -41,10 +42,12 @@ from .models import (
     AuctionItemExtra,
     AuctionItemFilters,
     AuctionRoom,
+    AuctionRoomConfig,
     Bid,
     BidRequest,
     BidResponse,
     CreateAuctionItem,
+    CreateAuctionRoomData,
     PublicAuctionItem,
     Webhook,
 )
@@ -54,6 +57,25 @@ bid_lock = asyncio.Lock()
 
 async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
     return await get_auction_rooms(user_id)
+
+
+async def create_user_auction_room(
+    user_id: str, data: CreateAuctionRoomData
+) -> AuctionRoom:
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
+        extra=AuctionRoomConfig(),
+        **data.dict(),
+    )
+    wallet = await get_wallet(auction_room.fee_wallet_id)
+    if not wallet:
+        raise ValueError("Wallet not found.")
+    if wallet.user != user_id:
+        raise ValueError("Wallet does not belong to user.")
+    if wallet.deleted:
+        raise ValueError("Wallet is not active.")
+    return await create_auction_room(auction_room)
 
 
 async def add_auction_item(

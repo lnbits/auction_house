@@ -13,7 +13,6 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 
 from .crud import (
-    create_auction_room,
     delete_auction_room,
     get_auction_item_by_id,
     get_auction_item_by_name,
@@ -44,6 +43,7 @@ from .models import (
 from .services import (
     add_auction_item,
     close_auction_item,
+    create_user_auction_room,
     db_log,
     get_auction_item,
     get_auction_room_items_paginated,
@@ -89,7 +89,7 @@ async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
     data.validate_data()
-    return await create_auction_room(user_id=user.id, data=data)
+    return await create_user_auction_room(user_id=user.id, data=data)
 
 
 @auction_house_api_router.put("/api/v1/auction_room")
