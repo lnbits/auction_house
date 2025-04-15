@@ -44,6 +44,7 @@ from .models import (
 from .services import (
     add_auction_item,
     close_auction_item,
+    db_log,
     get_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
@@ -201,10 +202,11 @@ async def api_get_auction_item(
     "The auction must be expired or have zero bids to be able to close it."
     "Only the owner of the item or of the auction room can close the auction.",
     response_description="An auction item or 404 if not found",
-    response_model=PublicAuctionItem,
+    response_model=SimpleStatus,
 )
 async def api_close_auction_item(
     auction_item_id: str,
+    force_close: Optional[bool] = False,
     user_id: Optional[str] = Depends(optional_user_id),
 ) -> SimpleStatus:
 
@@ -222,7 +224,12 @@ async def api_close_auction_item(
         )
 
     bids = await get_bids_paginated(auction_item_id=auction_item_id)
-    if (
+    if force_close:
+        await db_log(
+            auction_item.id,
+            f"Force close auction item {auction_item.name} ({auction_item.id}).",
+        )
+    elif (
         auction_item.active
         and bids.total > 0
         and auction_item.time_left.total_seconds() > 0
