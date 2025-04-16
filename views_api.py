@@ -13,7 +13,6 @@ from lnbits.decorators import (
 from lnbits.helpers import generate_filter_params_openapi
 
 from .crud import (
-    create_auction_room,
     delete_auction_room,
     get_auction_item_by_id,
     get_auction_item_by_name,
@@ -44,10 +43,12 @@ from .models import (
 from .services import (
     add_auction_item,
     close_auction_item,
+    create_user_auction_room,
+    db_log,
     get_auction_item,
     get_auction_room_items_paginated,
     get_user_auction_rooms,
-    place_bid,
+    queue_place_bid,
 )
 
 auction_house_api_router: APIRouter = APIRouter()
@@ -88,7 +89,7 @@ async def api_create_auction_room(
     data: CreateAuctionRoomData, user: User = Depends(check_user_exists)
 ):
     data.validate_data()
-    return await create_auction_room(user_id=user.id, data=data)
+    return await create_user_auction_room(user_id=user.id, data=data)
 
 
 @auction_house_api_router.put("/api/v1/auction_room")
@@ -108,7 +109,7 @@ async def api_auction_room_delete(
     deleted = await delete_auction_room(
         user_id=user.id, auction_room_id=auction_room_id
     )
-    return SimpleStatus(success=deleted, message="Deleted")
+    return SimpleStatus(success=deleted, message=f"Deleted: {deleted}")
 
 
 ############################# AUCTION ITEMS #############################
@@ -201,11 +202,12 @@ async def api_get_auction_item(
     "The auction must be expired or have zero bids to be able to close it."
     "Only the owner of the item or of the auction room can close the auction.",
     response_description="An auction item or 404 if not found",
-    response_model=PublicAuctionItem,
+    response_model=SimpleStatus,
 )
 async def api_close_auction_item(
     auction_item_id: str,
-    user_id: Optional[str] = Depends(optional_user_id),
+    force_close: Optional[bool] = False,
+    user_id: str = Depends(check_user_id),
 ) -> SimpleStatus:
 
     auction_item = await get_auction_item(auction_item_id, user_id)
@@ -222,7 +224,12 @@ async def api_close_auction_item(
         )
 
     bids = await get_bids_paginated(auction_item_id=auction_item_id)
-    if (
+    if force_close:
+        await db_log(
+            auction_item.id,
+            f"Force close auction item {auction_item.name} ({auction_item.id}).",
+        )
+    elif (
         auction_item.active
         and bids.total > 0
         and auction_item.time_left.total_seconds() > 0
@@ -247,7 +254,9 @@ async def api_place_bid(
     user_id: str = Depends(check_user_id),
 ) -> BidResponse:
     data.validate_data()
-    return await place_bid(user_id=user_id, auction_item_id=auction_item_id, data=data)
+    return await queue_place_bid(
+        user_id=user_id, auction_item_id=auction_item_id, data=data
+    )
 
 
 @auction_house_api_router.get(
@@ -281,7 +290,7 @@ async def api_get_user_bids_paginated(
         include_unpaid=include_unpaid,
         filters=filters,
     )
-    return Page(data=[item.to_public(user_id) for item in page.data], total=page.total)
+    return Page(data=[bid.to_public(user_id) for bid in page.data], total=page.total)
 
 
 ############################# AUDIT #############################

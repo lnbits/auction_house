@@ -1,10 +1,11 @@
+import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 import bolt11
 import httpx
-from lnbits.core.crud import get_wallets
+from lnbits.core.crud import get_wallet, get_wallets
 from lnbits.core.crud.wallets import create_wallet, delete_wallet_by_id
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
@@ -20,6 +21,7 @@ from loguru import logger
 from .crud import (
     close_auction,
     create_auction_item,
+    create_auction_room,
     create_audit_entry,
     create_bid,
     get_active_auction_items,
@@ -40,17 +42,40 @@ from .models import (
     AuctionItemExtra,
     AuctionItemFilters,
     AuctionRoom,
+    AuctionRoomConfig,
     Bid,
     BidRequest,
     BidResponse,
     CreateAuctionItem,
+    CreateAuctionRoomData,
     PublicAuctionItem,
     Webhook,
 )
 
+bid_lock = asyncio.Lock()
+
 
 async def get_user_auction_rooms(user_id: str) -> list[AuctionRoom]:
     return await get_auction_rooms(user_id)
+
+
+async def create_user_auction_room(
+    user_id: str, data: CreateAuctionRoomData
+) -> AuctionRoom:
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
+        extra=AuctionRoomConfig(),
+        **data.dict(),
+    )
+    wallet = await get_wallet(auction_room.fee_wallet_id)
+    if not wallet:
+        raise ValueError("Wallet not found.")
+    if wallet.user != user_id:
+        raise ValueError("Wallet does not belong to user.")
+    if wallet.deleted:
+        raise ValueError("Wallet is not active.")
+    return await create_auction_room(auction_room)
 
 
 async def add_auction_item(
@@ -106,7 +131,7 @@ async def add_auction_item(
     await db_log(
         item.id, f"Added item {item.name} ({item.id})." f" Wallet id: {item_wallet.id}."
     )
-    return item
+    return await get_auction_item_details(item, user_id)
 
 
 async def call_webhook_for_auction_item(
@@ -161,16 +186,15 @@ async def get_auction_item(
     if not item:
         return None
 
-    public_item = await get_auction_item_details(item, user_id)
-    return AuctionItem(**{**item.dict(), **public_item.dict()})
+    return await get_auction_item_details(item, user_id)
 
 
 async def get_auction_item_details(
-    item: PublicAuctionItem,
+    item: AuctionItem,
     user_id: Optional[str] = None,
     auction_room: Optional[AuctionRoom] = None,
     bidded_items_ids: Optional[list[str]] = None,
-) -> PublicAuctionItem:
+) -> AuctionItem:
     if not auction_room:
         auction_room = await get_auction_room_by_id(item.auction_room_id)
 
@@ -184,6 +208,7 @@ async def get_auction_item_details(
         bidded_items_ids = await get_user_bidded_items_ids(user_id)
     if item.id in (bidded_items_ids or []):
         item.user_is_participant = True
+    item.user_is_owner = item.user_id == user_id
 
     item.time_left_seconds = max(0, int(item.time_left.total_seconds()))
 
@@ -383,11 +408,19 @@ async def place_bid(
     )
 
 
-async def new_bid_made(payment: Payment) -> bool:
+async def queue_place_bid(
+    user_id: str, auction_item_id: str, data: BidRequest
+) -> BidResponse:
+    async with bid_lock:
+        return await place_bid(user_id, auction_item_id, data)
+
+
+async def bid_paid(payment: Payment) -> bool:
     bid = await get_bid_by_payment_hash(payment.payment_hash)
     if not bid:
         logger.warning(f"Payment received for unknown bid: {payment.payment_hash}")
         return False
+
     bid_details = (
         f"Bid {bid.memo} ({bid.id}). "
         f"Amount: {bid.amount_sat} sat. {bid.amount} {bid.currency}. "
@@ -426,8 +459,8 @@ async def new_bid_made(payment: Payment) -> bool:
         await db_log(auction_item.id, f"Refunded: {refunded}. {bid_details}")
         return False
 
-    await _refund_previous_winner(auction_item)
     if auction_room.is_auction:
+        await _refund_previous_winner(auction_item)
         await _accept_bid(bid)
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
@@ -442,6 +475,11 @@ async def new_bid_made(payment: Payment) -> bool:
     )
 
     return True
+
+
+async def queue_bid_paid(payment: Payment) -> bool:
+    async with bid_lock:
+        return await bid_paid(payment)
 
 
 async def db_log(entry_id: str, data: str) -> bool:

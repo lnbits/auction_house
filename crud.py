@@ -1,18 +1,15 @@
 from typing import Optional
 
 from lnbits.db import Database, Filters, Page
-from lnbits.helpers import urlsafe_short_hash
 
 from .models import (
     AuctionItem,
     AuctionItemFilters,
     AuctionRoom,
-    AuctionRoomConfig,
     AuditEntry,
     AuditEntryFilters,
     Bid,
     BidFilters,
-    CreateAuctionRoomData,
     EditAuctionRoomData,
     PublicAuctionItem,
     PublicAuctionRoom,
@@ -81,13 +78,7 @@ async def delete_auction_room(user_id: str, auction_room_id: str) -> bool:
     return True
 
 
-async def create_auction_room(user_id: str, data: CreateAuctionRoomData) -> AuctionRoom:
-    auction_room = AuctionRoom(
-        id=urlsafe_short_hash(),
-        user_id=user_id,
-        extra=AuctionRoomConfig(),
-        **data.dict(),
-    )
+async def create_auction_room(auction_room: AuctionRoom) -> AuctionRoom:
     await db.insert("auction_house.auction_rooms", auction_room)
     return auction_room
 
@@ -101,9 +92,10 @@ async def update_auction_room(
     if auction_room.type != data.type:
         raise ValueError("Cannot change auction room type.")
 
+    auction_room = AuctionRoom(**{**auction_room.dict(), **data.dict()})
     await db.update(
         "auction_house.auction_rooms",
-        AuctionRoom(**{**auction_room.dict(), **data.dict()}),
+        auction_room,
     )
 
     return auction_room
