@@ -5,36 +5,45 @@ from auction_house.crud import (  # type: ignore[import]
     update_auction_room,
 )
 from auction_house.models import (  # type: ignore[import]
-    CreateAuctionRoomData,
+    AuctionRoom,
+    AuctionRoomConfig,
     EditAuctionRoomData,
 )
 from auction_house.services import get_user_auction_rooms  # type: ignore[import]
+from lnbits.helpers import urlsafe_short_hash
 
 
 @pytest.mark.asyncio
 async def test_create_auction_rooms():
     user_id = "9e95a704fbc047d79edff94a1cdda70c"
-    data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
+        name="room one",
         fee_wallet_id="w123",
         currency="USD",
-        name="room one",
         type="auction",
         description="test 1 description",
+        extra=AuctionRoomConfig(),
     )
-    room_one = await create_auction_room(user_id=user_id, data=data)
+    room_one = await create_auction_room(auction_room)
     assert room_one.id is not None
     assert room_one.user_id == user_id
     assert room_one.fee_wallet_id == "w123"
 
-    data = CreateAuctionRoomData(
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         fee_wallet_id="w123",
         currency="USD",
         type="fixed_price",
         name="room two",
         description="test 2 description",
+        extra=AuctionRoomConfig(),
     )
 
-    room_two = await create_auction_room(user_id=user_id, data=data)
+    room_two = await create_auction_room(auction_room)
     assert room_two.id is not None
     assert room_two.user_id == user_id
     assert room_two.fee_wallet_id == "w123"
@@ -46,14 +55,17 @@ async def test_create_auction_rooms():
 
 @pytest.mark.asyncio
 async def test_update_auction_room():
-    data = CreateAuctionRoomData(
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id="123",
         fee_wallet_id="w123",
         currency="USD",
         name="test 1",
         type="auction",
         description="test 1 description",
+        extra=AuctionRoomConfig(),
     )
-    room = await create_auction_room(user_id="123", data=data)
+    room = await create_auction_room(auction_room)
     await update_auction_room(
         user_id="123",
         data=EditAuctionRoomData(
@@ -90,15 +102,17 @@ async def test_update_auction_room_not_found():
 @pytest.mark.asyncio
 async def test_update_auction_room_unauthorized():
     # Create an auction room with a different user
-    create_data = CreateAuctionRoomData(
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id="123",
         name="Old Name",
         fee_wallet_id="w123",
         type="auction",
         description="d1",
-        extra={},
         currency="USD",
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id="user456", data=create_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Attempt to update the auction room with an unauthorized user
     edit_data = EditAuctionRoomData(
@@ -117,14 +131,18 @@ async def test_update_auction_room_unauthorized():
 async def test_update_auction_room_type_change():
     # Create an auction room
     user_id = "user123"
-    create_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Old Name",
         fee_wallet_id="w123",
         type="auction",
         description="d1",
         currency="USD",
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=create_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Attempt to change the type of the auction room
     edit_data = EditAuctionRoomData(

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -14,7 +14,6 @@ from auction_house.models import (  # type: ignore[import]
     AuctionRoom,
     AuctionRoomConfig,
     CreateAuctionItem,
-    CreateAuctionRoomData,
     Webhook,
 )
 from auction_house.services import (  # type: ignore[import]
@@ -22,23 +21,25 @@ from auction_house.services import (  # type: ignore[import]
     get_auction_room_items_paginated,
 )
 from lnbits.db import Filter, Filters
-from lnbits.helpers import (
-    urlsafe_short_hash,
-)
+from lnbits.helpers import urlsafe_short_hash
 
 
 @pytest.mark.asyncio
 async def test_add_auction_item_success():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Test Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room description",
         currency="USD",
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Add an auction item
     item_data = CreateAuctionItem(
@@ -66,15 +67,17 @@ async def test_add_auction_item_success():
 async def test_add_auction_item_negative_price():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Test Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room description",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Attempt to add an item with a negative price
     item_data = CreateAuctionItem(
@@ -92,15 +95,18 @@ async def test_add_auction_item_negative_price():
 async def test_add_auction_item_invalid_ln_address():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Test Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room description",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Attempt to add an item with an invalid Lightning Address
     item_data = CreateAuctionItem(
@@ -118,15 +124,18 @@ async def test_add_auction_item_invalid_ln_address():
 async def test_add_auction_item_missing_webhook():
     # Create an auction room without a lock webhook
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Test Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room description",
         currency="USD",
-        extra={"duration": timedelta(hours=1), "lock_webhook": {"url": None}},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Add an auction item
     item_data = CreateAuctionItem(
@@ -176,15 +185,17 @@ async def test_add_auction_item_lock_webhook_failure():
 async def test_get_auction_room_items_paginated_no_items():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Empty Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room with no items",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Fetch paginated items
     page = await get_auction_room_items_paginated(auction_room=auction_room)
@@ -198,15 +209,18 @@ async def test_get_auction_room_items_paginated_no_items():
 async def test_get_auction_room_items_paginated_one_item():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Single Item Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room with one item",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Add one auction item
     item_data = CreateAuctionItem(
@@ -243,15 +257,18 @@ async def test_get_auction_room_items_paginated_one_item():
 async def test_get_auction_room_items_paginated_multiple_items():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Multi Item Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room with multiple items",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Add multiple auction items
     for i in range(3):
@@ -291,15 +308,18 @@ async def test_get_auction_room_items_paginated_multiple_items():
 async def test_get_auction_room_items_paginated_with_filters():
     # Create an auction room
     user_id = "user123"
-    room_data = CreateAuctionRoomData(
+
+    auction_room = AuctionRoom(
+        id=urlsafe_short_hash(),
+        user_id=user_id,
         name="Filtered Room",
         fee_wallet_id="w123",
         type="auction",
         description="Room with filtered items",
         currency="USD",
-        extra={"duration": timedelta(hours=1)},
+        extra=AuctionRoomConfig(),
     )
-    auction_room = await create_auction_room(user_id=user_id, data=room_data)
+    auction_room = await create_auction_room(auction_room)
 
     # Add multiple auction items
     for i in range(5):
