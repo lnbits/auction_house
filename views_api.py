@@ -109,7 +109,7 @@ async def api_auction_room_delete(
     deleted = await delete_auction_room(
         user_id=user.id, auction_room_id=auction_room_id
     )
-    return SimpleStatus(success=deleted, message="Deleted")
+    return SimpleStatus(success=deleted, message=f"Deleted: {deleted}")
 
 
 ############################# AUCTION ITEMS #############################
@@ -207,7 +207,7 @@ async def api_get_auction_item(
 async def api_close_auction_item(
     auction_item_id: str,
     force_close: Optional[bool] = False,
-    user_id: Optional[str] = Depends(optional_user_id),
+    user_id: str = Depends(check_user_id),
 ) -> SimpleStatus:
 
     auction_item = await get_auction_item(auction_item_id, user_id)
