@@ -1,7 +1,7 @@
 {
   "name": "Auction House",
-  "short_description": "Auction digital goods and services for Bitcoin.",
-  "description": "Auction digital goods and services for Bitcoin. Create auctions and let the market decide the price.",
+  "short_description": "Auction digital goods and services for Bitcoin",
+  "description": "Auction digital goods and services for Bitcoin. Create auctions and let the market decide the price",
   "version": "1.0.0",
   "tile": "/auction_house/static/image/auction_house.png",
   "min_lnbits_version": "1.0.0",
