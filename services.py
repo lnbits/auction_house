@@ -464,13 +464,17 @@ async def bid_paid(payment: Payment) -> bool:
     if auction_room.is_auction:
         await _refund_previous_winner(auction_item)
         await _accept_bid(bid)
+        await db_log(
+            auction_item.id, f"Bid accepted for '{auction_item.name}' {bid_details}"
+        )
     elif auction_room.is_fixed_price:
         await _accept_buy(bid)
         await close_auction_item(auction_item)
+        await db_log(
+            auction_item.id, f"Sell accepted for '{auction_item.name}' {bid_details}"
+        )
 
-    await db_log(
-        auction_item.id, f"Bid accepted for '{auction_item.name}' {bid_details}"
-    )
+
     await ws_notify(auction_item.id, {"status": "new_bid"})
     await ws_notify(
         auction_room.id, {"status": "new_bid", "auction_item_id": auction_item.id}
