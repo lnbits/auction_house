@@ -8,7 +8,7 @@ import httpx
 from lnbits.core.crud import get_wallet, get_wallets
 from lnbits.core.crud.wallets import create_wallet, delete_wallet_by_id
 from lnbits.core.models import Payment
-from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services import create_invoice, fee_reserve_total, pay_invoice
 from lnbits.core.services.websockets import websocket_updater
 from lnbits.db import Filters, Page
 from lnbits.helpers import (
@@ -283,6 +283,8 @@ async def pay_auction_item(item: AuctionItem, top_bid: Bid):
     )
     await db_log(item.id, f"Fee paid: {is_fee_paid}. Item {item.name} ({item.id}).")
 
+    # cover routing fees
+    owner_amount_sat -= fee_reserve_total(owner_amount_sat * 1000) // 1000
     is_owner_paid = await _pay_owner_for_ended_auction(
         item, item.extra.wallet_id, owner_amount_sat
     )
@@ -588,8 +590,11 @@ async def _refund_payment_to_ln_address(bid: Bid, refund_from_wallet: str) -> bo
             await db_log(bid.auction_item_id, message)
             raise ValueError(message)
 
+        refund_amount = bid.amount_sat - (
+            fee_reserve_total(bid.amount_sat * 1000) // 1000
+        )
         payment_request = await _ln_address_payment_request(
-            bid.auction_item_id, bid.ln_address, bid.amount_sat, payment_description
+            bid.auction_item_id, bid.ln_address, refund_amount, payment_description
         )
         await pay_invoice(
             wallet_id=refund_from_wallet,
