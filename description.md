@@ -1,1 +1,1 @@
-Aucction and fix price salles for digital assets.
+Aucction and fix price sales for digital assets.
