@@ -78,6 +78,7 @@ async def test_update_auction_room():
         ),
     )
     updated_room = await get_auction_room(user_id="123", auction_room_id=room.id)
+    assert updated_room is not None
     assert updated_room.name == "test 1 updated"
     assert updated_room.description == "test 1 description updated"
     assert updated_room.currency == "EUR"
@@ -92,7 +93,7 @@ async def test_update_auction_room_not_found():
         name="New Name",
         type="auction",
         description="d1",
-        extra={},
+        extra=AuctionRoomConfig(),
         currency="USD",
     )
     with pytest.raises(ValueError, match="Cannot update auction room."):
@@ -120,7 +121,7 @@ async def test_update_auction_room_unauthorized():
         name="New Name",
         type="auction",
         description="d1",
-        extra={},
+        extra=AuctionRoomConfig(),
         currency="USD",
     )
     with pytest.raises(ValueError, match="Cannot update auction room."):
@@ -150,7 +151,7 @@ async def test_update_auction_room_type_change():
         name="New Name",
         type="fixed_price",
         description="d1",
-        extra={},
+        extra=AuctionRoomConfig(),
         currency="USD",
     )
     with pytest.raises(ValueError, match="Cannot change auction room type."):

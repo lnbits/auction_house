@@ -24,7 +24,7 @@ def auction_house_renderer():
 @auction_house_generic_router.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return auction_house_renderer().TemplateResponse(
-        "auction_house/index.html", {"request": request, "user": user.json()}
+        "auction_house/index.html", {"request": request, "user": user.model_dump_json()}
     )
 
 
@@ -43,8 +43,8 @@ async def auction_room_details(
         "auction_house/auction_room.html",
         {
             "request": request,
-            "auction_room": auction_room.json(),
-            "user": user.json(),
+            "auction_room": auction_room.model_dump_json(),
+            "user": user.model_dump_json(),
         },
     )
 
@@ -60,7 +60,9 @@ async def auctions_list(
     auction_room = await get_auction_room_by_id(auction_room_id)
     if not auction_room:
         raise HTTPException(HTTPStatus.NOT_FOUND, "Auction Room does not exist.")
-    public_auction_room = PublicAuctionRoom(**auction_room.dict()).json()
+    public_auction_room = PublicAuctionRoom(
+        **auction_room.model_dump()
+    ).model_dump_json()
     return auction_house_renderer().TemplateResponse(
         "auction_house/auctions.html",
         {
@@ -95,7 +97,9 @@ async def bids_list(
             "is_user_room_owner": user_id == auction_room.user_id,
             "is_user_item_owner": user_id == auction_item.user_id,
             "is_auction_type": auction_room.type == "auction",
-            "auction_item": PublicAuctionItem(**auction_item.dict()).json(),
+            "auction_item": PublicAuctionItem(
+                **auction_item.model_dump()
+            ).model_dump_json(),
         },
     )
 

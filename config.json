@@ -4,7 +4,7 @@
   "description": "Auction digital goods and services for Bitcoin. Create auctions and let the market decide the price",
   "version": "1.0.0",
   "tile": "/auction_house/static/image/auction_house.png",
-  "min_lnbits_version": "1.0.0",
+  "min_lnbits_version": "1.7.0",
   "contributors": [
     {
       "name": "Vlad STAN",

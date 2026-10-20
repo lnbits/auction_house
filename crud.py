@@ -92,7 +92,7 @@ async def update_auction_room(
     if auction_room.type != data.type:
         raise ValueError("Cannot change auction room type.")
 
-    auction_room = AuctionRoom(**{**auction_room.dict(), **data.dict()})
+    auction_room = AuctionRoom(**{**auction_room.model_dump(), **data.model_dump()})
     await db.update(
         "auction_house.auction_rooms",
         auction_room,
@@ -238,7 +238,7 @@ async def get_bid_by_payment_hash(payment_hash: str) -> Optional[Bid]:
 
 async def create_bid(data: Bid) -> PublicBid:
     await db.insert("auction_house.bids", data)
-    return PublicBid(**data.dict())
+    return PublicBid(**data.model_dump())
 
 
 async def update_bid(data: Bid) -> Bid:
