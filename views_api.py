@@ -81,7 +81,7 @@ async def api_get_auction_room(
     if user_id == auction_room.user_id:
         return auction_room
 
-    return PublicAuctionRoom(**auction_room.dict())
+    return PublicAuctionRoom(**auction_room.model_dump())
 
 
 @auction_house_api_router.post("/api/v1/auction_room", status_code=HTTPStatus.CREATED)

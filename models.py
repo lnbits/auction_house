@@ -83,7 +83,7 @@ class PublicAuctionRoom(BaseModel):
     description: str
     currency: str
     type: str = "auction"  # [auction, fixed_price]
-    duration_seconds: int = Field(default=0, no_database=True)
+    duration_seconds: int = Field(default=0, json_schema_extra={"no_database": True})
 
     min_bid_up_percentage: float = 5
     room_percentage: float = 10
@@ -129,14 +129,18 @@ class PublicAuctionItem(BaseModel):
     current_price: float = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime
-    current_price_sat: float = Field(default=0, no_database=True)
-    bid_count: int = Field(default=0, no_database=True)
-    currency: str = Field(default="sat", no_database=True)
-    next_min_bid: float = Field(default=0, no_database=True)
-    time_left_seconds: int = Field(default=0, no_database=True)
-    user_is_owner: bool = Field(default=False, no_database=True)
-    user_is_participant: bool = Field(default=False, no_database=True)
-    user_is_top_bidder: bool = Field(default=False, no_database=True)
+    current_price_sat: float = Field(default=0, json_schema_extra={"no_database": True})
+    bid_count: int = Field(default=0, json_schema_extra={"no_database": True})
+    currency: str = Field(default="sat", json_schema_extra={"no_database": True})
+    next_min_bid: float = Field(default=0, json_schema_extra={"no_database": True})
+    time_left_seconds: int = Field(default=0, json_schema_extra={"no_database": True})
+    user_is_owner: bool = Field(default=False, json_schema_extra={"no_database": True})
+    user_is_participant: bool = Field(
+        default=False, json_schema_extra={"no_database": True}
+    )
+    user_is_top_bidder: bool = Field(
+        default=False, json_schema_extra={"no_database": True}
+    )
 
     @property
     def time_left(self) -> timedelta:
@@ -163,7 +167,7 @@ class AuctionItem(PublicAuctionItem):
     def to_public(self, user_id: Optional[str] = None) -> PublicAuctionItem:
         if self.user_id == user_id:
             self.user_is_owner = True
-        return PublicAuctionItem(**self.dict())
+        return PublicAuctionItem(**self.model_dump())
 
 
 class AuctionItemFilters(FilterModel):
@@ -177,11 +181,11 @@ class AuctionItemFilters(FilterModel):
         "current_price",
     ]
 
-    name: str | None
-    ask_price: float | None
-    current_price: float | None
-    created_at: datetime | None
-    expires_at: datetime | None
+    name: str | None = None
+    ask_price: float | None = None
+    current_price: float | None = None
+    created_at: datetime | None = None
+    expires_at: datetime | None = None
 
 
 class BidRequest(BaseModel):
@@ -214,7 +218,7 @@ class PublicBid(BaseModel):
     currency: str
     higher_bid_made: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    user_is_owner: bool = Field(default=False, no_database=True)
+    user_is_owner: bool = Field(default=False, json_schema_extra={"no_database": True})
 
 
 class Bid(PublicBid):
@@ -225,7 +229,7 @@ class Bid(PublicBid):
     def to_public(self, user_id: Optional[str] = None) -> PublicBid:
         if self.user_id == user_id:
             self.user_is_owner = True
-        return PublicBid(**self.dict())
+        return PublicBid(**self.model_dump())
 
 
 class BidFilters(FilterModel):
@@ -238,10 +242,10 @@ class BidFilters(FilterModel):
         "amount_sat",
     ]
 
-    memo: str | None
-    created_at: datetime | None
-    amount: float | None
-    amount_sat: float | None
+    memo: str | None = None
+    created_at: datetime | None = None
+    amount: float | None = None
+    amount_sat: float | None = None
 
 
 class PublicAuditEntry(BaseModel):
@@ -259,6 +263,6 @@ class AuditEntryFilters(FilterModel):
 
     __sort_fields__ = ["entry_id", "created_at"]
 
-    entry_id: str | None
-    data: str | None
-    created_at: datetime | None
+    entry_id: str | None = None
+    data: str | None = None
+    created_at: datetime | None = None

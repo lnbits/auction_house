@@ -66,7 +66,7 @@ async def create_user_auction_room(
         id=urlsafe_short_hash(),
         user_id=user_id,
         extra=AuctionRoomConfig(),
-        **data.dict(),
+        **data.model_dump(),
     )
     wallet = await get_wallet(auction_room.fee_wallet_id)
     if not wallet:
