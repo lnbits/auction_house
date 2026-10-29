@@ -1,25 +1,32 @@
-[tool.poetry]
+[project]
 name = "auction_house"
-version = "0.0.0"
+version = "1.1.0"
+requires-python = ">=3.10,<3.14"
 description = "Auction digital goods for sats."
-authors = ["motorina0"]
+authors = [{ name = "motorina0" }]
+dependencies = ["lnbits>=1.7.0rc1"]
+
+[dependency-groups]
+dev = [
+    "black>=24.3.0,<25",
+    "pytest-asyncio>=0.21.0,<0.22",
+    "pytest>=7.3.2,<8",
+    "mypy>=1.5.1,<2",
+    "pre-commit>=3.2.2,<4",
+    "ruff>=0.3.2,<0.4",
+    "pytest-md>=0.2.0,<0.3",
+]
+
+[tool.uv]
+# coincurve 20's source build uses the pre-0.10 scikit-build-core configuration.
+build-constraint-dependencies = ["scikit-build-core<0.10"]
+
+[tool.poetry]
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.10 | ^3.9"
-lnbits = {version = "*", allow-prereleases = true}
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.3.0"
-pytest-asyncio = "^0.21.0"
-pytest = "^7.3.2"
-mypy = "^1.5.1"
-pre-commit = "^3.2.2"
-ruff = "^0.3.2"
-pytest-md = "^0.2.0"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+# Poetry enforces LNURL's declared upper bound. Use uv for Python 3.13.
+python = ">=3.10,<3.13"
 
 [tool.mypy]
 exclude = [
