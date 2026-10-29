@@ -1,8 +1,10 @@
 {
+  "id": "auction_house",
+  "version": "1.1.0",
   "name": "Auction House",
+  "repo": "https://github.com/lnbits/auction_house",
   "short_description": "Auction digital goods and services for Bitcoin",
   "description": "Auction digital goods and services for Bitcoin. Create auctions and let the market decide the price",
-  "version": "1.1.0",
   "tile": "/auction_house/static/image/auction_house.png",
   "min_lnbits_version": "1.7.0-rc1",
   "contributors": [
@@ -22,5 +24,9 @@
   ],
   "description_md": "https://raw.githubusercontent.com/lnbits/auction_house/main/description.md",
   "terms_and_conditions_md": "https://raw.githubusercontent.com/lnbits/auction_house/main/toc.md",
-  "license": "MIT"
+  "license": "MIT",
+  "paid_features": "",
+  "tags": ["Fun & Social", "Marketplace"],
+  "donate": "",
+  "hidden": false
 }
