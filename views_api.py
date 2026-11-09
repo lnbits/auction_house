@@ -265,7 +265,7 @@ async def api_place_bid(
     summary="get paginated list of bids for an auction item",
     response_description="list of bids",
     openapi_extra=generate_filter_params_openapi(BidFilters),
-    response_model=Page[PublicAuctionItem],
+    response_model=Page[PublicBid],
 )
 async def api_get_user_bids_paginated(
     auction_item_id: str,
