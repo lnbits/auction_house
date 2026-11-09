@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 import bolt11
-import httpx
 from lnbits.core.crud import get_wallet, get_wallets
 from lnbits.core.crud.wallets import create_wallet, delete_wallet_by_id
 from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services.lnurl import request_lnurl_json
 from lnbits.core.services.websockets import websocket_updater
 from lnbits.db import Filters, Page
 from lnbits.helpers import (
@@ -16,6 +16,7 @@ from lnbits.helpers import (
     is_valid_email_address,
     urlsafe_short_hash,
 )
+from lnbits.utils.safe_http import SafeHttpClient
 from loguru import logger
 
 from .crud import (
@@ -137,7 +138,7 @@ async def add_auction_item(
 async def call_webhook_for_auction_item(
     item_id: str, wh: Webhook, placeholders: dict[str, Any]
 ) -> dict[str, Any]:
-    async with httpx.AsyncClient() as client:
+    async with SafeHttpClient() as client:
         check_callback_url(wh.url)
         res = await client.request(
             wh.method, wh.url, json=wh.data_json(**placeholders), timeout=5
@@ -304,12 +305,12 @@ async def unlock_auction_item(item: AuctionItem):
         await db_log(item.id, f"No unlock webhook for item {item.name} ({item.id}).")
         return None
 
-    unlock_data = await call_webhook_for_auction_item(
+    await call_webhook_for_auction_item(
         item.id, wh, placeholders={"lock_code": item.extra.lock_code}
     )
     item.extra.is_unlocked = True
     await update_auction_item(item)
-    await db_log(item.id, f"Unlocked {item.name} ({item.id}). Resp: {unlock_data}.")
+    await db_log(item.id, f"Unlocked {item.name} ({item.id}).")
 
 
 async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
@@ -331,7 +332,7 @@ async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
         await db_log(item.id, f"No transfer webhook for item {item.name} ({item.id}).")
         return None
 
-    transfer_data = await call_webhook_for_auction_item(
+    await call_webhook_for_auction_item(
         item.id,
         wh,
         placeholders={"lock_code": item.extra.lock_code, "new_owner_id": new_owner_id},
@@ -340,7 +341,7 @@ async def transfer_auction_item(item: AuctionItem, new_owner_id: str):
     item.extra.is_transfered_to_new_owner = True
     await update_auction_item(item)
 
-    await db_log(item.id, f"Transfered {item.name} ({item.id}). Resp: {transfer_data}")
+    await db_log(item.id, f"Transfered {item.name} ({item.id}).")
 
 
 async def place_bid(
@@ -661,67 +662,55 @@ async def _ln_address_payment_request(
     url = f"https://{domain}/.well-known/lnurlp/{name}"
     check_callback_url(url)
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        r = await client.get(url, timeout=5)
-        r.raise_for_status()
+    data = await request_lnurl_json(url)
+    callback_url = data.get("callback")
+    if not callback_url:
+        message = f"Missing callback URL for {ln_address}."
+        await db_log(item_id, message)
+        raise ValueError(message)
 
-        data = r.json()
-        callback_url = data.get("callback")
-        if not callback_url:
-            message = f"Missing callback URL for {ln_address}."
-            await db_log(item_id, message)
-            raise ValueError(message)
+    check_callback_url(callback_url)
 
-        check_callback_url(callback_url)
+    min_sendable = int(data.get("minSendable") // 1000)
+    if not min_sendable:
+        message = f"Missing min_sendable for {ln_address}."
+        await db_log(item_id, message)
+        raise ValueError(message)
 
-        min_sendable = int(data.get("minSendable") // 1000)
-        if not min_sendable:
-            message = f"Missing min_sendable for {ln_address}."
-            await db_log(item_id, message)
-            raise ValueError(message)
+    if amount_sat < min_sendable:
+        message = f"Amount too low for {ln_address}." f" Min sendable: {min_sendable}"
+        await db_log(item_id, message)
+        raise ValueError(message)
 
-        if amount_sat < min_sendable:
-            message = (
-                f"Amount too low for {ln_address}." f" Min sendable: {min_sendable}"
-            )
-            await db_log(item_id, message)
-            raise ValueError(message)
+    max_sendable = int(data.get("maxSendable") // 1000)
+    if not max_sendable:
+        message = f"Missing max_sendable for {ln_address}."
+        await db_log(item_id, message)
+        raise ValueError(message)
 
-        max_sendable = int(data.get("maxSendable") // 1000)
-        if not max_sendable:
-            message = f"Missing max_sendable for {ln_address}."
-            await db_log(item_id, message)
-            raise ValueError(message)
+    if amount_sat > max_sendable:
+        message = f"Amount too high for {ln_address}." f" Max sendable: {max_sendable}"
+        await db_log(item_id, message)
+        raise ValueError(message)
 
-        if amount_sat > max_sendable:
-            message = (
-                f"Amount too high for {ln_address}." f" Max sendable: {max_sendable}"
-            )
-            await db_log(item_id, message)
-            raise ValueError(message)
-
-        amount_msat = amount_sat * 1000
-        r = await client.get(
-            callback_url,
-            params={
-                "amount": amount_msat,
-                "comment": payment_description,
-            },
-            timeout=5,
+    amount_msat = amount_sat * 1000
+    data = await request_lnurl_json(
+        callback_url,
+        params={
+            "amount": amount_msat,
+            "comment": payment_description,
+        },
+        timeout=5,
+    )
+    if not data.get("pr"):
+        raise ValueError(
+            f"Missing payment request in callback response for {ln_address}."
         )
-        r.raise_for_status()
-
-        data = r.json()
-        if not data.get("pr"):
-            raise ValueError(
-                f"Missing payment request in callback response for {ln_address}."
-            )
-        invoice = bolt11.decode(data["pr"])
-        if invoice.amount_msat != amount_msat:
-            raise ValueError(
-                "Amount mismatch in invoice for"
-                f" {ln_address} ({payment_description})."
-            )
+    invoice = bolt11.decode(data["pr"])
+    if invoice.amount_msat != amount_msat:
+        raise ValueError(
+            "Amount mismatch in invoice for" f" {ln_address} ({payment_description})."
+        )
 
     return data["pr"]
 
